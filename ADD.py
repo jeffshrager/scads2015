@@ -1,7 +1,9 @@
 from random import randint, shuffle, random
+import numpy as np
 import os
 import csv
 import matplotlib.pyplot as plt
+import NeuralNetwork as nn1
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -375,14 +377,14 @@ def exec_strategy(strategy_choice):
     DSTR.update (ADDEND.ad1, ADDEND.ad2, SOLUTION)
     trp(1, "Solution = %s" % SOLUTION)
 
-# Multiple (standard) strategies and Strategy Choice Algorithm (SCA). 
+# Multiple (standard) strategies and Strategy Choice Algorithm (SCA).
 # For the moment, this will just be random.
 
 def SCA():
     exec_strategy(random_strategy())
 
 
-# Problem Presentation Algorithm (PPA). 
+# Problem Presentation Algorithm (PPA).
 # Again, just random for now.
 
 def PPA():
@@ -393,7 +395,7 @@ def PPA():
 # Associative Problem->Solution Memory (APSM) For the moment
 # this will just a table that counts the number of times each
 # problem leads to each solution. APSM will be pre-loaded with
-# a small tendency to recall n+1 for m+n problems (i.e., 3+4 
+# a small tendency to recall n+1 for m+n problems (i.e., 3+4
 # give a small bump to 5).
 
 
@@ -413,13 +415,8 @@ class Apsm(object):
         # Set in place all the 1+ problems with small positive associations.
 
         for i in range(1,6):
-            self.table[i][1][i+1] += 0.55
-            self.table[1][i][i+1] += 0.55
-        
-        # And all the run-on problems (like 3+4=5)
-        
-        for i in range(1,5):
-            self.table[i][i+1][i+2] += 0.55
+            for j in range(1,6):
+                self.table[i][j] = nn.predict(nn1.addends_matrix(i,j))
     
     # When the problem is completed, update the memory table
     # appropriately depending upon whether we got it right or wrong.
@@ -432,7 +429,8 @@ class Apsm(object):
             if a1 + a2 == result:
                 self.table[a1][a2][result] += INCR_RIGHT
             else:
-                self.table[a1][a2][result] += INCR_WRONG   
+                self.table[a1][a2][result] += INCR_WRONG
+        nn.fit()
     
     # Print the table.
         
@@ -575,12 +573,6 @@ class Distribution(object):
         plt.show()
 
 def test(n_times,strategy_choice):
-    global APSM, DSTR
-    
-    # Set up the solution memory table and the answer distribution table
-    
-    APSM = Apsm()
-    DSTR = Distribution()
     
     # Repeat n times.
     
@@ -594,12 +586,32 @@ def test(n_times,strategy_choice):
     # DSTR.print_csv(relative = True)
     # DSTR.bar_plot(relative = True)
 
-def get_relative_table():
-    return DSTR.relative_table(relative=True)
+#sets up the neural network fitted to counting
+def counting_network(hidden_units = 30, learning_rate = 0.07):
+    #this is the addends matrix
+    input_units = 14
+    #this is the output matrix
+    output_units = 13
+
+
+    #fits to counting network
+    NN = nn1.NeuralNetwork([input_units,hidden_units,output_units])
+    X_count = []
+    y_count = []
+    for i in range(1,5):
+        X_count.append(nn1.addends_matrix(i,i+1))
+        y_count.append(nn1.sum_matrix(i+2))
+    X_count = np.array(X_count)
+    y_count = np.array(y_count)
+    NN.fit(X_count,y_count,learning_rate)
+    return NN
 
 def main():
     global TL, PERR, RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC
     global INCR_RIGHT, INCR_WRONG
+    global APSM, DSTR
+    global nn
+
     TL=0 # Trace level -- 0 means off
     
     PERR = 0.04 # Probability of counting error (missing a count).
@@ -611,7 +623,15 @@ def main():
     
     RETRIEVAL_LOW_CC = 0.1
     RETRIEVAL_HIGH_CC = 0.9
-    
+
+    nn = counting_network()
+
+    # Set up the solution memory table and the answer distribution table
+    APSM = Apsm()
+    DSTR = Distribution()
+
+
+
     test(1000,count_from_either_strategy)
     return DSTR.relative_table(relative=True)
 
