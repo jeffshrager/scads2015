@@ -5,6 +5,8 @@ import csv
 import matplotlib.pyplot as plt
 import NeuralNetwork as nn1
 import ADD
+import datetime
+import timeit
 
 
 def trp(tl, text):
@@ -153,23 +155,30 @@ class Distribution(object):
 
     def show(self, relative=True):
         table = self.relative_table(relative)
-
+        full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_txt'),file_name + '.txt')
+        f = open(full_name, 'w')
+        f.write('EPOCHS: ' + str(epoch) + '\n')
+        f.write('LEARNING_RATE: ' + str(learning_rate) + '\n')
+        f.write('INCR_RIGHT: ' + str(INCR_RIGHT) + '\n')
+        f.write('STRATEGY: ' + str(strategy) + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
-                print "%s + %s = " % (i, j),
+                f.write("%s + %s = " % (i, j)),
                 for k in range(13):
-                    print "%s (%0.03f), " % (k, table[i][j][k]),
-                print
-            print
+                    f.write("%s (%0.03f), " % (k, table[i][j][k])),
+                f.write('\n')
+            f.write('\n')
 
     # Export to csv file.
 
     def print_csv(self, relative=False):
         table = self.relative_table(relative)
-
-        with open(os.path.join(os.path.dirname(__file__), '0721-t1000-e500-IR600.csv'), 'wb') as csvfile:
+        full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_csv'),file_name + '.csv')
+        with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
-
+            writer.writerow(['EPOCHS: ', epoch, 'LEARNING_RATE: ', learning_rate])
+            writer.writerow(['INCR_RIGHT: ', INCR_RIGHT, 'STRATEGY: ', strategy])
+            writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
             writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
             for i in range(1, 6):
@@ -269,6 +278,9 @@ def main():
     global APSM, DSTR
     global nn
     global epoch, learning_rate
+    global file_name
+    global strategy
+    global test_num
 
     TL = 0  # trace level, 0 means off
 
@@ -281,31 +293,42 @@ def main():
     RETRIEVAL_LOW_CC = 0.1
     RETRIEVAL_HIGH_CC = 0.9
 
-    # initialize the neural network to be from 3+4=5 problems
-    nn = counting_network()
-
-    # Set up the solution memory table and the answer distribution table
-    APSM = Apsm()
-    DSTR = Distribution()
-
-    ADD.main()
+    start = timeit.default_timer()
 
 
     epoch = 100
     learning_rate = 0.1
 
-    arr_of_learning_rates = np.arange(0.08,0.18,0.02)
-    arr_of_epochs = np.arange(200,1100,100)
-    arr_of_incr_right = (2,11,1.5)
+    test_num = 1000
+    strategy = ADD.count_from_either_strategy
+    arr_of_learning_rates = [0.1,0.2,0.3]
+    arr_of_epochs = [250, 500, 750]
+    arr_of_incr_right = [2, 5, 8]
+
+    test_num = 1000
+    strategy = ADD.count_from_either_strategy
+
 
     for i in arr_of_epochs:
         for j in arr_of_incr_right:
             for k in arr_of_learning_rates:
-                print
+                # initialize the neural network to be from 3+4=5 problems
+                nn = counting_network()
+                # Set up the solution memory table and the answer distribution table
+                APSM = Apsm()
+                DSTR = Distribution()
+                ADD.main()
 
+                epoch = i
+                INCR_RIGHT = j
+                learning_rate = k
+                file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+                test(test_num,strategy)
 
-    test(1000, ADD.count_from_either_strategy)
+    stop = timeit.default_timer()
+    print stop-start
+
 
 
 if __name__ == "__main__":
