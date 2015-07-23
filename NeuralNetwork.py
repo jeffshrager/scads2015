@@ -149,7 +149,7 @@ def train_and_test(hidden_units,learning_rate,epochs):
     
     return np.corrcoef(y.flatten(),prediction.flatten())[1,0]
     
-def parameters(y_arg, epochs = 10000):
+def parameters(y_arg, epochs=10000):
     global X,y
 
     # Set the range of parameters we want to test: number of 

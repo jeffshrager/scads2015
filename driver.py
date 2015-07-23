@@ -1,4 +1,4 @@
-from random import randint, shuffle, random
+from random import randint, random
 import numpy as np
 import os
 import csv
@@ -7,8 +7,8 @@ import NeuralNetwork as nn1
 import ADD
 
 
-def trp(tl,text):
-    if TL>tl:
+def trp(tl, text):
+    if TL > tl:
         print text
 
 # Associative Problem->Solution Memory (APSM) For the moment
@@ -27,8 +27,8 @@ some time with nothing to do.  Note that the array is actually one
 wider in each direction than the possible solutions; the zero index
 isn't used. '''
 
-class Apsm(object):
 
+class Apsm(object):
     def __init__(self):
         self.table = [[[0.01 for x in range(11)] for x in range(6)] for x in range(6)]
         self.y = []
@@ -36,11 +36,10 @@ class Apsm(object):
 
         # generate the table so it contains reference to mutable list y, thus changing the table when we update will also change y for when we do the fit (hopefully)
         y_index = 0
-        for i in range(1,6):
-            for j in range(1,6):
-                self.y.append(nn.predict(nn1.addends_matrix(i,j)))
+        for i in range(1, 6):
+            for j in range(1, 6):
+                self.y.append(nn.predict(nn1.addends_matrix(i, j)))
                 self.table[i][j] = self.y[y_index]
-                #self.table[i][j] = nn.predict(nn1.addends_matrix(i,j))
                 y_index += 1
 
     # When the problem is completed, update the memory table
@@ -49,27 +48,29 @@ class Apsm(object):
     # then update the neural network
 
     def update(self, eq):
+        global epoch, learning_rate
         # eq is [a1,a2,result]
         a1 = eq[0]
         a2 = eq[1]
         result = eq[2]
 
-        if (a1>5) or (a2>5) or (result>10):
-            trp(1,"Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (a1,a2,result))
+        if (a1 > 5) or (a2 > 5) or (result > 10):
+            trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
+            a1, a2, result))
         else:
             if a1 + a2 == result:
                 self.table[a1][a2][a1 + a2] += INCR_RIGHT
             else:
                 self.table[a1][a2][a1 + a2] += INCR_WRONG
-        nn.fit(X_count,np.array(self.y), epochs=10)
+        nn.fit(X_count, np.array(self.y),learning_rate, epoch)
 
     # Print the table.
 
     def show(self):
-        for i in range(1,6):
-            for j in range(1,6):
-                print "%s + %s = " % (i,j) ,
-                for k in range(1,11):
+        for i in range(1, 6):
+            for j in range(1, 6):
+                print "%s + %s = " % (i, j),
+                for k in range(1, 11):
                     print "%s (%s), " % (k, self.table[i][j][k]),
                 print
             print
@@ -77,8 +78,8 @@ class Apsm(object):
     # Pick at random from among the results that come above the cc, or
     # return None if nothing comes over the cc.
 
-    def guess(self,a1,a2):
-        if (a1>5) or (a2>5):
+    def guess(self, a1, a2):
+        if (a1 > 5) or (a2 > 5):
             return (None)
 
         cc = RETRIEVAL_LOW_CC + (RETRIEVAL_HIGH_CC - RETRIEVAL_LOW_CC) * random()
@@ -86,23 +87,23 @@ class Apsm(object):
 
         results_above_cc = []
 
-        for i in range(1,11):
+        for i in range(1, 11):
             if self.table[a1][a2][i] >= cc:
                 results_above_cc.append(i)
 
         l = len(results_above_cc)
-        if l>0:
-            return (results_above_cc[randint(0,l-1)])
+        if l > 0:
+            return (results_above_cc[randint(0, l - 1)])
         return (None)
+
 
 # Answer distribution table
 
 class Distribution(object):
-
     # Record answers ranging from 0 to 11; 12 includes all other answers.
 
     def __init__(self):
-        self.table= [[[0 for x in range(13)] for x in range(6)] for x in range(6)]
+        self.table = [[[0 for x in range(13)] for x in range(6)] for x in range(6)]
 
     # Update the distribution table when a new answer is generated.
 
@@ -111,51 +112,51 @@ class Distribution(object):
         a1 = eq[0]
         a2 = eq[1]
         result = eq[2]
-        if (a1>5) or (a2>5):
-            trp(1,"Addends (%s+%s) is/are larger than the distribution table limits -- Ignored!" % (a1,a2))
+        if (a1 > 5) or (a2 > 5):
+            trp(1, "Addends (%s+%s) is/are larger than the distribution table limits -- Ignored!" % (a1, a2))
             return
 
         if result not in range(12):
-            self.table[a1][a2][12] +=1
+            self.table[a1][a2][12] += 1
         else:
-            self.table[a1][a2][result] +=1
+            self.table[a1][a2][result] += 1
 
     # Calculate relative frequency, return blank string when frequency is zero
     # so that the table looks clean when printed.
 
-    def relative_frequency(self,a1,a2,result):
+    def relative_frequency(self, a1, a2, result):
         s = sum(self.table[a1][a2])
         if (s == 0) or (self.table[a1][a2][result] == 0):
             return ''
         else:
-            return round(float(self.table[a1][a2][result])/s, 2)
+            return round(float(self.table[a1][a2][result]) / s, 2)
 
     # Same function but return zero when frequency is zero so that
     # it can be plotted into graphs.
 
-    def relative_frequency1(self,a1,a2,result):
+    def relative_frequency1(self, a1, a2, result):
         s = sum(self.table[a1][a2])
         if s == 0:
             return 0
         else:
-            return float(self.table[a1][a2][result])/s
+            return float(self.table[a1][a2][result]) / s
 
     # Convert the whole frequency table to relative frequency.
 
-    def relative_table(self,relative):
+    def relative_table(self, relative):
         if relative:
-            return [[[self.relative_frequency1(x,y,z) for z in range(13)] for y in range(6)] for x in range(6)]
+            return [[[self.relative_frequency1(x, y, z) for z in range(13)] for y in range(6)] for x in range(6)]
         else:
             return [[[self.table[x][y][z] for z in range(13)] for y in range(6)] for x in range(6)]
 
     # Print the table.
 
-    def show(self,relative = True):
+    def show(self, relative=True):
         table = self.relative_table(relative)
 
-        for i in range(1,6):
-            for j in range(1,6):
-                print "%s + %s = " % (i,j) ,
+        for i in range(1, 6):
+            for j in range(1, 6):
+                print "%s + %s = " % (i, j),
                 for k in range(13):
                     print "%s (%0.03f), " % (k, table[i][j][k]),
                 print
@@ -163,23 +164,23 @@ class Distribution(object):
 
     # Export to csv file.
 
-    def print_csv(self,relative = False):
+    def print_csv(self, relative=False):
         table = self.relative_table(relative)
 
-        with open(os.path.join(os.path.dirname(__file__), 'DistributionTable.csv'),'wb') as csvfile:
+        with open(os.path.join(os.path.dirname(__file__), '0721-t1000-e500-IR600.csv'), 'wb') as csvfile:
             writer = csv.writer(csvfile)
 
-            writer.writerow(['PROBLEM','ANSWER'])
-            writer.writerow(['']+[str(x) for x in range(12)]+['OTHER'])
-            for i in range(1,6):
-                for j in range(1,6):
-                    writer.writerow(["%s + %s = " % (i,j)]+[table[i][j][k] for k in range(13)])
+            writer.writerow(['PROBLEM', 'ANSWER'])
+            writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
+            for i in range(1, 6):
+                for j in range(1, 6):
+                    writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
     # Plot the distribution table into bar charts.
 
-    def bar_plot(self, relative = False):
+    def bar_plot(self, relative=False):
         if relative:
-            table = [[[self.relative_frequency1(x,y,z) for z in range(13)] for y in range(6)] for x in range(6)]
+            table = [[[self.relative_frequency1(x, y, z) for z in range(13)] for y in range(6)] for x in range(6)]
 
         else:
             table = [[[self.table[x][y][z] for z in range(13)] for y in range(6)] for x in range(6)]
@@ -188,27 +189,32 @@ class Distribution(object):
 
         plt.figure()
 
-        for i in range(1,6):
-            for j in range(1,6):
-                ax=plt.subplot(5,5,(i-1)*5+j)
-                plt.bar([x-0.4 for x in range(13)],table[i][j],linewidth=0,color="steelblue")
-                plt.xlim(-0.5,12.5)
-                plt.ylim(0, maxheight*1.1)
-                plt.text(.5,1.03,"%s + %s" % (i,j), horizontalalignment='center', transform=ax.transAxes)
-                plt.tick_params(\
+        for i in range(1, 6):
+            for j in range(1, 6):
+                ax = plt.subplot(5, 5, (i - 1) * 5 + j)
+                plt.bar([x - 0.4 for x in range(13)], table[i][j], linewidth=0, color="steelblue")
+                plt.xlim(-0.5, 12.5)
+                plt.ylim(0, maxheight * 1.1)
+                plt.text(.5, 1.03, "%s + %s" % (i, j), horizontalalignment='center', transform=ax.transAxes)
+                plt.tick_params( \
                     axis='both',
                     which='both',
                     bottom='off',
                     top='off',
-            	    left='off',
+                    left='off',
                     right='off',
                     labelleft='on',
-                    labelbottom='on',labelsize=8)
+                    labelbottom='on', labelsize=8)
         plt.tight_layout(h_pad=1)
         plt.show()
 
+# try retrieval first, if it fails then
+# Initialize hand, echoic buffer and
+# counting buffer,and carry out the strategy.
+# Update memory and distribution table at the end.
+
 def exec_strategy(strategy_choice):
-    retrieval = APSM.guess(ADD.ADDEND.ad1,ADD.ADDEND.ad2)
+    retrieval = APSM.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
     SOLUTION = 0
     if retrieval is not None:
         trp(1, "Used Retrieval")
@@ -219,8 +225,7 @@ def exec_strategy(strategy_choice):
     return [ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION]
 
 
-def test(n_times,strategy_choice):
-
+def test(n_times, strategy_choice):
     # Repeat n times.
 
     for i in range(n_times):
@@ -229,43 +234,46 @@ def test(n_times,strategy_choice):
         APSM.update(eq)
         DSTR.update(eq)
 
-    #Output the distribution table.
+    # Output the distribution table.
 
-    DSTR.show(relative = True)
-    DSTR.print_csv(relative = True)
-    DSTR.bar_plot(relative = True)
+    DSTR.show(relative=True)
+    DSTR.print_csv(relative=True)
+    #DSTR.bar_plot(relative=True)
 
-    #sets up the neural network fitted to counting
+    # sets up the neural network fitted to counting
+
 
 def counting_network(hidden_units=30, learning_rate=0.15):
     global X_count, y_count
-    #this is the addends matrix
+    # this is the addends matrix
     input_units = 14
-    #this is the output matrix
+    # this is the output matrix
     output_units = 13
 
-    #fits to counting network
-    NN = nn1.NeuralNetwork([input_units,hidden_units,output_units])
+    # fits to counting network
+    NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
     X_count = []
     y_count = []
-    for i in range(1,5):
-        X_count.append(nn1.addends_matrix(i,i+1))
-        y_count.append(nn1.sum_matrix(i+2))
+    for i in range(1, 5):
+        X_count.append(nn1.addends_matrix(i, i + 1))
+        y_count.append(nn1.sum_matrix(i + 2))
     X_count = np.array(X_count)
     y_count = np.array(y_count)
-    NN.fit(X_count,y_count,learning_rate)
+    NN.fit(X_count, y_count, learning_rate)
     return NN
+
 
 def main():
     global TL, RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC
     global INCR_RIGHT, INCR_WRONG
     global APSM, DSTR
     global nn
+    global epoch, learning_rate
 
-    TL = 0 # trace level, 0 means off
+    TL = 0  # trace level, 0 means off
 
-    INCR_RIGHT = 0.06 # Add this to solution memory when you get a problem right
-    INCR_WRONG = 0.03 # Add this when you get one wrong
+    INCR_RIGHT = 6.00  # Add this to solution memory when you get a problem right
+    INCR_WRONG = 0.03  # Add this when you get one wrong
 
     # Retrieval cc ranges are used in select-strategy to determine when
     # to actually choose retrieval (via setting the cc randomly).
@@ -273,6 +281,7 @@ def main():
     RETRIEVAL_LOW_CC = 0.1
     RETRIEVAL_HIGH_CC = 0.9
 
+    # initialize the neural network to be from 3+4=5 problems
     nn = counting_network()
 
     # Set up the solution memory table and the answer distribution table
@@ -281,9 +290,23 @@ def main():
 
     ADD.main()
 
-    test(100,ADD.count_from_either_strategy)
+
+    epoch = 100
+    learning_rate = 0.1
+
+    arr_of_learning_rates = np.arange(0.08,0.18,0.02)
+    arr_of_epochs = np.arange(200,1100,100)
+    arr_of_incr_right = (2,11,1.5)
+
+    for i in arr_of_epochs:
+        for j in arr_of_incr_right:
+            for k in arr_of_learning_rates:
+                print
+
+
+
+    test(1000, ADD.count_from_either_strategy)
+
 
 if __name__ == "__main__":
-    ADD.main()
     main()
-
