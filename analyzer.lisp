@@ -93,19 +93,39 @@
 	  (add-substring length)
 	  (nreverse substrings))))
 
+(defvar *params->ccs* (make-hash-table :test #'equal))
+
+(defun dht (table &optional (n 10000))
+  (maphash #'(lambda (key value)
+	       (when (zerop (decf n)) (return-from dht))
+	       (format t "~s: ~s~%" key value)	       
+	       )
+	   table))
+
 (defun test ()
+  (clrhash *params->ccs*)
   (with-open-file 
    (*tsv* "resultsum.xls" :direction :output :if-exists :supersede) 
    (format *tsv* "Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef~%")
-  (loop for file in (directory "test_csv/*.csv")
-	as r = (load-result-file file)
-	as c = (compare r)
-	as p = (car r)
-	do 
-	(format t "~a [~a] --> ~a~%" (car r) (pathname-name file) c)
-	(mapcar #'(lambda (r) (format *tsv* "~a		" (cdr r))) p)
-	(format *tsv* "~a	~a~%" (pathname-name file) c)
-	)))
+   (loop for file in (directory "test_csv/*.csv")
+	 as r = (load-result-file file)
+	 as c = (compare r)
+	 as p = (car r)
+	 do 
+	 (format t "~a [~a] --> ~a~%" p (pathname-name file) c)
+	 (mapcar #'(lambda (r) (format *tsv* "~a		" (cdr r))) p)
+	 (format *tsv* "~a	~a~%" (pathname-name file) c)
+	 (push c (gethash p *params->ccs*))
+	 ))
+  (format t "Summary stats:~%")
+  (loop for p being the hash-keys of *params->ccs*
+	using (hash-value cs)
+	do (format t "~a: n=~a, mean cc=~a, ccstderr=~a~%"
+		   p
+		   (length cs)
+		   (if (cdr cs) (STATISTICS:MEAN cs) cs)
+		   (if (cdr cs) (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs) cs)
+		   )))
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
