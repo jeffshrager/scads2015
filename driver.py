@@ -275,16 +275,12 @@ def counting_network(hidden_units=30, learning_rate=0.15):
 def main():
     global TL, RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC
     global INCR_RIGHT, INCR_WRONG
-    global APSM, DSTR
-    global nn
-    global epoch, learning_rate
-    global file_name
-    global strategy
-    global test_num
+    global APSM, DSTR, nn
+    global epoch, learning_rate, file_name, strategy, test_num
 
     TL = 0  # trace level, 0 means off
 
-    INCR_RIGHT = 6.00  # Add this to solution memory when you get a problem right
+    INCR_RIGHT = 2  # Add this to solution memory when you get a problem right
     INCR_WRONG = 0.03  # Add this when you get one wrong
 
     # Retrieval cc ranges are used in select-strategy to determine when
@@ -295,36 +291,45 @@ def main():
 
     start = timeit.default_timer()
 
+    # initialize the neural network to be from 3+4=5 problems
+    nn = counting_network()
+    # Set up the solution memory table and the answer distribution table
+    APSM = Apsm()
+    DSTR = Distribution()
+    ADD.main()
 
-    epoch = 100
-    learning_rate = 0.1
+    epoch = 500
+    learning_rate = 0.2
 
+    multiple_tests = False
     test_num = 1000
-    strategy = ADD.count_from_either_strategy
-    arr_of_learning_rates = [0.1,0.2,0.3]
-    arr_of_epochs = [250, 500, 750]
-    arr_of_incr_right = [2, 5, 8]
+    strategy = ADD.random_strategy
 
-    test_num = 1000
-    strategy = ADD.count_from_either_strategy
+    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+    if multiple_tests:
+        arr_of_learning_rates = [0.1,0.2,0.3]
+        arr_of_epochs = [250, 500, 750]
+        arr_of_incr_right = [2, 5, 8]
 
-    for i in arr_of_epochs:
-        for j in arr_of_incr_right:
-            for k in arr_of_learning_rates:
-                # initialize the neural network to be from 3+4=5 problems
-                nn = counting_network()
-                # Set up the solution memory table and the answer distribution table
-                APSM = Apsm()
-                DSTR = Distribution()
-                ADD.main()
+        for i in arr_of_epochs:
+            for j in arr_of_incr_right:
+                for k in arr_of_learning_rates:
+                    # initialize the neural network to be from 3+4=5 problems
+                    nn = counting_network()
+                    # Set up the solution memory table and the answer distribution table
+                    APSM = Apsm()
+                    DSTR = Distribution()
+                    ADD.main()
 
-                epoch = i
-                INCR_RIGHT = j
-                learning_rate = k
-                file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    epoch = i
+                    INCR_RIGHT = j
+                    learning_rate = k
+                    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-                test(test_num,strategy)
+                    test(test_num,strategy)
+    else:
+        test(test_num,strategy)
 
     stop = timeit.default_timer()
     print stop-start
