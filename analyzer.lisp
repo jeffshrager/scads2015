@@ -37,18 +37,20 @@
     ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
     ))
 
+(defvar *tsv* nil)
+
 (defun load-result-file (file)
-  (with-open-file 
-   (i file)
-   (cons (parse-params (loop for k below 5 collect (read-line i nil nil)))
-	 ;; Each line from here on should have a problem and then a bunch of results
-	 ;; cols are ,0,1,2,3,4,5,6,7,8,9,10,11,OTHER
-	 (loop for a from 1 to 5
-	       append (loop for b from 1 to 5
-			    collect (cons (cons a b)
-					  (mapcar #'read-from-string 
-						  ;; Drop the first thing, which is just the problem statement
-						  (cdr (string-split (read-line i nil nil))))))))))
+   (with-open-file 
+    (i file)
+    (cons (parse-params (loop for k below 5 collect (read-line i nil nil)))
+	  ;; Each line from here on should have a problem and then a bunch of results
+	  ;; cols are ,0,1,2,3,4,5,6,7,8,9,10,11,OTHER
+	  (loop for a from 1 to 5
+		append (loop for b from 1 to 5
+			     collect (cons (cons a b)
+					   (mapcar #'read-from-string 
+						   ;; Drop the first thing, which is just the problem statement
+						   (cdr (string-split (read-line i nil nil))))))))))
 
 (defun parse-params (params)
   (let* ((l1 (string-split (first params)))
@@ -92,9 +94,18 @@
 	  (nreverse substrings))))
 
 (defun test ()
+  (with-open-file 
+   (*tsv* "resultsum.xls" :direction :output :if-exists :supersede) 
+   (format *tsv* "Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef~%")
   (loop for file in (directory "test_csv/*.csv")
 	as r = (load-result-file file)
-	do (format t "~a [~a] --> ~a~%" (car r) (pathname-name file) (compare r))))
+	as c = (compare r)
+	as p = (car r)
+	do 
+	(format t "~a [~a] --> ~a~%" (car r) (pathname-name file) c)
+	(mapcar #'(lambda (r) (format *tsv* "~a		" (cdr r))) p)
+	(format *tsv* "~a	~a~%" (pathname-name file) c)
+	)))
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
