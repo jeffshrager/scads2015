@@ -301,36 +301,35 @@ def main():
     epoch = 500
     learning_rate = 0.2
 
-    multiple_tests = False
-    test_num = 1000
-    strategy = ADD.random_strategy
+    n_problems = 1000
+    ndups = 10
 
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-    if multiple_tests:
-        arr_of_learning_rates = [0.1,0.2,0.3]
-        arr_of_epochs = [250, 500, 750]
-        arr_of_incr_right = [2, 5, 8]
-
-        for i in arr_of_epochs:
-            for j in arr_of_incr_right:
-                for k in arr_of_learning_rates:
-                    # initialize the neural network to be from 3+4=5 problems
-                    nn = counting_network()
-                    # Set up the solution memory table and the answer distribution table
-                    APSM = Apsm()
-                    DSTR = Distribution()
-                    ADD.main()
-
-                    epoch = i
-                    INCR_RIGHT = j
-                    learning_rate = k
-                    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-                    test(test_num,strategy)
-    else:
-        test(test_num,strategy)
-
+    learning_rates = [0.2]
+    epochs = [500]
+    incr_rights = [2]
+    strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
+    for strategy in strategies:
+        for i in epochs:
+            for j in incr_rights:
+                for k in learning_rates:
+                    for d in range(1,ndups):
+                        print(str(strategy) + (" ep={0}, ir={1}, lr={2}, d={3}\n".format(i, j, k, d)))
+                        # initialize the neural network to be from 3+4=5 problems
+                        nn = counting_network()
+                        # Set up the solution memory table and the answer distribution table
+                        APSM = Apsm()
+                        DSTR = Distribution()
+                        ADD.main()
+                        
+                        epoch = i
+                        INCR_RIGHT = j
+                        learning_rate = k
+                        file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    
+                        test(n_problems,strategy)
+                
     stop = timeit.default_timer()
     print stop-start
 
