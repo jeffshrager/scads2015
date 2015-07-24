@@ -37,7 +37,7 @@
     ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
     ))
 
-(defvar *tsv* nil)
+(defvar *resultsum* nil)
 
 (defun load-result-file (file)
    (with-open-file 
@@ -58,7 +58,6 @@
 		       until (search  "OTHER" line)
 		       do (length line) (if (> k 10) (break)) ;; Avoid hard looping in case of problems.
 		       collect line)))
-    (print params)
     (if (search "N_PROBLEMS" (car params))
 	(loop for param in '(np ep lr ip st)
 	      as line in params
@@ -121,28 +120,32 @@
 (defun test ()
   (clrhash *params->ccs*)
   (with-open-file 
-   (*tsv* "resultsum.xls" :direction :output :if-exists :supersede) 
-   (format *tsv* "Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef~%")
+   (*resultsum* "allresults.xls" :direction :output :if-exists :supersede) 
+   (format *resultsum* "Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef~%")
    (loop for file in (directory "test_csv/*.csv")
 	 as r = (load-result-file file)
 	 as c = (compare r)
 	 as p = (car r)
 	 do 
 	 (format t "~a [~a] --> ~a~%" p (pathname-name file) c)
-	 (mapcar #'(lambda (r) (format *tsv* "~a		" (cdr r))) p)
-	 (format *tsv* "~a	~a~%" (pathname-name file) c)
+	 (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
+	 (format *resultsum* "~a	~a~%" (pathname-name file) c)
 	 (push c (gethash p *params->ccs*))
 	 ))
   (format t "Summary stats (only examples with multiple runs are displayed here):~%")
+  (with-open-file 
+   (*resultsum* "stat.xls" :direction :output :if-exists :supersede) 
+   (format *resultsum* "NProblems	Epochs	LearnRate	CorrectIncr	Srategy	n	meancc	stderr~%")
   (loop for p being the hash-keys of *params->ccs*
 	using (hash-value cs)
 	when (cdr cs)
-	do (format t "~a: n=~a, mean cc=~a, ccstderr=~a~%"
-		   p
+	do 
+	(mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
+	(format *resultsum* "~a	~a	~a~%"
 		   (length cs)
 		   (STATISTICS:MEAN cs)
 		   (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
-		   )))
+		   ))))
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
