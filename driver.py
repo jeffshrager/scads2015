@@ -324,10 +324,12 @@ def main():
                         APSM = Apsm()
                         DSTR = Distribution()
                         ADD.main()
+                        # Set the globals to the local value for this run
                         epoch = i
                         INCR_RIGHT = j
                         learning_rate = k
                         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                        # And we're off to the races!
                         test(n_problems,strategy)
                 
     stop = timeit.default_timer()

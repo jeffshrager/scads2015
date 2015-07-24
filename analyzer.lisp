@@ -117,14 +117,15 @@
 	 (format *tsv* "~a	~a~%" (pathname-name file) c)
 	 (push c (gethash p *params->ccs*))
 	 ))
-  (format t "Summary stats:~%")
+  (format t "Summary stats (only examples with multiple runs are displayed here):~%")
   (loop for p being the hash-keys of *params->ccs*
 	using (hash-value cs)
+	when (cdr cs)
 	do (format t "~a: n=~a, mean cc=~a, ccstderr=~a~%"
 		   p
 		   (length cs)
-		   (if (cdr cs) (STATISTICS:MEAN cs) cs)
-		   (if (cdr cs) (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs) cs)
+		   (STATISTICS:MEAN cs)
+		   (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
 		   )))
 
 (untrace)
