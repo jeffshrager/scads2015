@@ -301,15 +301,17 @@ def main():
     epoch = 500
     learning_rate = 0.2
 
+    # Master params usually aren't scanned:
     n_problems = 1000
     ndups = 10
 
-    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
+    # Scannable params:
     learning_rates = [0.2]
     epochs = [500]
     incr_rights = [2]
     strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
+
+    # Testing loop scans the scannable params:
     for strategy in strategies:
         for i in epochs:
             for j in incr_rights:
@@ -322,18 +324,14 @@ def main():
                         APSM = Apsm()
                         DSTR = Distribution()
                         ADD.main()
-                        
                         epoch = i
                         INCR_RIGHT = j
                         learning_rate = k
                         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                    
                         test(n_problems,strategy)
                 
     stop = timeit.default_timer()
     print stop-start
-
-
 
 if __name__ == "__main__":
     main()

@@ -64,3 +64,5 @@ Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef
 500		0.2		2		count_from_one_once_strategy		20150724091940	0.43103632
 500		0.2		2		count_from_one_once_strategy		20150724092024	0.39295158
 500		0.2		2		count_from_one_once_strategy		20150724092109	0.40446347
+500		0.2		2		count_from_one_once_strategy		20150724092153	0.49275082
+500		0.2		2		count_from_one_once_strategy		20150724092240	0.34331438
