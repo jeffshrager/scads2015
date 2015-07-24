@@ -50,7 +50,7 @@ class Apsm(object):
     # then update the neural network
 
     def update(self, eq):
-        global epoch, learning_rate
+        global epoch, learning_rate, n_problems
         # eq is [a1,a2,result]
         a1 = eq[0]
         a2 = eq[1]
@@ -157,6 +157,7 @@ class Distribution(object):
         table = self.relative_table(relative)
         full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_txt'),file_name + '.txt')
         f = open(full_name, 'w')
+        f.write('N_PROBLEMS: ' + str(n_problems) + '\n')
         f.write('EPOCHS: ' + str(epoch) + '\n')
         f.write('LEARNING_RATE: ' + str(learning_rate) + '\n')
         f.write('INCR_RIGHT: ' + str(INCR_RIGHT) + '\n')
@@ -176,8 +177,11 @@ class Distribution(object):
         full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_csv'),file_name + '.csv')
         with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['EPOCHS: ', epoch, 'LEARNING_RATE: ', learning_rate])
-            writer.writerow(['INCR_RIGHT: ', INCR_RIGHT, 'STRATEGY: ', strategy])
+            writer.writerow(['N_PROBLEMS: ', n_problems])
+            writer.writerow(['EPOCHS: ', epoch])
+            writer.writerow(['LEARNING_RATE: ', learning_rate])
+            writer.writerow(['INCR_RIGHT: ', INCR_RIGHT])
+            writer.writerow(['STRATEGY: ', strategy])
             writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
             writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
@@ -276,7 +280,7 @@ def main():
     global TL, RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC
     global INCR_RIGHT, INCR_WRONG
     global APSM, DSTR, nn
-    global epoch, learning_rate, file_name, strategy, test_num
+    global epoch, learning_rate, file_name, strategy, n_problems
 
     TL = 0  # trace level, 0 means off
 
@@ -302,35 +306,37 @@ def main():
     learning_rate = 0.2
 
     # Master params usually aren't scanned:
-    n_problems = 1000
-    ndups = 10
+    ndups = 4
 
     # Scannable params:
+    n_problemss = [250,500,750,1000,1250,1500,1750,2000]
     learning_rates = [0.2]
-    epochs = [500]
+    epochs = [100]
     incr_rights = [2]
     strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
 
     # Testing loop scans the scannable params:
-    for strategy in strategies:
-        for i in epochs:
-            for j in incr_rights:
-                for k in learning_rates:
-                    for d in range(1,ndups):
-                        print(str(strategy) + (" ep={0}, ir={1}, lr={2}, d={3}\n".format(i, j, k, d)))
-                        # initialize the neural network to be from 3+4=5 problems
-                        nn = counting_network()
-                        # Set up the solution memory table and the answer distribution table
-                        APSM = Apsm()
-                        DSTR = Distribution()
-                        ADD.main()
-                        # Set the globals to the local value for this run
-                        epoch = i
-                        INCR_RIGHT = j
-                        learning_rate = k
-                        file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                        # And we're off to the races!
-                        test(n_problems,strategy)
+    for n in n_problemss:
+        for strategy in strategies:
+            for i in epochs:
+                for j in incr_rights:
+                    for k in learning_rates:
+                        for d in range(1,ndups):
+                            print(str(strategy) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
+                            file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                            # initialize the neural network to be from 3+4=5 problems
+                            nn = counting_network()
+                            # Set up the solution memory table and the answer distribution table
+                            APSM = Apsm()
+                            DSTR = Distribution()
+                            ADD.main()
+                            # Set the globals to the local value for this run
+                            n_problems = n
+                            epoch = i
+                            INCR_RIGHT = j
+                            learning_rate = k
+                            # And we're off to the races!
+                            test(n_problems,strategy)
                 
     stop = timeit.default_timer()
     print stop-start

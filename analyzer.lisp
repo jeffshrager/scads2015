@@ -42,7 +42,7 @@
 (defun load-result-file (file)
    (with-open-file 
     (i file)
-    (cons (parse-params (loop for k below 5 collect (read-line i nil nil)))
+    (cons (parse-params i)
 	  ;; Each line from here on should have a problem and then a bunch of results
 	  ;; cols are ,0,1,2,3,4,5,6,7,8,9,10,11,OTHER
 	  (loop for a from 1 to 5
@@ -52,13 +52,29 @@
 						   ;; Drop the first thing, which is just the problem statement
 						   (cdr (string-split (read-line i nil nil))))))))))
 
-(defun parse-params (params)
-  (let* ((l1 (string-split (first params)))
-	 (l2 (string-split (second params))))
-    `((ep . ,(parse-integer (second l1)))
-      (lr . ,(read-from-string (fourth l1)))
-      (ir . ,(read-from-string (second l2)))
-      (st . ,(subseq (fourth l2) 10 (search " at " (fourth l2)))))))
+(defun parse-params (i)
+  (let* ((params (loop for line = (read-line i nil nil)
+		       as k from 1 by 1
+		       until (search  "OTHER" line)
+		       do (length line) (if (> k 10) (break)) ;; Avoid hard looping in case of problems.
+		       collect line)))
+    (print params)
+    (if (search "N_PROBLEMS" (car params))
+	(loop for param in '(np ep lr ip st)
+	      as line in params
+	      as v = (second (string-split line))
+	      collect 
+	      (cons param
+		    (case param
+			  (st (subseq v 10 (search " at " v)))
+			  (t (read-from-string v)))))
+      (let* ((l1 (string-split (first params)))
+	     (l2 (string-split (second params))))
+	`((np . 1000) ;; Old version didn't include this, but they were all 1000
+	  (ep . ,(parse-integer (second l1)))
+	  (lr . ,(read-from-string (fourth l1)))
+	  (ir . ,(read-from-string (second l2)))
+	  (st . ,(subseq (fourth l2) 10 (search " at " (fourth l2)))))))))
 
 (defun compare (result-set)
   (let* ((result-set (cdr result-set)) ;; Drop the parameters
