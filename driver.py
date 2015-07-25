@@ -249,7 +249,7 @@ def test(n_times, strategy_choice):
 
     # Output the distribution table.
 
-    DSTR.show(relative=True)
+    # DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     #DSTR.bar_plot(relative=True)
 
@@ -309,7 +309,7 @@ def main():
     ndups = 4
 
     # Scannable params:
-    n_problemss = [500,1000,1500,2000]
+    n_problemss = [3000,5000,10000]
     learning_rates = [0.2]
     epochs = [500]
     incr_rights = [2]
