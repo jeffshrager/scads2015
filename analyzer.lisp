@@ -83,6 +83,17 @@
 				     as sim = (report-sim-results-as-100ths problem result-set)
 				     append sim)
 		     collect (list a b))))
+    (format t "~%")
+    (loop with p2 = (copy-list pairs)
+	  for i from 1 to 5 
+	  do (loop for j from 1 to 5
+		   do 
+		   (format t "~a + ~a: " i j)
+		   (loop for r from 0 to 12
+			    do 
+			    (when (= r (+ i j)) (format t "**"))
+			    (format t "~a: ~a, " r (pop p2)))
+		   (format t "~%")))
     (stats::correlation-coefficient pairs)))
 
 (defun report-sim-results-as-100ths (problem result-set)
