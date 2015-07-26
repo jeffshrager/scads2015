@@ -309,12 +309,12 @@ def main():
     ndups = 3
 
     # Scannable params:
-    n_problemss = [500,1000,1500,2000]
+    n_problemss = [300]
     learning_rates = [0.2]
-    epochs = [500]
-    incr_rights = [2]
+    epochs = [250,500,750,1000]
+    incr_rights = [1,2,3,4]
     # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    strategies = [ADD.random_strategy, ADD.count_from_either_strategy]
+    strategies = [ADD.count_from_either_strategy]
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
     for n in n_problemss:

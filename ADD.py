@@ -140,7 +140,6 @@ def end():
     SOLUTION_COMPLETED = True
     SOLUTION = EB
 
-
 # Raise is an important heart of this process.  The question is how
 # to do the test-for-done.  That is, when putting up fingers, how
 # does the child know when he's got the right number up?  In this

@@ -129,7 +129,8 @@
 	       )
 	   table))
 
-(defun test (&key (low 0) (high 99999999999999))
+(defun test (&key filename-key label (low 0) (high 99999999999999) 
+		  &aux first-fno last-fno)
   (clrhash *params->ccs*)
   (with-open-file 
    (*resultsum* "allresults.xls" :direction :output :if-exists :supersede) 
@@ -141,6 +142,8 @@
 	 (let* ((r (load-result-file file))
 		(c (compare r))
 		(p (car r)))
+	   (setq last-fno fno)
+	   (if (null first-fno) (setq first-fno fno))
 	   (format t "~a [~a] --> ~a~%" p (pathname-name file) c)
 	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
 	   (format *resultsum* "~a	~a~%" (pathname-name file) c)
@@ -148,7 +151,9 @@
 	   )))
   (format t "Summary stats (only examples with multiple runs are displayed here):~%")
   (with-open-file 
-   (*resultsum* "stat.xls" :direction :output :if-exists :supersede) 
+   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) filename-key)
+		:direction :output :if-exists :supersede) 
+   (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
    (format *resultsum* "NProblems	Epochs	LearnRate	CorrectIncr	Srategy	n	meancc	stderr~%")
   (loop for p being the hash-keys of *params->ccs*
 	using (hash-value cs)
@@ -163,4 +168,4 @@
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
-(test :low 20150726103529)
+(test :low 20150726115846 :filename-key "scanirep")
