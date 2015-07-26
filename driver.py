@@ -19,7 +19,6 @@ def trp(tl, text):
 # a small tendency to recall n+1 for m+n problems (i.e., 3+4
 # give a small bump to 5).
 
-
 ''' 960514 - Added direct recall memory.  This is stored in an
 associative array, just like in Siegler & Shrager, and is updated
 at problem conclusion time, just like Siegler and Shrager.  And,
@@ -29,14 +28,21 @@ some time with nothing to do.  Note that the array is actually one
 wider in each direction than the possible solutions; the zero index
 isn't used. '''
 
-
 class Apsm(object):
     def __init__(self):
-        self.table = [[[0.01 for x in range(11)] for x in range(6)] for x in range(6)]
+        #self.table = [[[0.01 for x in range(11)] for x in range(6)] for x in range(6)]
+        self.table = [[[random() for x in range(11)] for x in range(6)] for x in range(6)]
         self.y = []
+        #self.show()
 
+        # Generate the table so it contains reference to mutable list y, 
+        # thus changing the table when we update will also change y for 
+        # when we do the fit (hopefully) [JS: What???]
 
-        # generate the table so it contains reference to mutable list y, thus changing the table when we update will also change y for when we do the fit (hopefully)
+        # [JS: WTF is this doing? It seems to be starting with a table full of 0.01s, and 
+        # then loads it from the nn with the predictions from the nn....or something. ???
+        # Why would you do this???]
+
         y_index = 0
         for i in range(1, 6):
             for j in range(1, 6):
@@ -97,7 +103,6 @@ class Apsm(object):
         if l > 0:
             return (results_above_cc[randint(0, l - 1)])
         return (None)
-
 
 # Answer distribution table
 
@@ -202,8 +207,8 @@ class Distribution(object):
 
         plt.figure()
 
-        for i in range(1, 6):
-            for j in range(1, 6):
+        for i in range(1,6):
+            for j in range(1,6):
                 ax = plt.subplot(5, 5, (i - 1) * 5 + j)
                 plt.bar([x - 0.4 for x in range(13)], table[i][j], linewidth=0, color="steelblue")
                 plt.xlim(-0.5, 12.5)
@@ -239,16 +244,15 @@ def exec_strategy(strategy_choice):
 
 
 def test(n_times, strategy_choice):
-    # Repeat n times.
 
+    # Repeat n times.
     for i in range(n_times):
         ADD.PPA()
         eq = exec_strategy(strategy_choice)
         APSM.update(eq)
         DSTR.update(eq)
 
-    # Output the distribution table.
-
+    # Output tables and charts.
     # DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     #DSTR.bar_plot(relative=True)
@@ -282,46 +286,43 @@ def main():
     global APSM, DSTR, nn
     global epoch, learning_rate, file_name, strategy, n_problems
 
-    TL = 0  # trace level, 0 means off
-
     INCR_RIGHT = 2  # Add this to solution memory when you get a problem right
     INCR_WRONG = 0.03  # Add this when you get one wrong
 
     # Retrieval cc ranges are used in select-strategy to determine when
     # to actually choose retrieval (via setting the cc randomly).
 
-    RETRIEVAL_LOW_CC = 0.1
-    RETRIEVAL_HIGH_CC = 0.9
+    RETRIEVAL_LOW_CC = 0.9
+    RETRIEVAL_HIGH_CC = 1.0
 
     start = timeit.default_timer()
 
     # initialize the neural network to be from 3+4=5 problems
     nn = counting_network()
-    # Set up the solution memory table and the answer distribution table
     APSM = Apsm()
     DSTR = Distribution()
     ADD.main()
 
-    epoch = 500
-    learning_rate = 0.2
+    # Now run problem set:
 
-    # Master params usually aren't scanned:
-    ndups = 4
+    # Master params that usually aren't scanned:
+    ndups = 3
 
     # Scannable params:
-    n_problemss = [3000,5000,10000]
+    n_problemss = [500,1000,1500,2000]
     learning_rates = [0.2]
     epochs = [500]
     incr_rights = [2]
-    strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-
+    # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
+    strategies = [ADD.random_strategy, ADD.count_from_either_strategy]
     # Testing loop scans the scannable params:
+    TL = 0  # trace level, 0 means off
     for n in n_problemss:
         for strategy in strategies:
             for i in epochs:
                 for j in incr_rights:
                     for k in learning_rates:
-                        for d in range(1,ndups):
+                        for d in range(1,ndups+1):
                             print(str(strategy) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
                             file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                             # initialize the neural network to be from 3+4=5 problems
