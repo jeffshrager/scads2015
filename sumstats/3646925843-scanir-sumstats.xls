@@ -1,0 +1,8 @@
+scanir
+from	f20150726115511
+to	f20150726115705
+NProblems	Epochs	LearnRate	CorrectIncr	Srategy	n	meancc	stderr
+300	300	0.2	3	count_from_either_strategy	3	0.65320754	0.029646343
+300	300	0.2	4	count_from_either_strategy	3	0.50782585	0.084976494
+300	300	0.2	1	count_from_either_strategy	3	0.613416	0.010001317
+300	300	0.2	2	count_from_either_strategy	3	0.6104679	0.018669438

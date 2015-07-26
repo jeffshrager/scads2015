@@ -1,0 +1,8 @@
+unlabeled
+from	f20150726114634
+to	f20150726114840
+NProblems	Epochs	LearnRate	CorrectIncr	Srategy	n	meancc	stderr
+300	300	0.1	2	count_from_either_strategy	3	0.67675513	0.018391574
+300	300	0.15	2	count_from_either_strategy	3	0.6225372	0.001629949
+300	300	0.2	2	count_from_either_strategy	3	0.6487844	0.016547246
+300	300	0.25	2	count_from_either_strategy	3	0.6488326	0.03771203
