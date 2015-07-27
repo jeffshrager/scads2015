@@ -30,10 +30,12 @@ isn't used. '''
 
 class Apsm(object):
     def __init__(self):
-        #self.table = [[[0.01 for x in range(11)] for x in range(6)] for x in range(6)]
-        self.table = [[[random() for x in range(11)] for x in range(6)] for x in range(6)]
+
+        # Just init the table with 0s; it gets replaced just below here with the values from the 
+        # counting network (called previously to this init in the driver main).
+
+        self.table = [[[0.0 for x in range(11)] for x in range(6)] for x in range(6)]
         self.y = []
-        #self.show()
 
         # Generate the table so it contains reference to mutable list y, 
         # thus changing the table when we update will also change y for 
@@ -298,6 +300,7 @@ def main():
     start = timeit.default_timer()
 
     # initialize the neural network to be from 3+4=5 problems
+
     nn = counting_network()
     APSM = Apsm()
     DSTR = Distribution()
@@ -309,12 +312,12 @@ def main():
     ndups = 3
 
     # Scannable params:
-    n_problemss = [300]
+    n_problemss = [100,200,300]
     learning_rates = [0.2]
-    epochs = [250,500,750,1000]
-    incr_rights = [1,2,3,4]
+    epochs = [300]
+    incr_rights = [2]
     # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    strategies = [ADD.count_from_either_strategy]
+    strategies = [ADD.count_from_either_strategy, ADD.random_strategy]
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
     for n in n_problemss:

@@ -1,5 +1,4 @@
 ; (load (compile-file "analyzer.lisp"))
-(unless (ignore-errors (symbol-function 'correlation)) (load "~/Desktop/etc/cllib/stats.dx32fsl"))
 (unless (ignore-errors (symbol-function 'correlation-coefficient)) (load "~/Desktop/etc/cllib/lhstats.dx32fsl"))
 
 ;;; ================================================================
@@ -168,4 +167,4 @@
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
-(test :low 20150726115846 :filename-key "scanirep")
+(test :low 20150727111454 :filename-key "randtest2")
