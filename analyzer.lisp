@@ -1,5 +1,36 @@
-; (load (compile-file "analyzer.lisp"))
-(unless (ignore-errors (symbol-function 'correlation-coefficient)) (load "~/Desktop/etc/cllib/lhstats.dx32fsl"))
+#|
+                  How to use the analyzer
+
+The first time you run the analyzer in a lisp session you should do this:
+
+   (load (compile-file "lhstats.lisp"))
+
+This ensures that the stats package is recompiled and loaded. (The
+compiler might complain about format problems in lhstats. Don't worry
+about those.)
+
+After you've done that once (per session), all you need to do is to do
+a new analysis is
+
+1. Consider changing *low*, *high*, *filename-key*, and *label* as 
+   described just below this block comment.
+
+2. Do: 
+
+   (load (compile-file "analyzer.lisp"))
+
+It starts by itself and will create a new summary stats tsv file in
+sumstats/ dir.
+
+|#
+
+;;; Before running an analysis, you probably want to change these
+;;; variables:
+
+(defparameter *low* 20150727111454) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
+(defparameter *filename-key* "someanalysis123") ;; A quick reminder of the analysis -- this will become part of the filename!
+(defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
@@ -128,8 +159,10 @@
 	       )
 	   table))
 
-(defun test (&key filename-key label (low 0) (high 99999999999999) 
+(defun test (&key filename-key label low high
 		  &aux first-fno last-fno)
+  (if (null low) (setq low 0))
+  (if (null high) (setq high 99999999999999))
   (clrhash *params->ccs*)
   (with-open-file 
    (*resultsum* "allresults.xls" :direction :output :if-exists :supersede) 
@@ -167,4 +200,4 @@
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
-(test :low 20150727111454 :filename-key "randtest2")
+(test :low *low* :high *high* :filename-key *filename-key*)
