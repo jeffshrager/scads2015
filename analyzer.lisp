@@ -3,6 +3,8 @@
 
 The first time you run the analyzer in a lisp session you should do this:
 
+(ext::cd "c:\\....")
+
    (load (compile-file "lhstats.lisp"))
 
 This ensures that the stats package is recompiled and loaded. (The

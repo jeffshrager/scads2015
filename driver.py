@@ -73,6 +73,9 @@ class Apsm(object):
             else:
                 self.table[a1][a2][a1 + a2] += INCR_WRONG
         nn.fit(X_count, np.array(self.y),learning_rate, epoch)
+        for i in range(1, 6):
+            for j in range(1, 6):
+                self.table[i][j] = nn.predict(nn1.addends_matrix(i, j))
 
     # Print the table.
 
@@ -255,7 +258,7 @@ def test(n_times, strategy_choice):
         DSTR.update(eq)
 
     # Output tables and charts.
-    # DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
+    DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     #DSTR.bar_plot(relative=True)
 
@@ -309,15 +312,15 @@ def main():
     # Now run problem set:
 
     # Master params that usually aren't scanned:
-    ndups = 3
+    ndups = 1
 
     # Scannable params:
-    n_problemss = [100,200,300]
+    n_problemss = [200]
     learning_rates = [0.2]
     epochs = [300]
     incr_rights = [2]
     # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    strategies = [ADD.count_from_either_strategy, ADD.random_strategy]
+    strategies = [ADD.count_from_either_strategy]
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
     for n in n_problemss:
