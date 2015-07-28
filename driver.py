@@ -76,6 +76,7 @@ class Apsm(object):
         for i in range(1, 6):
             for j in range(1, 6):
                 self.table[i][j] = nn.predict(nn1.addends_matrix(i, j))
+                self.y[5*(i-1)+(j-1)] = self.table[i][j]
 
     # Print the table.
 
@@ -291,8 +292,8 @@ def main():
     global APSM, DSTR, nn
     global epoch, learning_rate, file_name, strategy, n_problems
 
-    INCR_RIGHT = 2  # Add this to solution memory when you get a problem right
-    INCR_WRONG = 0.03  # Add this when you get one wrong
+    INCR_RIGHT = 10  # Add this to solution memory when you get a problem right
+    INCR_WRONG = 1000  # Add this when you get one wrong
 
     # Retrieval cc ranges are used in select-strategy to determine when
     # to actually choose retrieval (via setting the cc randomly).
@@ -312,15 +313,15 @@ def main():
     # Now run problem set:
 
     # Master params that usually aren't scanned:
-    ndups = 1
+    ndups = 2
 
     # Scannable params:
-    n_problemss = [200]
-    learning_rates = [0.2]
-    epochs = [300]
-    incr_rights = [2]
+    n_problemss = [10000]
+    learning_rates = [0.1]
+    epochs = [10]
+    incr_rights = [100000]
     # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    strategies = [ADD.count_from_either_strategy]
+    strategies = [ADD.count_from_one_once_strategy]
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
     for n in n_problemss:
