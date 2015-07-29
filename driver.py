@@ -172,6 +172,7 @@ class Distribution(object):
         f.write('EPOCHS: ' + str(epoch) + '\n')
         f.write('LEARNING_RATE: ' + str(learning_rate) + '\n')
         f.write('INCR_RIGHT: ' + str(INCR_RIGHT) + '\n')
+        f.write('INCR_WRONG: ' + str(INCR_WRONG) + '\n')
         f.write('STRATEGY: ' + str(strategy) + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
@@ -192,6 +193,7 @@ class Distribution(object):
             writer.writerow(['EPOCHS: ', epoch])
             writer.writerow(['LEARNING_RATE: ', learning_rate])
             writer.writerow(['INCR_RIGHT: ', INCR_RIGHT])
+            writer.writerow(['INCR_WRONG: ', INCR_WRONG])
             writer.writerow(['STRATEGY: ', strategy])
             writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
@@ -259,7 +261,7 @@ def test(n_times, strategy_choice):
         DSTR.update(eq)
 
     # Output tables and charts.
-    DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
+    # DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     #DSTR.bar_plot(relative=True)
 
@@ -313,38 +315,41 @@ def main():
     # Now run problem set:
 
     # Master params that usually aren't scanned:
-    ndups = 2
+    ndups = 3
 
     # Scannable params:
-    n_problemss = [10000]
+    n_problemss = [500,1000,2000,4000]
     learning_rates = [0.1]
-    epochs = [10]
-    incr_rights = [100000]
+    epochs = [100]
+    incr_rights = [1000,2000]
+    incr_wrongs = [1000,2000]
     # strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
     strategies = [ADD.count_from_one_once_strategy]
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
-    for n in n_problemss:
+    for np in n_problemss:
         for strategy in strategies:
-            for i in epochs:
-                for j in incr_rights:
-                    for k in learning_rates:
-                        for d in range(1,ndups+1):
-                            print(str(strategy) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
-                            file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                            # initialize the neural network to be from 3+4=5 problems
-                            nn = counting_network()
-                            # Set up the solution memory table and the answer distribution table
-                            APSM = Apsm()
-                            DSTR = Distribution()
-                            ADD.main()
-                            # Set the globals to the local value for this run
-                            n_problems = n
-                            epoch = i
-                            INCR_RIGHT = j
-                            learning_rate = k
-                            # And we're off to the races!
-                            test(n_problems,strategy)
+            for ep in epochs:
+                for ir in incr_rights:
+                    for iw in incr_rights:
+                        for lr in learning_rates:
+                            for nd in range(1,ndups+1):
+                                print(str(strategy) + (" @ ep={0}, ir={1}, iw={2}, lr={3}, nd={4}, np={5}\n".format(ep,ir,iw,lr,nd,np)))
+                                file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                                # initialize the neural network to be from 3+4=5 problems
+                                nn = counting_network()
+                                # Set up the solution memory table and the answer distribution table
+                                APSM = Apsm()
+                                DSTR = Distribution()
+                                ADD.main()
+                                # Set the globals to the local value for this run
+                                n_problems = np
+                                epoch = ep
+                                INCR_RIGHT = ir
+                                INCR_WRONG = iw
+                                learning_rate = lr
+                                # And we're off to the races!
+                                test(np,strategy)
                 
     stop = timeit.default_timer()
     print stop-start
