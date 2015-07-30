@@ -27,12 +27,27 @@ sumstats/ dir.
 |#
 
 ;;; Before running an analysis, you probably want to change these
-;;; variables:
+;;; variables. Below are examples of fns. that set these and do
+;;; various anlayses.
 
-(defparameter *low* 20150727111454) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *low* 20150729144356) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-(defparameter *filename-key* "someanalysis123") ;; A quick reminder of the analysis -- this will become part of the filename!
+(defparameter *filename-key* "") ;; A quick reminder of the analysis -- this will become part of the filename!
 (defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
+
+(defun analyze ()
+  (let ((*low* 20150729144356)
+	(*high* nil)
+	(*filename-key* "np500-4000+lr0p1+ep100+ir1000-2000+iw1000-2000+stcount_from_one_once_strategy")
+	(*label* "
+    n_problemss = [500,1000,2000,4000]
+    learning_rates = [0.1]
+    epochs = [100]
+    incr_rights = [1000,2000]
+    incr_wrongs = [1000,2000]
+    strategies = [ADD.count_from_one_once_strategy]
+"))
+    (test :low *low* :high *high* :filename-key *filename-key* :label *label*)))
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
@@ -90,22 +105,14 @@ sumstats/ dir.
 		       until (search  "OTHER" line)
 		       do (length line) (if (> k 10) (break)) ;; Avoid hard looping in case of problems.
 		       collect line)))
-    (if (search "N_PROBLEMS" (car params))
-	(loop for param in '(np ep lr ip st)
-	      as line in params
-	      as v = (second (string-split line))
-	      collect 
-	      (cons param
-		    (case param
-			  (st (subseq v 10 (search " at " v)))
-			  (t (read-from-string v)))))
-      (let* ((l1 (string-split (first params)))
-	     (l2 (string-split (second params))))
-	`((np . 1000) ;; Old version didn't include this, but they were all 1000
-	  (ep . ,(parse-integer (second l1)))
-	  (lr . ,(read-from-string (fourth l1)))
-	  (ir . ,(read-from-string (second l2)))
-	  (st . ,(subseq (fourth l2) 10 (search " at " (fourth l2)))))))))
+    (loop for param in '(np ep lr ir iw st)
+	  as line in params
+	  as v = (second (string-split line))
+	  collect 
+	  (cons param
+		(case param
+		      (st (subseq v 10 (search " at " v)))
+		      (t (read-from-string v)))))))
 
 (defun compare (result-set)
   (let* ((result-set (cdr result-set)) ;; Drop the parameters
@@ -168,7 +175,7 @@ sumstats/ dir.
   (clrhash *params->ccs*)
   (with-open-file 
    (*resultsum* "allresults.xls" :direction :output :if-exists :supersede) 
-   (format *resultsum* "Epochs	LearnRate	CorrectIncr	Srategy	File	CorrCoef~%")
+   (format *resultsum* "Epochs	LearnRate	CorrectIncr	WrongIncr	Srategy	File	CorrCoef~%")
    (loop for file in (directory "test_csv/*.csv")
 	 as fno = (parse-integer (pathname-name file))
 	 when (and (>= fno low) (<= fno high))
@@ -188,7 +195,7 @@ sumstats/ dir.
    (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) filename-key)
 		:direction :output :if-exists :supersede) 
    (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
-   (format *resultsum* "NProblems	Epochs	LearnRate	CorrectIncr	Srategy	n	meancc	stderr~%")
+   (format *resultsum* "NProblems	Epochs	LearnRate	CorrectIncr	WrongIncr	Srategy	n	meancc	stderr~%")
   (loop for p being the hash-keys of *params->ccs*
 	using (hash-value cs)
 	when (cdr cs)
@@ -202,4 +209,5 @@ sumstats/ dir.
 
 (untrace)
 ;(trace report-sim-results-as-100ths)
-(test :low *low* :high *high* :filename-key *filename-key*)
+;(test :low *low* :high *high* :filename-key *filename-key* :label *label*)
+(analyze) 
