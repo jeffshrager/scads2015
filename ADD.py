@@ -370,10 +370,6 @@ def exec_strategy(strategy_choice):
             break
         i()
 
-    # Update APSM and DSTR tables.
-
-    # APSM.update (ADDEND.ad1, ADDEND.ad2, SOLUTION)
-    # DSTR.update (ADDEND.ad1, ADDEND.ad2, SOLUTION)
     trp(1, "Solution = %s" % SOLUTION)
     return SOLUTION
 

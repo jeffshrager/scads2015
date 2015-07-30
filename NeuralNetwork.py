@@ -39,7 +39,7 @@ def addends_matrix(a1, a2):
 
 def sum_matrix(s):
     lis = [0] * 13
-    lis[s - 1] = 1
+    lis[s] = 1
     return lis
 
 
