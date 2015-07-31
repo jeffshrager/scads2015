@@ -1,3 +1,8 @@
+(defparameter *low* 20150731132733) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
+(defparameter *filename-key* "test") ;; A quick reminder of the analysis -- this will become part of the filename!
+(defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
+
 #|
                   How to use the analyzer
 
@@ -29,11 +34,6 @@ sumstats/ dir.
 ;;; Before running an analysis, you probably want to change these
 ;;; variables. Below are examples of fns. that set these and do
 ;;; various anlayses.
-
-(defparameter *low* 20150731111852) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
-(defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-(defparameter *filename-key* "test") ;; A quick reminder of the analysis -- this will become part of the filename!
-(defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under

@@ -173,7 +173,7 @@ class Distribution(object):
             writer.writerow(['EPOCHS: ', epoch])
             writer.writerow(['LEARNING_RATE: ', learning_rate])
             writer.writerow(['INCR_RIGHT: ', INCR_RIGHT])
-            writer.writerow(['STRATEGIES: ', strategies])
+#            writer.writerow(['STRATEGIES: ', strategies])
             writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
             writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
@@ -333,9 +333,9 @@ def main():
     ndups = 3
 
     # Scannable params:
-    n_problemss = [200,1000]
+    n_problemss = [0,50,100,150,200]
     learning_rates = [0.1]
-    epochs = [100]
+    epochs = [300]
     incr_rights = [5]
     #strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
     strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy]
