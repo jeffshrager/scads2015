@@ -166,6 +166,7 @@ class Distribution(object):
     def print_csv(self, relative=False):
         table = self.relative_table(relative)
         full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_csv'),file_name + '.csv')
+        print("Creating " + file_name)
         with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['N_PROBLEMS: ', n_problems])
@@ -249,7 +250,7 @@ def test(n_times):
         DSTR.update(eq)
 
     # Output tables and charts.
-    DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
+    #DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     #DSTR.bar_plot(relative=True)
 
@@ -329,15 +330,15 @@ def main():
     # Now run problem set:
 
     # Master params that usually aren't scanned:
-    ndups = 1
+    ndups = 3
 
     # Scannable params:
-    n_problemss = [1000]
+    n_problemss = [200,1000]
     learning_rates = [0.1]
     epochs = [100]
     incr_rights = [5]
-    strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    #strategies = [ADD.count_from_one_once_strategy]
+    #strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
+    strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy]
 
     strategy_nn = strategy_network(len(strategies))
 
@@ -348,7 +349,7 @@ def main():
             for j in incr_rights:
                 for k in learning_rates:
                     for d in range(1, ndups + 1):
-                        print(str(strategies) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
+                        print((" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
                         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                         # initialize the neural network to be from 3+4=5 problems
                         nn = counting_network()

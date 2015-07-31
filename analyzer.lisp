@@ -30,24 +30,10 @@ sumstats/ dir.
 ;;; variables. Below are examples of fns. that set these and do
 ;;; various anlayses.
 
-(defparameter *low* 20150729144356) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *low* 20150731111852) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-(defparameter *filename-key* "") ;; A quick reminder of the analysis -- this will become part of the filename!
+(defparameter *filename-key* "test") ;; A quick reminder of the analysis -- this will become part of the filename!
 (defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
-
-(defun analyze ()
-  (let ((*low* 20150729144356)
-	(*high* nil)
-	(*filename-key* "np500-4000+lr0p1+ep100+ir1000-2000+iw1000-2000+stcount_from_one_once_strategy")
-	(*label* "
-    n_problemss = [500,1000,2000,4000]
-    learning_rates = [0.1]
-    epochs = [100]
-    incr_rights = [1000,2000]
-    incr_wrongs = [1000,2000]
-    strategies = [ADD.count_from_one_once_strategy]
-"))
-    (test :low *low* :high *high* :filename-key *filename-key* :label *label*)))
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
@@ -99,20 +85,36 @@ sumstats/ dir.
 						   ;; Drop the first thing, which is just the problem statement
 						   (cdr (string-split (read-line i nil nil))))))))))
 
+(defparameter *function-name-substitutions*
+  '(("<function count_from_either_strategy at 0x" . " cf_either @")
+    ("<function count_from_one_once_strategy at 0x" . " cf_1x1 @")
+    ("<function count_from_one_twice_strategy at 0x" . " cf_1x2 @")
+    ("<function random_strategy at 0x" . "rand @")))
+
 (defun parse-params (i)
-  (let* ((params (loop for line = (read-line i nil nil)
-		       as k from 1 by 1
-		       until (search  "OTHER" line)
-		       do (length line) (if (> k 10) (break)) ;; Avoid hard looping in case of problems.
-		       collect line)))
-    (loop for param in '(np ep lr ir iw st)
-	  as line in params
-	  as v = (second (string-split line))
-	  collect 
-	  (cons param
-		(case param
-		      (st (subseq v 10 (search " at " v)))
-		      (t (read-from-string v)))))))
+  (remove nil 
+	  (loop for line = (read-line i nil nil)
+		with r = nil
+		until (search  ",OTHER" line)
+		collect (let ((p (search ": ," line)))
+			  (when p
+			    (cons (subseq line 0 p)
+				  ;; Need to drop the #\Return off the end
+				  (substitute #\space #\,
+					      (loop with s = (subseq line (+ p 3) (- (length line) 1))
+						    as (from . to) in *function-name-substitutions*
+						    do (setq s (string-substitute s from to))
+						    finally (return s)))))))))
+
+(defun string-substitute (in from to)
+  (loop with start2 = 0 
+        with lfrom = (length from)
+        with lto = (length to)
+        as p = (search from in :start2 start2)
+        if p
+        do (setq in (format nil "~a~a~a" (subseq in 0 p) to (subseq in (+ p lfrom)))
+                 start2 (+ p lto))
+        else do (return in)))
 
 (defun compare (result-set)
   (let* ((result-set (cdr result-set)) ;; Drop the parameters
@@ -122,7 +124,7 @@ sumstats/ dir.
 				     as sim = (report-sim-results-as-100ths problem result-set)
 				     append sim)
 		     collect (list a b))))
-    (format t "~%")
+    ;; (format t "~%") ???
     #+nil
     (loop with p2 = (copy-list pairs)
 	  for i from 1 to 5 
@@ -168,14 +170,17 @@ sumstats/ dir.
 	       )
 	   table))
 
-(defun test (&key filename-key label low high
-		  &aux first-fno last-fno)
+(defun analyze (&key (low *low*)
+		     (high *high*)
+		     (filename-key *filename-key*)
+		     (label *label*)
+		     &aux first-fno last-fno)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
   (clrhash *params->ccs*)
   (with-open-file 
-   (*resultsum* "allresults.xls" :direction :output :if-exists :supersede) 
-   (format *resultsum* "Epochs	LearnRate	CorrectIncr	WrongIncr	Srategy	File	CorrCoef~%")
+   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) filename-key)
+		:direction :output :if-exists :supersede) 
    (loop for file in (directory "test_csv/*.csv")
 	 as fno = (parse-integer (pathname-name file))
 	 when (and (>= fno low) (<= fno high))
@@ -185,29 +190,30 @@ sumstats/ dir.
 		(p (car r)))
 	   (setq last-fno fno)
 	   (if (null first-fno) (setq first-fno fno))
-	   (format t "~a [~a] --> ~a~%" p (pathname-name file) c)
-	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
-	   (format *resultsum* "~a	~a~%" (pathname-name file) c)
+	   ;; (format *resultsum* "~a [~a] --> ~a~%" p (pathname-name file) c)
+	   ;; (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
+	   ;; (format *resultsum* "~a	~a~%" (pathname-name file) c)
 	   (push c (gethash p *params->ccs*))
-	   )))
-  (format t "Summary stats (only examples with multiple runs are displayed here):~%")
-  (with-open-file 
-   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) filename-key)
-		:direction :output :if-exists :supersede) 
-   (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
-   (format *resultsum* "NProblems	Epochs	LearnRate	CorrectIncr	WrongIncr	Srategy	n	meancc	stderr~%")
+	   ))
+   ;; (format *resultsum* "Summary stats (only data from params with multiple ns are included here):~%")
+  (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
   (loop for p being the hash-keys of *params->ccs*
 	using (hash-value cs)
+	with header-shown? = nil
 	when (cdr cs)
 	do 
+	(unless header-shown?
+	  ;;(mapcar #'print p)
+	  (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
+	  (format *resultsum* "n	meancc	stderr~%")
+	  (setq header-shown? t))
 	(mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
 	(format *resultsum* "~a	~a	~a~%"
-		   (length cs)
-		   (STATISTICS:MEAN cs)
-		   (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
-		   ))))
+		(length cs)
+		(STATISTICS:MEAN cs)
+		(STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
+		))))
 
 (untrace)
-;(trace report-sim-results-as-100ths)
-;(test :low *low* :high *high* :filename-key *filename-key* :label *label*)
+;(trace parse-params)
 (analyze) 
