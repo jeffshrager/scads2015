@@ -1,7 +1,7 @@
-(defparameter *low* 20150731132733) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *low* 20150731154448) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-(defparameter *filename-key* "test") ;; A quick reminder of the analysis -- this will become part of the filename!
-(defparameter *label* "Whatever you want to say about what this analysis is about.") ;; A longer description -- this goes in the file
+(defparameter *filename-key* "scanning-lr-0_02-1_00") ;; A quick reminder of the analysis -- this will become part of the filename!
+(defparameter *label* "We're scanning the learning rate ......") ;; A longer description -- this goes in the file
 
 #|
                   How to use the analyzer
@@ -84,6 +84,8 @@ sumstats/ dir.
 					   (mapcar #'read-from-string 
 						   ;; Drop the first thing, which is just the problem statement
 						   (cdr (string-split (read-line i nil nil))))))))))
+
+;;; This is max ugly (UUU) we should go through and parse the properly.
 
 (defparameter *function-name-substitutions*
   '(("<function count_from_either_strategy at 0x" . " cf_either @")

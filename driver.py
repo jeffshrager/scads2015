@@ -333,9 +333,9 @@ def main():
     ndups = 3
 
     # Scannable params:
-    n_problemss = [0,50,100,150,200]
-    learning_rates = [0.1]
-    epochs = [300]
+    n_problemss = [25,200]
+    learning_rates = [0.01,0.5,1.0,2.0]
+    epochs = [10]
     incr_rights = [5]
     #strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
     strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy]
