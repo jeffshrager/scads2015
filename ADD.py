@@ -140,6 +140,7 @@ def end():
     SOLUTION_COMPLETED = True
     SOLUTION = EB
 
+
 # Raise is an important heart of this process.  The question is how
 # to do the test-for-done.  That is, when putting up fingers, how
 # does the child know when he's got the right number up?  In this
@@ -314,7 +315,7 @@ class Addend(object):
         if self.ad1 == self.ad2:
             self.cla = 'equal'
         elif ((self.addend == self.ad1) and (self.ad1 > self.ad2)) or (
-            (self.addend == self.ad2) and (self.ad1 < self.ad2)):
+                    (self.addend == self.ad2) and (self.ad1 < self.ad2)):
             self.cla = 'larger'
         else:
             self.cla = 'smaller'
@@ -352,7 +353,6 @@ class Addend(object):
 def exec_strategy(strategy_choice):
     global HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION
 
-
     SOLUTION_COMPLETED = False
 
     EB = 0
@@ -372,13 +372,6 @@ def exec_strategy(strategy_choice):
 
     trp(1, "Solution = %s" % SOLUTION)
     return SOLUTION
-
-
-# Multiple (standard) strategies and Strategy Choice Algorithm (SCA).
-# For the moment, this will just be random.
-
-def SCA():
-    exec_strategy(random_strategy())
 
 
 # Problem Presentation Algorithm (PPA).

@@ -1,4 +1,4 @@
-from random import randint, random
+from random import randint
 import numpy as np
 import os
 import csv
@@ -7,88 +7,13 @@ import NeuralNetwork as nn1
 import ADD
 import datetime
 import timeit
+import settings
 
 
 def trp(tl, text):
     if TL > tl:
         print text
 
-# Associative Problem->Solution Memory (APSM) For the moment
-# this will just a table that counts the number of times each
-# problem leads to each solution. APSM will be pre-loaded with
-# a small tendency to recall n+1 for m+n problems (i.e., 3+4
-# give a small bump to 5).
-
-''' 960514 - Added direct recall memory.  This is stored in an
-associative array, just like in Siegler & Shrager, and is updated
-at problem conclusion time, just like Siegler and Shrager.  And,
-just like... it is consulted ... um, okay, so this is different;
-it's consulted first, and then only when the cognitive system has
-some time with nothing to do.  Note that the array is actually one
-wider in each direction than the possible solutions; the zero index
-isn't used. '''
-
-class Apsm(object):
-    def __init__(self):
-
-        #y is what we fit nn to, y[5*(a1-1]+(a2-1)][i] is the prediction for a1 + a2 = i
-        self.y = []
-
-        y_index = 0
-        for i in range(1, 6):
-            for j in range(1, 6):
-                self.y.append(nn.predict(nn1.addends_matrix(i, j)))
-                y_index += 1
-
-    # When the problem is completed, update the memory table
-    # appropriately depending upon whether we got it right or wrong.
-    # Ignore the results of challenge problems.
-    # then update the neural network
-
-    def update(self, eq):
-        global epoch, learning_rate, n_problems
-        # eq is [a1,a2,result]
-        a1 = eq[0]
-        a2 = eq[1]
-        result = eq[2]
-
-        if (a1 > 5) or (a2 > 5) or (result > 10):
-            trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
-            a1, a2, result))
-        else:
-            if a1 + a2 == result:
-                self.y[5*(a1-1)+a2-1] += INCR_RIGHT
-            else:
-                self.y[5*(a1-1)+a2-1] += INCR_WRONG
-            for i in range (1,6):
-                for j in range(1,6):
-                    if(i!=a1) and (j!=a2):
-                        self.y[5*(i-1)+j-1] -= DECR_WRONG
-        nn.fit(X_count, np.array(self.y),learning_rate, epoch)
-
-        self.y[5*(a1-1)+(a2-1)] = nn.predict(nn1.addends_matrix(a1,a2))
-
-
-    # Pick at random from among the results that come above the cc, or
-    # return None if nothing comes over the cc.
-
-    def guess(self, a1, a2):
-        if (a1 > 5) or (a2 > 5):
-            return (None)
-
-        cc = RETRIEVAL_LOW_CC + (RETRIEVAL_HIGH_CC - RETRIEVAL_LOW_CC) * random()
-        trp(1, "Choose confidence criterion = %s" % cc)
-
-        results_above_cc = []
-
-        for i in range(1, 11):
-            if self.y[5*(a1-1)+a2-1][i] >= cc:
-                results_above_cc.append(i)
-
-        l = len(results_above_cc)
-        if l > 0:
-            return (results_above_cc[randint(0, l - 1)])
-        return (None)
 
 # Answer distribution table
 
@@ -146,12 +71,12 @@ class Distribution(object):
 
     def show(self, relative=True):
         table = self.relative_table(relative)
-        full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_txt'),file_name + '.txt')
+        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_txt'), file_name + '.txt')
         f = open(full_name, 'w')
         f.write('N_PROBLEMS: ' + str(n_problems) + '\n')
-        f.write('EPOCHS: ' + str(epoch) + '\n')
-        f.write('LEARNING_RATE: ' + str(learning_rate) + '\n')
-        f.write('INCR_RIGHT: ' + str(INCR_RIGHT) + '\n')
+        f.write('EPOCHS: ' + str(settings.epoch) + '\n')
+        f.write('LEARNING_RATE: ' + str(settings.learning_rate) + '\n')
+        f.write('INCR_RIGHT: ' + str(settings.INCR_RIGHT) + '\n')
         f.write('STRATEGIES: ' + str(strategies) + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
@@ -165,13 +90,13 @@ class Distribution(object):
 
     def print_csv(self, relative=False):
         table = self.relative_table(relative)
-        full_name = os.path.join(os.path.join(os.path.dirname(__file__),'test_csv'),file_name + '.csv')
+        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
         with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['N_PROBLEMS: ', n_problems])
-            writer.writerow(['EPOCHS: ', epoch])
-            writer.writerow(['LEARNING_RATE: ', learning_rate])
-            writer.writerow(['INCR_RIGHT: ', INCR_RIGHT])
+            writer.writerow(['EPOCHS: ', settings.epoch])
+            writer.writerow(['LEARNING_RATE: ', settings.learning_rate])
+            writer.writerow(['INCR_RIGHT: ', settings.INCR_RIGHT])
             writer.writerow(['STRATEGIES: ', strategies])
             writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
@@ -193,8 +118,8 @@ class Distribution(object):
 
         plt.figure()
 
-        for i in range(1,6):
-            for j in range(1,6):
+        for i in range(1, 6):
+            for j in range(1, 6):
                 ax = plt.subplot(5, 5, (i - 1) * 5 + j)
                 plt.bar([x - 0.4 for x in range(13)], table[i][j], linewidth=0, color="steelblue")
                 plt.xlim(-0.5, 12.5)
@@ -212,64 +137,42 @@ class Distribution(object):
         plt.tight_layout(h_pad=1)
         plt.show()
 
-# try retrieval first, if it fails then
-# Initialize hand, echoic buffer and
-# counting buffer,and carry out the strategy.
-# Update memory and distribution table at the end.
-
 
 def exec_strategy():
-    retrieval = APSM.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
+    ADD.PPA()
+    # try getting a random number from a list above the confidence criterion
+    retrieval = add_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
     SOLUTION = 0
     if retrieval is not None:
         trp(1, "Used Retrieval")
         SOLUTION = retrieval
     else:
-        strategy_num = strategy_retrieval()
-        SOLUTION = ADD.exec_strategy(strategies[strategy_num])
-
-        if SOLUTION == ADD.ADDEND.ad1 + ADD.ADDEND.ad2:
-            y_strategy[5*(ADD.ADDEND.ad1-1)+(ADD.ADDEND.ad2-1)][strategy_num]+=INCR_RIGHT
-        else:
-            y_strategy[5*(ADD.ADDEND.ad1-1)+(ADD.ADDEND.ad2-1)][strategy_num]+=INCR_WRONG
-        strategy_nn.fit(X_count,np.array(y_strategy),learning_rate,epoch)
-        y_strategy[5*(ADD.ADDEND.ad1-1)+(ADD.ADDEND.ad2-1)] = strategy_nn.predict(nn1.addends_matrix(ADD.ADDEND.ad1,ADD.ADDEND.ad2))
-
+        # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
+        strat_num = strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
+        if strat_num is None:
+            strat_num = randint(0, len(strategies) - 1)
+        SOLUTION = ADD.exec_strategy(strategies[strat_num])
+        # update the neural networks based on if the strategy worked or not
+        strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num)
+    add_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
+    # add method here to get what strategy is used
 
     return [ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION]
 
 
 def test(n_times):
-
     # Repeat n times.
     for i in range(n_times):
-        ADD.PPA()
         eq = exec_strategy()
-        APSM.update(eq)
         DSTR.update(eq)
 
     # Output tables and charts.
-    DSTR.show(relative=True) # Useful for debugging, but most analysis is now done by code.
+    DSTR.show(relative=True)  # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
-    #DSTR.bar_plot(relative=True)
+    # DSTR.bar_plot(relative=True)
 
-    # sets up the neural network fitted to counting
-
-def strategy_retrieval():
-    prediction_arr = strategy_nn.predict(nn1.addends_matrix(ADD.ADDEND.ad1,ADD.ADDEND.ad2))
-    cc = STRATEGY_LOW_CC + (STRATEGY_HIGH_CC - STRATEGY_LOW_CC) * random()
-    results_above_cc = []
-    for i in range(len(prediction_arr)):
-        if prediction_arr[i] >= cc:
-            results_above_cc.append(i)
-    l = len(results_above_cc)
-    if l > 0:
-        return results_above_cc[randint(0, l - 1)]
-    else:
-        return randint(0,len(strategies)-1)
-
+# sets up the neural network fitted to counting
 def counting_network(hidden_units=30, learning_rate=0.15):
-    global X_count, y_count
     # this is the addends matrix
     input_units = 14
     # this is the output matrix
@@ -284,88 +187,53 @@ def counting_network(hidden_units=30, learning_rate=0.15):
         y_count.append(nn1.sum_matrix(i + 2))
     X_count = np.array(X_count)
     y_count = np.array(y_count)
-    NN.fit(X_count, y_count, learning_rate,15000)
+    NN.fit(X_count, y_count, learning_rate, 15000)
+    NN.update_y()
     return NN
 
-def strategy_network(output_units, hidden_units=30):
-    global y_strategy
-    input_units = 14
-    NN = nn1.NeuralNetwork([input_units,hidden_units,output_units])
-    y_strategy = []
-    for i in range(1, 6):
-        for j in range(1, 6):
-            y_strategy.append(NN.predict(nn1.addends_matrix(i,j)))
-    return NN
 
 def main():
-    global TL, RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
-    global INCR_RIGHT, INCR_WRONG, DECR_WRONG
-    global APSM, DSTR, nn, strategy_nn
-    global epoch, learning_rate, file_name, strategy, n_problems, strategies
-
-    INCR_RIGHT = 10  # Add this to solution memory when you get a problem right
-    INCR_WRONG = 0.01  # Add this when you get one wrong
-    DECR_WRONG = 0.01
-
-    # Retrieval cc ranges are used in select-strategy to determine when
-    # to actually choose retrieval (via setting the cc randomly).
-
-    RETRIEVAL_LOW_CC = 0.9
-    RETRIEVAL_HIGH_CC = 1.0
-
-    STRATEGY_LOW_CC = 0.9
-    STRATEGY_HIGH_CC = 1.0
+    global TL
+    global DSTR, add_nn, strat_nn, strategies, file_name, n_problems
 
     start = timeit.default_timer()
 
     # initialize the neural network to be from 3+4=5 problems
+    add_nn = counting_network()
 
-    nn = counting_network()
-
-    APSM = Apsm()
     DSTR = Distribution()
     ADD.main()
 
     # Now run problem set:
 
-    # Master params that usually aren't scanned:
-    ndups = 1
-
-    # Scannable params:
-    n_problemss = [1000]
-    learning_rates = [0.1]
-    epochs = [100]
-    incr_rights = [5]
-    strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy, ADD.count_from_one_twice_strategy, ADD.min_strategy]
-    #strategies = [ADD.count_from_one_once_strategy]
-
-    strategy_nn = strategy_network(len(strategies))
-
+    strategies = settings.strategies
+    strat_nn = nn1.NeuralNetwork([14, 30, len(strategies)])
+    strat_nn.update_y()
     # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
-    for n in n_problemss:
-        for i in epochs:
-            for j in incr_rights:
-                for k in learning_rates:
-                    for d in range(1, ndups + 1):
+    for n in settings.n_problemss:
+        for i in settings.epochs:
+            for j in settings.incr_rights:
+                for k in settings.learning_rates:
+                    for d in range(1, settings.ndups + 1):
                         print(str(strategies) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
                         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                         # initialize the neural network to be from 3+4=5 problems
-                        nn = counting_network()
+                        add_nn = counting_network()
                         # Set up the solution memory table and the answer distribution table
-                        APSM = Apsm()
                         DSTR = Distribution()
                         ADD.main()
                         # Set the globals to the local value for this run
                         n_problems = n
-                        epoch = i
-                        INCR_RIGHT = j
-                        learning_rate = k
+                        settings.epoch = i
+                        settings.INCR_RIGHT = j
+                        settings.learning_rate = k
                         # And we're off to the races!
                         test(n_problems)
-                
+
     stop = timeit.default_timer()
-    print stop-start
+    print stop - start
+
 
 if __name__ == "__main__":
     main()
