@@ -73,11 +73,11 @@ class Distribution(object):
         table = self.relative_table(relative)
         full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_txt'), file_name + '.txt')
         f = open(full_name, 'w')
-        f.write('N_PROBLEMS: ' + str(n_problems) + '\n')
+        f.write('N_PROBLEMS: ' + str(settings.n_problems) + '\n')
         f.write('EPOCHS: ' + str(settings.epoch) + '\n')
         f.write('LEARNING_RATE: ' + str(settings.learning_rate) + '\n')
         f.write('INCR_RIGHT: ' + str(settings.INCR_RIGHT) + '\n')
-        f.write('STRATEGIES: ' + str(strategies) + '\n')
+        f.write('STRATEGIES: ' + str(settings.strategies) + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
                 f.write("%s + %s = " % (i, j)),
@@ -93,11 +93,11 @@ class Distribution(object):
         full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
         with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['N_PROBLEMS: ', n_problems])
+            writer.writerow(['N_PROBLEMS: ', settings.n_problems])
             writer.writerow(['EPOCHS: ', settings.epoch])
             writer.writerow(['LEARNING_RATE: ', settings.learning_rate])
             writer.writerow(['INCR_RIGHT: ', settings.INCR_RIGHT])
-            writer.writerow(['STRATEGIES: ', strategies])
+            writer.writerow(['STRATEGIES: ', settings.strategies])
             writer.writerow(['TEST: ', ])
             writer.writerow(['PROBLEM', 'ANSWER'])
             writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
@@ -150,8 +150,8 @@ def exec_strategy():
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_num = strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
         if strat_num is None:
-            strat_num = randint(0, len(strategies) - 1)
-        SOLUTION = ADD.exec_strategy(strategies[strat_num])
+            strat_num = randint(0, len(settings.strategies) - 1)
+        SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
         # update the neural networks based on if the strategy worked or not
         strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num)
     add_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
@@ -167,9 +167,10 @@ def test(n_times):
         DSTR.update(eq)
 
     # Output tables and charts.
-    DSTR.show(relative=True)  # Useful for debugging, but most analysis is now done by code.
+    # DSTR.show(relative=True)  # Useful for debugging, but most analysis is now done by code.
     DSTR.print_csv(relative=True)
     # DSTR.bar_plot(relative=True)
+
 
 # sets up the neural network fitted to counting
 def counting_network(hidden_units=30, learning_rate=0.15):
@@ -192,45 +193,47 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     return NN
 
 
+def switch(key, val):
+    if key == "NPROBLEMS":
+        settings.n_problems = val
+    elif key == "EPOCH":
+        settings.epoch = val
+    elif key == "INCR_RIGHT":
+        settings.INCR_RIGHT = val
+    elif key == "LEARNING_RATE":
+        settings.learning_rate = val
+
+
+# Depth first search through all the possible configurations of parameters
+def config_and_test(scan_spec, index):
+    global file_name, strat_nn, add_nn
+    if index < len(params):
+        for param in scan_spec[params[index]]:
+            switch(params[index], param)
+            config_and_test(scan_spec, index + 1)
+    else:
+        print 'np ' + str(settings.n_problems) + ' ep ' + str(settings.epoch) + ' ir ' + str(
+            settings.INCR_RIGHT) + ' lr ' + str(settings.learning_rate)
+        print(str(settings.strategies) + str(scan_spec))
+        file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        add_nn = counting_network()
+        strat_nn = nn1.NeuralNetwork([14, 30, len(settings.strategies)])
+        strat_nn.update_y()
+        test(settings.n_problems)
+
+
 def main():
-    global TL
-    global DSTR, add_nn, strat_nn, strategies, file_name, n_problems
+    global TL, params
+    global DSTR
 
     start = timeit.default_timer()
 
-    # initialize the neural network to be from 3+4=5 problems
-    add_nn = counting_network()
-
     DSTR = Distribution()
     ADD.main()
-
-    # Now run problem set:
-
-    strategies = settings.strategies
-    strat_nn = nn1.NeuralNetwork([14, 30, len(strategies)])
-    strat_nn.update_y()
-    # Testing loop scans the scannable params:
     TL = 0  # trace level, 0 means off
-    for n in settings.n_problemss:
-        for i in settings.epochs:
-            for j in settings.incr_rights:
-                for k in settings.learning_rates:
-                    for d in range(1, settings.ndups + 1):
-                        print(str(strategies) + (" ep={0}, ir={1}, lr={2}, d={3}, np={4}\n".format(i, j, k, d, n)))
-                        file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                        # initialize the neural network to be from 3+4=5 problems
-                        add_nn = counting_network()
-                        # Set up the solution memory table and the answer distribution table
-                        DSTR = Distribution()
-                        ADD.main()
-                        # Set the globals to the local value for this run
-                        n_problems = n
-                        settings.epoch = i
-                        settings.INCR_RIGHT = j
-                        settings.learning_rate = k
-                        # And we're off to the races!
-                        test(n_problems)
-
+    params = settings.scan_spec.keys()
+    for i in range(settings.ndups):
+        config_and_test(settings.scan_spec, 0)
     stop = timeit.default_timer()
     print stop - start
 
