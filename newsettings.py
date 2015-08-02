@@ -19,14 +19,14 @@ STRATEGY_HIGH_CC = 1.0
 STRATEGIES = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy,
               ADD.count_from_one_twice_strategy, ADD.min_strategy]
 
-NPROBLEMS = 9999 
+NPROBLEMS = 9999
 EPOCH = 9999
 LEARNING_RATE = 9999
 
-scanspec = [["settings.NPROBLEMS", 100, 200, 300],
-            ["settings.EPOCH", 10, 20],
-            ["settings.INCR_RIGHT", 5],
-            ["settings.LEARNING_RATE", 0.1]]
+scanspec = {"NPROBLEMS": [100, 200, 300],
+            "EPOCH": [10, 20],
+            "INCR_RIGHT": [5],
+            "LEARNING_RATE": [0.1]}
 
 NDUPS = 5
 

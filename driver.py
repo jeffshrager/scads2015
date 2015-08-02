@@ -212,9 +212,8 @@ def config_and_test(scan_spec, index):
             switch(params[index], param)
             config_and_test(scan_spec, index + 1)
     else:
-        print 'np ' + str(settings.n_problems) + ' ep ' + str(settings.epoch) + ' ir ' + str(
-            settings.INCR_RIGHT) + ' lr ' + str(settings.learning_rate)
-        print(str(settings.strategies) + str(scan_spec))
+        print settings.strategies
+        print str(scan_spec) + '\n'
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         add_nn = counting_network()
         strat_nn = nn1.NeuralNetwork([14, 30, len(settings.strategies)])
