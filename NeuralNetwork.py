@@ -27,7 +27,7 @@ def addends_matrix(a1, a2):
 # Transform the sum into a binary output matrix.
 
 def sum_matrix(s):
-    lis = [0] * 13
+    lis = [0]
     lis[s] = 1
     return lis
 

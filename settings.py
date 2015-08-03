@@ -3,8 +3,7 @@ import driver
 
 global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
 global INCR_RIGHT, INCR_WRONG, DECR_WRONG
-global epoch, learning_rate, strategy, n_problems, strategies, ndups
-global epochs, learning_rates, incr_rights, n_problemss, ndups
+global epoch, learning_rate, n_problems, strategies, ndups
 
 
 # these are the parameters used in NeuralNetwork

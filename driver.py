@@ -206,7 +206,7 @@ def switch(key, val):
 
 # Depth first search through all the possible configurations of parameters
 def config_and_test(scan_spec, index):
-    global file_name, strat_nn, add_nn
+    global file_name, strat_nn, add_nn, DSTR
     if index < len(params):
         for param in scan_spec[params[index]]:
             switch(params[index], param)
@@ -215,6 +215,8 @@ def config_and_test(scan_spec, index):
         print settings.strategies
         print str(scan_spec) + '\n'
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        DSTR = Distribution()
+        ADD.main()
         add_nn = counting_network()
         strat_nn = nn1.NeuralNetwork([14, 30, len(settings.strategies)])
         strat_nn.update_y()
@@ -223,12 +225,8 @@ def config_and_test(scan_spec, index):
 
 def main():
     global TL, params
-    global DSTR
 
     start = timeit.default_timer()
-
-    DSTR = Distribution()
-    ADD.main()
     TL = 0  # trace level, 0 means off
     params = settings.scan_spec.keys()
     for i in range(settings.ndups):
