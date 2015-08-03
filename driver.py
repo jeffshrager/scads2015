@@ -141,20 +141,22 @@ class Distribution(object):
 def exec_strategy():
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
-    retrieval = add_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
+    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13)
     SOLUTION = 0
     if retrieval is not None:
         trp(1, "Used Retrieval")
         SOLUTION = retrieval
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_num = strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2)
+        strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
         # update the neural networks based on if the strategy worked or not
-        strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num)
-    add_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
+        add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num, 13, 13 + len(settings.strategies))
+    add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0 , 13)
+    add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
+    add_strat_nn.update_y()
     # add method here to get what strategy is used
 
     return [ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION]
@@ -177,7 +179,7 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     # this is the addends matrix
     input_units = 14
     # this is the output matrix
-    output_units = 13
+    output_units = 13 + len(settings.strategies)
 
     # fits to counting network
     NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
@@ -206,7 +208,7 @@ def switch(key, val):
 
 # Depth first search through all the possible configurations of parameters
 def config_and_test(scan_spec, index):
-    global file_name, strat_nn, add_nn, DSTR
+    global file_name, DSTR, add_strat_nn
     if index < len(params):
         for param in scan_spec[params[index]]:
             switch(params[index], param)
@@ -217,9 +219,7 @@ def config_and_test(scan_spec, index):
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         DSTR = Distribution()
         ADD.main()
-        add_nn = counting_network()
-        strat_nn = nn1.NeuralNetwork([14, 30, len(settings.strategies)])
-        strat_nn.update_y()
+        add_strat_nn = counting_network()
         test(settings.n_problems)
 
 

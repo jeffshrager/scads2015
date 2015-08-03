@@ -27,7 +27,7 @@ def addends_matrix(a1, a2):
 # Transform the sum into a binary output matrix.
 
 def sum_matrix(s):
-    lis = [0]
+    lis = [0] * (13 + len(settings.strategies))
     lis[s] = 1
     return lis
 
@@ -115,14 +115,14 @@ class NeuralNetwork:
             a = self.activation(np.dot(a, self.weights[l]))
         return a
 
-    def guess(self, a1, a2):
+    def guess(self, a1, a2, beg, end):
         if (a1 > 5) or (a2 > 5):
             return (None)
         cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
         # trp(1, "Choose confidence criterion = %s" % cc)
         results_above_cc = []
         #
-        for i in range(0, len(self.y[0])):
+        for i in range(beg, end):
             if self.y[5 * (a1 - 1) + a2 - 1][i] >= cc:
                 results_above_cc.append(i)
 
@@ -137,7 +137,7 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.y.append(self.predict(addends_matrix(i, j)))
 
-    def update(self, a1, a2, our_ans, ans):
+    def update(self, a1, a2, our_ans, ans, beg, end):
         # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
         #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
         #     # a1, a2, result))
@@ -148,8 +148,6 @@ class NeuralNetwork:
             self.y[index][ans] += settings.INCR_WRONG
         for i in range(1, 6):
             for j in range(1, 6):
-                for k in range(len(self.y[0])):
+                for k in range(beg, end):
                     if (i != a1) and (j != a2) and (k != ans):
                         self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
-        self.fit(self.X, self.y, settings.learning_rate, settings.epoch)
-        self.update_y()
