@@ -104,6 +104,8 @@ class Distribution(object):
             for i in range(1, 6):
                 for j in range(1, 6):
                     writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
+            for strat in strat_list:
+                writer.writerow(["STRATEGY: ", str(strat)])
 
     # Plot the distribution table into bar charts.
 
@@ -139,6 +141,7 @@ class Distribution(object):
 
 
 def exec_strategy():
+    global strat_list
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
     retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13)
@@ -146,6 +149,7 @@ def exec_strategy():
     if retrieval is not None:
         trp(1, "Used Retrieval")
         SOLUTION = retrieval
+        strat_list.append("retrieval")
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
@@ -154,8 +158,10 @@ def exec_strategy():
         else:
             strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
+        strat_list.append(settings.strategies[strat_num])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num, 13, 13 + len(settings.strategies))
+        strat_list.append(settings.strategies[strat_num])
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0 , 13)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
@@ -226,8 +232,8 @@ def config_and_test(scan_spec, index):
 
 
 def main():
-    global TL, params
-
+    global TL, params, strat_list
+    strat_list = []
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
     params = settings.scan_spec.keys()

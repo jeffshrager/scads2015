@@ -29,8 +29,8 @@ STRATEGY_HIGH_CC = 1.0
 strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy,
               ADD.count_from_one_twice_strategy, ADD.min_strategy]
 
-scan_spec = {"NPROBLEMS": [100, 200, 300],
-             "EPOCH": [10, 20],
+scan_spec = {"NPROBLEMS": [100],
+             "EPOCH": [10],
              "INCR_RIGHT": [5],
              "LEARNING_RATE": [0.1]}
 
