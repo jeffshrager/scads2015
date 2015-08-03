@@ -151,6 +151,8 @@ def exec_strategy():
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
+        else:
+            strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num, 13, 13 + len(settings.strategies))
