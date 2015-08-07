@@ -1,7 +1,4 @@
 from random import randint, shuffle, random
-
-
-
 # ----- Operators for actual addition strategies and test routines.
 
 # General utilities for reporting, etc.
@@ -24,7 +21,6 @@ class Hand(object):
         # each of which my be up or down.
 
         self.s = {'left': ['d'] * 5, 'right': ['d'] * 5}
-
         # The focus of attention.
 
         self.foa = {'hand': 'left', 'finger': 0}
@@ -56,7 +52,7 @@ class Hand(object):
     # is capitalized.
 
     def report(self):
-        if TL > 4: # Efficiency hack bcs this is almost never displayed, so why go through the work?
+        if TL > 4:  # Efficiency hack bcs this is almost never displayed, so why go through the work?
             text = ''
             for i in ['left', 'right']:
                 for j in range(5):
@@ -71,6 +67,7 @@ class Hand(object):
 
     def put_up(self):
         self.s[self.foa['hand']][self.foa['finger']] = 'u'
+        dynamical_retrieval()
         # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a
         # retreival using the current hand representation and possibly
         # break with an answer if the ret. is above some very tight
@@ -103,6 +100,30 @@ class Hand(object):
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
         self.report()
+
+
+def dynamical_retrieval():
+    # this part is really messy, but necessary so the imports dont go mess with each other
+    import driver
+    import settings
+
+    add_matrix = [0] * (13 + len(settings.strategies))
+    index = 0
+    while index < 5 and HAND.s['left'][index] == 'u':
+        index += 1
+    add_matrix[index + 1] = 1
+    while index < 5 and HAND.s['right'][index] == 'u':
+        index += 1
+    add_matrix[index + 5 + 1] = 1
+    prediction = driver.add_strat_nn.predict(add_matrix)
+    results_above_DRR = []
+    for val in prediction:
+        if val > settings.DR_threshold:
+            results_above_DRR.append(val)
+    if len(results_above_DRR) > 0:
+        print 'hi'
+        return results_above_DRR[randint(0, len(results_above_DRR) - 1)]
+    return None
 
 
 # Manipulation in the echoic buffer where number facts live.  We

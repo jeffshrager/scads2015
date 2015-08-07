@@ -1,5 +1,5 @@
 import numpy as np
-import settings as settings
+import settings
 from random import random, randint
 
 
@@ -129,7 +129,7 @@ class NeuralNetwork:
         l = len(results_above_cc)
         if l > 0:
             return results_above_cc[randint(0, l - 1)]
-        return (None)
+        return None
 
     def update_y(self):
         self.y = []
