@@ -56,20 +56,28 @@ class Hand(object):
     # is capitalized.
 
     def report(self):
-        text = ''
-        for i in ['left', 'right']:
-            for j in range(5):
-                if i == self.foa['hand'] and j == self.foa['finger']:
-                    text += self.s[i][j].upper()
-                else:
-                    text += self.s[i][j]
-        text = text[:5] + '|' + text[5:]
-        trp(4, text)
+        if TL > 4: # Efficiency hack bcs this is almost never displayed, so why go through the work?
+            text = ''
+            for i in ['left', 'right']:
+                for j in range(5):
+                    if i == self.foa['hand'] and j == self.foa['finger']:
+                        text += self.s[i][j].upper()
+                    else:
+                        text += self.s[i][j]
+                        text = text[:5] + '|' + text[5:]
+                        trp(4, text)
 
     # Finger raising; always does the focussed finger.
 
     def put_up(self):
         self.s[self.foa['hand']][self.foa['finger']] = 'u'
+        # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a
+        # retreival using the current hand representation and possibly
+        # break with an answer if the ret. is above some very tight
+        # threshold. Create a new settings.DR_Threshold = 0.99
+        # Call the DR_Try(...) in which you xlate from multi- to mono-finger rep. (uuddd => 01000)
+        # and then do a probe, and if it comes above DR_Threshold, break and return the solution.
+        # Consider also doing it in count_fingers()
 
     # The hands are external components as well, so
     # that all you need to do is select a hand and switch hands.

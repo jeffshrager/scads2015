@@ -9,15 +9,14 @@ import datetime
 import timeit
 import settings
 
-
 def trp(tl, text):
     if TL > tl:
         print text
 
-
 # Answer distribution table
 
 class Distribution(object):
+
     # Record answers ranging from 0 to 11; 12 includes all other answers.
 
     def __init__(self):
@@ -89,24 +88,22 @@ class Distribution(object):
     # Export to csv file.
 
     def print_csv(self, relative=False):
+        global writer, scan_spec
         table = self.relative_table(relative)
-        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
-        with open(full_name, 'wb') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['N_PROBLEMS: ', settings.n_problems])
-            writer.writerow(['EPOCHS: ', settings.epoch])
-            writer.writerow(['LEARNING_RATE: ', settings.learning_rate])
-            writer.writerow(['INCR_RIGHT: ', settings.INCR_RIGHT])
-            writer.writerow(['STRATEGIES: ', settings.strategies])
-            writer.writerow(['TEST: ', ])
-            writer.writerow(['PROBLEM', 'ANSWER'])
-            writer.writerow([''] + [str(x) for x in range(12)] + ['OTHER'])
-            for i in range(1, 6):
-                for j in range(1, 6):
-                    writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
-            for strat in strat_list:
-                writer.writerow(["STRATEGY: ", str(strat)])
 
+        writer.writerow(['======================================='])
+
+        for key in scan_spec:
+            exec("foo = " + key)
+            writer.writerow([key, foo])
+
+        writer.writerow(['======================================='])
+
+
+        for i in range(1, 6):
+            for j in range(1, 6):
+                writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
+                
     # Plot the distribution table into bar charts.
 
     def bar_plot(self, relative=False):
@@ -141,6 +138,7 @@ class Distribution(object):
 
 
 def exec_strategy():
+    global writer
     global strat_list
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
@@ -149,7 +147,7 @@ def exec_strategy():
     if retrieval is not None:
         trp(1, "Used Retrieval")
         SOLUTION = retrieval
-        strat_list.append("retrieval")
+        writer.writerow(["STRATEGY: ", "retrieval"])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
@@ -158,10 +156,11 @@ def exec_strategy():
         else:
             strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
-        strat_list.append(settings.strategies[strat_num])
+        writer.writerow(["STRATEGY: ", settings.strategies[strat_num],ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+        # strat_list.append(settings.strategies[strat_num])
         # update the neural networks based on if the strategy worked or not
-        add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num, 13, 13 + len(settings.strategies))
-        strat_list.append(settings.strategies[strat_num])
+        add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13+strat_num, 13, 13 + len(settings.strategies))
+        # strat_list.append(settings.strategies[strat_num])
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0 , 13)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
@@ -204,41 +203,47 @@ def counting_network(hidden_units=30, learning_rate=0.15):
 
 
 def switch(key, val):
-    if key == "NPROBLEMS":
-        settings.n_problems = val
-    elif key == "EPOCH":
-        settings.epoch = val
-    elif key == "INCR_RIGHT":
-        settings.INCR_RIGHT = val
-    elif key == "LEARNING_RATE":
-        settings.learning_rate = val
+    exec(key+'='+str(val))
+#     if key == "NPROBLEMS":
+#         settings.n_problems = val
+#     elif key == "EPOCH":
+#         settings.epoch = val
+#     elif key == "INCR_RIGHT":
+#         settings.INCR_RIGHT = val
+#     elif key == "LEARNING_RATE":
+#         settings.learning_rate = val
 
 
 # Depth first search through all the possible configurations of parameters
-def config_and_test(scan_spec, index):
-    global file_name, DSTR, add_strat_nn
+def config_and_test(index):
+    global file_name, DSTR, add_strat_nn, writer, scan_spec
     if index < len(params):
         for param in scan_spec[params[index]]:
             switch(params[index], param)
-            config_and_test(scan_spec, index + 1)
+            config_and_test(index + 1)
     else:
         print settings.strategies
         print str(scan_spec) + '\n'
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        DSTR = Distribution()
-        ADD.main()
-        add_strat_nn = counting_network()
-        test(settings.n_problems)
+        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
 
+        with open(full_name, 'wb') as csvfile:
+            writer = csv.writer(csvfile)
+            # writer = csv.writer(open(full_name, 'wb'))
+            DSTR = Distribution()
+            ADD.main()
+            add_strat_nn = counting_network()
+            test(settings.n_problems)
 
 def main():
-    global TL, params, strat_list
+    global TL, params, strat_list, scan_spec
+    scan_spec = settings.scan_spec
     strat_list = []
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
-    params = settings.scan_spec.keys()
+    params = scan_spec.keys()
     for i in range(settings.ndups):
-        config_and_test(settings.scan_spec, 0)
+        config_and_test(0)
     stop = timeit.default_timer()
     print stop - start
 

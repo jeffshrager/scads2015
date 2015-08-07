@@ -144,10 +144,11 @@ class NeuralNetwork:
         index = 5 * (a1 - 1) + (a2 - 1)
         if a1 + a2 == our_ans:
             self.y[index][ans] += settings.INCR_RIGHT
+            for i in range(1, 6):
+                for j in range(1, 6):
+                    for k in range(beg, end):
+                        if (i != a1) and (j != a2) and (k != ans):
+                            self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
         else:
             self.y[index][ans] += settings.INCR_WRONG
-        for i in range(1, 6):
-            for j in range(1, 6):
-                for k in range(beg, end):
-                    if (i != a1) and (j != a2) and (k != ans):
-                        self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
+
