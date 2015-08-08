@@ -74,7 +74,7 @@ class Hand(object):
         # Call the DR_Try(...) in which you xlate from multi- to mono-finger rep. (uuddd => 01000)
         # and then do a probe, and if it comes above DR_Threshold, break and return the solution.
         # Consider also doing it in count_fingers()
-        dynamical_retrieval()
+        try_dynamical_retrieval()
 
 
     # The hands are external components as well, so
@@ -103,10 +103,12 @@ class Hand(object):
         self.report()
 
 
-def dynamical_retrieval():
+def try_dynamical_retrieval():
     # this part is really messy, but necessary so the imports dont go mess with each other
     import driver
     import settings
+
+    global SOLUTION_COMPLETED, SOLUTION
 
     add_matrix = [0] * (13 + len(settings.strategies))
     index = 0
