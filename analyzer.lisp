@@ -83,17 +83,18 @@ sumstats/ dir.
 	    (t (break "Unknown results version, vline=~s" vline))))))
 
 (defun parse-20150807-data (i)
-  (list
-   (loop for l = (read-line i nil nil)
-	 until (search "===========" l)
-	 collect (string-split (subseq l 0 (1- (length l)))))
-   (parse-params i)
-   (loop for a from 1 to 5
-	 append (loop for b from 1 to 5
-		      collect (cons (cons a b)
-				    (mapcar #'read-from-string 
-					    ;; Drop the first thing, which is just the problem statement
-					    (cdr (string-split (read-line i nil nil)))))))))
+  `((:strategy-use-log .
+     ,(loop for l = (read-line i nil nil)
+	    until (search "===========" l)
+	    collect (string-split (subseq l 0 (1- (length l))))))
+    (:params . ,(parse-params i))
+    (:results-predictions .
+     ,(loop for a from 1 to 5
+	    append (loop for b from 1 to 5
+			 collect (cons (cons a b)
+				       (mapcar #'read-from-string 
+					       ;; Drop the first thing, which is just the problem statement
+					       (cdr (string-split (read-line i nil nil))))))))))
 
 ;;; This is max ugly (UUU) we should go through and parse the properly.
 
@@ -133,15 +134,14 @@ sumstats/ dir.
         else do (return in)))
 
 (defun compare (result-set)
-  (let* ((result-set (cdr result-set)) ;; Drop the parameters
+  (let* ((result-set (cdr (assoc :results-predictions result-set)))
 	 (pairs (loop for a in (loop for (problem obs) in *sns84-data*
 				     append obs)
 		      for b in (loop for (problem) in *sns84-data*
 				     as sim = (report-sim-results-as-100ths problem result-set)
 				     append sim)
 		     collect (list a b))))
-    ;; (format t "~%") ???
-    #+nil
+    #| I Don't remember what this was for ???
     (loop with p2 = (copy-list pairs)
 	  for i from 1 to 5 
 	  do (loop for j from 1 to 5
@@ -152,6 +152,7 @@ sumstats/ dir.
 			    (when (= r (+ i j)) (format t "**"))
 			    (format t "~a: ~a, " r (pop p2)))
 		   (format t "~%")))
+    |#
     (stats::correlation-coefficient pairs)))
 
 (defun report-sim-results-as-100ths (problem result-set)
@@ -203,12 +204,9 @@ sumstats/ dir.
 	 do
 	 (let* ((r (load-result-file file))
 		(c (compare r))
-		(p (car r)))
+		(p (cdr (assoc :params r))))
 	   (setq last-fno fno)
 	   (if (null first-fno) (setq first-fno fno))
-	   ;; (format *resultsum* "~a [~a] --> ~a~%" p (pathname-name file) c)
-	   ;; (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
-	   ;; (format *resultsum* "~a	~a~%" (pathname-name file) c)
 	   (push c (gethash p *params->ccs*))
 	   ))
    ;; (format *resultsum* "Summary stats (only data from params with multiple ns are included here):~%")
@@ -232,4 +230,4 @@ sumstats/ dir.
 
 (untrace)
 ;(trace parse-params)
-;(analyze) 
+(analyze) 
