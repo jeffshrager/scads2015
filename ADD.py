@@ -131,7 +131,7 @@ def dynamical_retrieval():
     if len(results_above_DRR) > 0:
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
-        driver.writer.writerow(["dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION]) # This might report twice
+        driver.writer.writerow(["!","dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION]) # This might report twice
         return None
     return None
 
@@ -391,8 +391,11 @@ class Addend(object):
 
 def exec_strategy(strategy_choice):
     global HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION
+    import driver
 
     SOLUTION_COMPLETED = False
+
+    driver.writer.writerow(["trying",strategy_choice, ADDEND.ad1, ADDEND.ad2]) # This might report twice
 
     EB = 0
     CB = 0

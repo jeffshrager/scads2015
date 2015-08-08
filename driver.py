@@ -150,7 +150,7 @@ def exec_strategy():
     if retrieval is not None:
         #trp(1, "Used Retrieval")
         SOLUTION = retrieval
-        writer.writerow(["retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+        writer.writerow(["used","retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
@@ -159,7 +159,7 @@ def exec_strategy():
         else:
             strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
-        writer.writerow([settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+        writer.writerow(["used",settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13 + strat_num, 13, 13 + len(settings.strategies))
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0, 13)
