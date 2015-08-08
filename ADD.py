@@ -118,21 +118,21 @@ def dynamical_retrieval():
     add_matrix[index + 5 + 1] = 1
     prediction = driver.add_strat_nn.predict(add_matrix)
     results_above_DRR = []
-    # ??? This looks wrong. I think that it's going to end up
-    # returning the val, whereas it should be returning a counter that
-    # is the result of the addtion. I think that you need an
-    # incrementing counter, or something.
+    # ??? This looked wrong the way it was. I think that it used to
+    # return the val, whereas it should be returning a counter that is
+    # the result of the addtion. I added this k thing to try to make
+    # it work as expected, but possibly I don't understand what it was
+    # supposed to do.
+    k = 0
     for val in prediction:
         if val > settings.DR_threshold:
-            results_above_DRR.append(val)
+            results_above_DRR.append(k)
+            k=k+1
     if len(results_above_DRR) > 0:
-        result = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
-        #print('*** Dynamic Retrival ***')
-        driver.writer.writerow(["dynamic_retrival", ADDEND.ad1, ADDEND.ad2, result])
-        # ??? So, I think that you want to set SOLUTION, and then set
-        # SOLUTION_COMPLETED = True, or something like that (here or
-        # in dynamic_retrieval) in order to get it to stop.
-        return result
+        SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
+        SOLUTION_COMPLETED = True  # Tell the strategy executor to break
+        driver.writer.writerow(["dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION]) # This might report twice
+        return None
     return None
 
 
