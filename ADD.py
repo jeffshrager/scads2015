@@ -121,7 +121,9 @@ def dynamical_retrieval():
         if val > settings.DR_threshold:
             results_above_DRR.append(val)
     if len(results_above_DRR) > 0:
-        print 'hi'
+        msg='*** Dynamic Retrival ***'
+        driver.writer.writerow([msg])
+        print msg
         return results_above_DRR[randint(0, len(results_above_DRR) - 1)]
     return None
 
