@@ -306,26 +306,23 @@ def raise_hand():
         CB += 1
         if CB >= ADDEND.addend:
             break
-    # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a
-    # retreival using the current hand representation and possibly
-    # break with an answer if the ret. is above some very tight
-    # threshold. Create a new settings.DR_Threshold = 0.99
-    # Call the DR_Try(...) in which you xlate from multi- to mono-finger rep. (uuddd => 01000)
-    # and then do a probe, and if it comes above DR_Threshold, break and return the solution.
-    # Consider also doing it in count_fingers()
+    # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a retreival
+    # using the current hand representation and possibly break with an
+    # answer if the ret. is above some very tight threshold. Create a
+    # new settings.DR_Threshold = 0.99 Call the DR_Try(...) in which
+    # you xlate from multi- to mono-finger rep. (uuddd => 01000) and
+    # then do a probe, and if it comes above DR_Threshold, break and
+    # return the solution.  Consider also doing it in count_fingers()
     try_dynamical_retrieval()
-
 
 def count_fingers():
     for i in range(5):
         look_n_count()
 
-
 def look_n_count():
     if HAND.s[HAND.foa['hand']][HAND.foa['finger']] == 'u':
         say_next()
     HAND.increment_focus()
-
 
 # Finally we need to replace the n1 and n2 with echoic buffers so
 # that they aren't arguments to a lisp function. This also requires
