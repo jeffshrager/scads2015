@@ -17,8 +17,8 @@ about those.)
 After you've done that once (per session), all you need to do is to do
 a new analysis is
 
-1. Consider changing *low*, *high*, *filename-key*, and *label* as 
-   described just below this block comment.
+1. Change *low*, and possibly *high*, as described just below this
+   block comment.
 
 2. Do: 
 
@@ -71,12 +71,16 @@ sumstats/ dir.
 (defvar *resultsum* nil)
 (defvar *results-version* nil)
 
+;;; FFF Make sure that all the files read have the same version
+;;; number. Break if not!
+
 (defun load-result-file (file)
   (format t "Loading ~a~%" file)
   (with-open-file 
    (i file)
    (let* ((vline (read-line i nil nil))
-	  (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (- (length vline) 1))))))
+	  ;; 1- bcs of the return on the end
+	  (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (1- (length vline)))))))
      (case version 
 	   (20150807 (parse-20150807-data i))
 	   (t (break "Unknown results version, vline=~s" vline))))))
@@ -85,6 +89,7 @@ sumstats/ dir.
   `((:strategy-use-log .
      ,(loop for l = (read-line i nil nil)
 	    until (search "===========" l)
+	    ;; 1- bcs of the return on the end
 	    collect (string-split (subseq l 0 (1- (length l))))))
     (:params . ,(parse-params i))
     (:results-predictions .
@@ -109,17 +114,8 @@ sumstats/ dir.
 	collect (let ((p (position #\, line)))
 		  (when p
 		    (cons (subseq line 0 p)
-			  ;; -1 bcs of the return on the end:
-			  (subseq line (+ p 1) (- (length line) 1)))))))
-
-#|
-
-				  (substitute #\space #\,
-					      (loop with s = (subseq line (+ p 3) (- (length line) 1))
-						    as (from . to) in *function-name-substitutions*
-						    do (setq s (string-substitute s from to))
-						    finally (return s)))))))))
-|#
+			  ;; 1- bcs of the return on the end
+			  (subseq line (+ p 1) (1- (length line))))))))
 
 
 (defun string-substitute (in from to)
@@ -177,8 +173,7 @@ sumstats/ dir.
 (defun analyze (&key (low *low*)
 		     (high *high*)
 		     (filename-key *filename-key*)
-		     (label *label*)
-		     &aux first-fno last-fno last-param-set)
+		     &aux first-fno last-fno label)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
   (clrhash *params->ccs*)
@@ -188,17 +183,25 @@ sumstats/ dir.
 	do
 	(let* ((r (load-result-file file))
 	       (c (compare r))
-	       (p (setq last-param-set (cdr (assoc :params r)))))
+	       (p (cdr (assoc :params r))))
+	  ;; Extract and check label
+	  (let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
+	    (if (null label)
+		(setq label new-label)
+	      (if (string-equal label new-label)
+		  :ok
+		(progn 
+		  (format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
+			  new-label label)
+		  (setq label new-label)))))
 	  (setq last-fno fno)
 	  (if (null first-fno) (setq first-fno fno))
 	  (push c (gethash p *params->ccs*))
 	  ))
   (with-open-file 
-   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" 
-			(get-universal-time) 
-			(substitute #\_ #\space (or (cdr (assoc "settings.experiment_label" last-param-set :test #'string-equal)) "no label")))
+   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) (substitute #\_ #\space label))
 		:direction :output :if-exists :supersede) 
-   (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
+   (format *resultsum* "~a~%from	f~a~%to	f~a~%" label first-fno last-fno)
    (loop for p being the hash-keys of *params->ccs*
 	 using (hash-value cs)
 	 with header-shown? = nil
