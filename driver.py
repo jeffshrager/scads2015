@@ -11,6 +11,7 @@ import settings
 
 global add_strat_nn
 
+
 def trp(tl, text):
     if TL > tl:
         print text
@@ -137,7 +138,8 @@ class Distribution(object):
         plt.tight_layout(h_pad=1)
         plt.show()
 
-
+# we first try a retrieval on the sum, and if that fails we have to use a strategy, which we try to retrieve
+# , and if that fails we gotta use a random strategy. then we update the nn accordingly, and fit and update_y
 def exec_strategy():
     global writer
     global strat_list
@@ -160,7 +162,6 @@ def exec_strategy():
         writer.writerow(["STRATEGY: ", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13 + strat_num, 13, 13 + len(settings.strategies))
-        # strat_list.append(settings.strategies[strat_num])
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0, 13)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
@@ -188,7 +189,7 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     # this is the output matrix
     output_units = 13 + len(settings.strategies)
 
-    # fits to counting network
+    # fits to counting network, the inputs are the addends matrix for (1+2) , (2+3), etc and the outputs are (1+2)=3 (2+3)=4
     NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
     X_count = []
     y_count = []
@@ -205,20 +206,25 @@ def counting_network(hidden_units=30, learning_rate=0.15):
 # Depth first search through all the possible configurations of parameters
 def config_and_test(index):
     global file_name, DSTR, add_strat_nn, writer, scan_spec
+    # checks if we have any more params to scan
     if index < len(params):
+        # gets the current param, for instance epochs: [100,200,300] 100 200 and 300 are param
         for param in scan_spec[params[index]]:
-            # metaprogramming stuff, just sets the param value
+            # metaprogramming stuff, just sets the param value, e.g. epoch = 100, then recurses down to the next index
             exec (params[index] + '=' + str(param))
             config_and_test(index + 1)
     else:
         print settings.strategies
+        # this part is broken, it should print what the current params are but I can't get it to work
         print settings.scan_spec
+        # the file name is the current time
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
 
         with open(full_name, 'wb') as csvfile:
+            # initialize the writer, DSTR, neural network for each config we want to test
             writer = csv.writer(csvfile)
-            writer.writerow(['Output Format Version','20150807'])
+            writer.writerow(['Output Format Version', '20150807'])
             DSTR = Distribution()
             ADD.main()
             add_strat_nn = counting_network()
@@ -226,10 +232,8 @@ def config_and_test(index):
 
 
 def main():
-
-    global TL, params, strat_list, scan_spec
+    global TL, params, scan_spec
     scan_spec = settings.scan_spec
-    strat_list = []
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
     params = scan_spec.keys()

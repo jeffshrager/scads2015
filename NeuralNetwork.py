@@ -115,6 +115,7 @@ class NeuralNetwork:
             a = self.activation(np.dot(a, self.weights[l]))
         return a
 
+    # returns a random number from a list of numbers above the confidence criterion
     def guess(self, a1, a2, beg, end):
         if (a1 > 5) or (a2 > 5):
             return (None)
@@ -131,12 +132,15 @@ class NeuralNetwork:
             return results_above_cc[randint(0, l - 1)]
         return None
 
+    # we change what we fit the neural network to (which is y) after each update
     def update_y(self):
         self.y = []
         for i in range(1, 6):
             for j in range(1, 6):
                 self.y.append(self.predict(addends_matrix(i, j)))
 
+    # check if al + a2 == ans, if so our_ans is correct so we add to that and decrement others.
+    #  else we add incr_wrong to our_ans
     def update(self, a1, a2, our_ans, ans, beg, end):
         # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
         #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
@@ -151,4 +155,3 @@ class NeuralNetwork:
                             self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
         else:
             self.y[index][ans] += settings.INCR_WRONG
-

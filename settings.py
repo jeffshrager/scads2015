@@ -13,7 +13,7 @@ ndups = 3
 # to actually choose retrieval (via setting the cc randomly).
 
 
-# these are the parameters we want to change
+
 strategies = [ADD.count_from_either_strategy]
 
 # The settings.experiment_label is used by the analyzer to label the
