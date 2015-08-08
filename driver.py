@@ -218,6 +218,7 @@ def config_and_test(index):
 
         with open(full_name, 'wb') as csvfile:
             writer = csv.writer(csvfile)
+            writer.writerow(['Output Format Version','20150807'])
             DSTR = Distribution()
             ADD.main()
             add_strat_nn = counting_network()

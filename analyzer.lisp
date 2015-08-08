@@ -71,19 +71,29 @@ sumstats/ dir.
     ))
 
 (defvar *resultsum* nil)
+(defvar *results-version* nil)
 
 (defun load-result-file (file)
    (with-open-file 
     (i file)
-    (cons (parse-params i)
-	  ;; Each line from here on should have a problem and then a bunch of results
-	  ;; cols are ,0,1,2,3,4,5,6,7,8,9,10,11,OTHER
-	  (loop for a from 1 to 5
-		append (loop for b from 1 to 5
-			     collect (cons (cons a b)
-					   (mapcar #'read-from-string 
-						   ;; Drop the first thing, which is just the problem statement
-						   (cdr (string-split (read-line i nil nil))))))))))
+    (let* ((vline (read-line i nil nil))
+	   (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (- (length vline) 1))))))
+      (case version 
+	    (20150807 (parse-20150807-data i))
+	    (t (break "Unknown results version, vline=~s" vline))))))
+
+(defun parse-20150807-data (i)
+  (list
+   (loop for l = (read-line i nil nil)
+	 until (search "===========" l)
+	 collect (string-split (subseq l 0 (1- (length l)))))
+   (parse-params i)
+   (loop for a from 1 to 5
+	 append (loop for b from 1 to 5
+		      collect (cons (cons a b)
+				    (mapcar #'read-from-string 
+					    ;; Drop the first thing, which is just the problem statement
+					    (cdr (string-split (read-line i nil nil)))))))))
 
 ;;; This is max ugly (UUU) we should go through and parse the properly.
 
@@ -94,19 +104,23 @@ sumstats/ dir.
     ("<function random_strategy at 0x" . "rand @")))
 
 (defun parse-params (i)
-  (remove nil 
-	  (loop for line = (read-line i nil nil)
-		with r = nil
-		until (search  ",OTHER" line)
-		collect (let ((p (search ": ," line)))
-			  (when p
-			    (cons (subseq line 0 p)
-				  ;; Need to drop the #\Return off the end
+  (loop for line = (read-line i nil nil)
+	until (search  "========" line)
+	collect (let ((p (position #\, line)))
+		  (when p
+		    (cons (subseq line 0 p)
+			  ;; -1 bcs of the return on the end:
+			  (subseq line (+ p 1) (- (length line) 1)))))))
+
+#|
+
 				  (substitute #\space #\,
 					      (loop with s = (subseq line (+ p 3) (- (length line) 1))
 						    as (from . to) in *function-name-substitutions*
 						    do (setq s (string-substitute s from to))
 						    finally (return s)))))))))
+|#
+
 
 (defun string-substitute (in from to)
   (loop with start2 = 0 
@@ -218,4 +232,4 @@ sumstats/ dir.
 
 (untrace)
 ;(trace parse-params)
-(analyze) 
+;(analyze) 
