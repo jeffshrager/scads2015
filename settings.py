@@ -3,11 +3,11 @@ import driver
 
 global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
 global INCR_RIGHT, INCR_WRONG, DECR_WRONG
-global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold
+global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 
 
 # we just need to initialize the parameters
-ndups = 1
+ndups = 3
 
 # Retrieval cc ranges are used in select-strategy to determine when
 # to actually choose retrieval (via setting the cc randomly).
@@ -16,7 +16,12 @@ ndups = 1
 # these are the parameters we want to change
 strategies = [ADD.count_from_either_strategy]
 
-scan_spec = {"settings.n_problems": [1000],
+# The settings.experiment_label is used by the analyzer to label the
+# results file because we set these by exec(), this has to have an
+# extra set of "\"quotes\"" around it.
+
+scan_spec = {"settings.experiment_label": ["\"this is a test\""],
+             "settings.n_problems": [1000],
              "settings.RETRIEVAL_LOW_CC": [0.9],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
              "settings.STRATEGY_LOW_CC": [0.9],

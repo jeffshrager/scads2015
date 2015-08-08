@@ -1,7 +1,5 @@
 (defparameter *low* 20150731154448) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-(defparameter *filename-key* "scanning-lr-0_02-1_00") ;; A quick reminder of the analysis -- this will become part of the filename!
-(defparameter *label* "We're scanning the learning rate ......") ;; A longer description -- this goes in the file
 
 #|
                   How to use the analyzer
@@ -74,13 +72,14 @@ sumstats/ dir.
 (defvar *results-version* nil)
 
 (defun load-result-file (file)
-   (with-open-file 
-    (i file)
-    (let* ((vline (read-line i nil nil))
-	   (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (- (length vline) 1))))))
-      (case version 
-	    (20150807 (parse-20150807-data i))
-	    (t (break "Unknown results version, vline=~s" vline))))))
+  (format t "Loading ~a~%" file)
+  (with-open-file 
+   (i file)
+   (let* ((vline (read-line i nil nil))
+	  (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (- (length vline) 1))))))
+     (case version 
+	   (20150807 (parse-20150807-data i))
+	   (t (break "Unknown results version, vline=~s" vline))))))
 
 (defun parse-20150807-data (i)
   `((:strategy-use-log .
@@ -141,18 +140,6 @@ sumstats/ dir.
 				     as sim = (report-sim-results-as-100ths problem result-set)
 				     append sim)
 		     collect (list a b))))
-    #| I Don't remember what this was for ???
-    (loop with p2 = (copy-list pairs)
-	  for i from 1 to 5 
-	  do (loop for j from 1 to 5
-		   do 
-		   (format t "~a + ~a: " i j)
-		   (loop for r from 0 to 12
-			    do 
-			    (when (= r (+ i j)) (format t "**"))
-			    (format t "~a: ~a, " r (pop p2)))
-		   (format t "~%")))
-    |#
     (stats::correlation-coefficient pairs)))
 
 (defun report-sim-results-as-100ths (problem result-set)
@@ -191,42 +178,43 @@ sumstats/ dir.
 		     (high *high*)
 		     (filename-key *filename-key*)
 		     (label *label*)
-		     &aux first-fno last-fno)
+		     &aux first-fno last-fno last-param-set)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
   (clrhash *params->ccs*)
+  (loop for file in (directory "test_csv/*.csv")
+	as fno = (parse-integer (pathname-name file))
+	when (and (>= fno low) (<= fno high))
+	do
+	(let* ((r (load-result-file file))
+	       (c (compare r))
+	       (p (setq last-param-set (cdr (assoc :params r)))))
+	  (setq last-fno fno)
+	  (if (null first-fno) (setq first-fno fno))
+	  (push c (gethash p *params->ccs*))
+	  ))
   (with-open-file 
-   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) filename-key)
+   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" 
+			(get-universal-time) 
+			(substitute #\_ #\space (or (cdr (assoc "settings.experiment_label" last-param-set :test #'string-equal)) "no label")))
 		:direction :output :if-exists :supersede) 
-   (loop for file in (directory "test_csv/*.csv")
-	 as fno = (parse-integer (pathname-name file))
-	 when (and (>= fno low) (<= fno high))
-	 do
-	 (let* ((r (load-result-file file))
-		(c (compare r))
-		(p (cdr (assoc :params r))))
-	   (setq last-fno fno)
-	   (if (null first-fno) (setq first-fno fno))
-	   (push c (gethash p *params->ccs*))
-	   ))
-   ;; (format *resultsum* "Summary stats (only data from params with multiple ns are included here):~%")
-  (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
-  (loop for p being the hash-keys of *params->ccs*
-	using (hash-value cs)
-	with header-shown? = nil
-	when (cdr cs)
-	do 
-	(unless header-shown?
-	  ;;(mapcar #'print p)
-	  (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
-	  (format *resultsum* "n	meancc	stderr~%")
-	  (setq header-shown? t))
-	(mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
-	(format *resultsum* "~a	~a	~a~%"
-		(length cs)
-		(STATISTICS:MEAN cs)
-		(STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
-		))))
+   (format *resultsum* "~a~%from	f~a~%to	f~a~%" (or label filename-key) first-fno last-fno)
+   (loop for p being the hash-keys of *params->ccs*
+	 using (hash-value cs)
+	 with header-shown? = nil
+	 when (cdr cs)
+	 do 
+	 (unless header-shown?
+	   ;;(mapcar #'print p)
+	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
+	   (format *resultsum* "n	meancc	stderr~%")
+	   (setq header-shown? t))
+	 (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
+	 (format *resultsum* "~a	~a	~a~%"
+		 (length cs)
+		 (STATISTICS:MEAN cs)
+		 (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
+		 ))))
 
 (untrace)
 ;(trace parse-params)
