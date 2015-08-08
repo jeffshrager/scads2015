@@ -67,7 +67,6 @@ class Hand(object):
 
     def put_up(self):
         self.s[self.foa['hand']][self.foa['finger']] = 'u'
-        dynamical_retrieval()
         # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a
         # retreival using the current hand representation and possibly
         # break with an answer if the ret. is above some very tight
@@ -75,6 +74,8 @@ class Hand(object):
         # Call the DR_Try(...) in which you xlate from multi- to mono-finger rep. (uuddd => 01000)
         # and then do a probe, and if it comes above DR_Threshold, break and return the solution.
         # Consider also doing it in count_fingers()
+        dynamical_retrieval()
+
 
     # The hands are external components as well, so
     # that all you need to do is select a hand and switch hands.
@@ -117,6 +118,10 @@ def dynamical_retrieval():
     add_matrix[index + 5 + 1] = 1
     prediction = driver.add_strat_nn.predict(add_matrix)
     results_above_DRR = []
+    # ??? This looks wrong. I think that it's going to end up
+    # returning the val, whereas it should be returning a counter that
+    # is the result of the addtion. I think that you need an
+    # incrementing counter, or something.
     for val in prediction:
         if val > settings.DR_threshold:
             results_above_DRR.append(val)
@@ -124,6 +129,9 @@ def dynamical_retrieval():
         result = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         #print('*** Dynamic Retrival ***')
         driver.writer.writerow(["dynamic_retrival", ADDEND.ad1, ADDEND.ad2, result])
+        # ??? So, I think that you want to set SOLUTION, and then set
+        # SOLUTION_COMPLETED = True, or something like that (here or
+        # in dynamic_retrieval) in order to get it to stop.
         return result
     return None
 
