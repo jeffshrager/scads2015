@@ -172,7 +172,6 @@ sumstats/ dir.
 
 (defun analyze (&key (low *low*)
 		     (high *high*)
-		     (filename-key *filename-key*)
 		     &aux first-fno last-fno label)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
@@ -181,23 +180,26 @@ sumstats/ dir.
 	as fno = (parse-integer (pathname-name file))
 	when (and (>= fno low) (<= fno high))
 	do
-	(let* ((r (load-result-file file))
-	       (c (compare r))
-	       (p (cdr (assoc :params r))))
-	  ;; Extract and check label
-	  (let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
-	    (if (null label)
-		(setq label new-label)
-	      (if (string-equal label new-label)
-		  :ok
-		(progn 
-		  (format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
-			  new-label label)
-		  (setq label new-label)))))
-	  (setq last-fno fno)
-	  (if (null first-fno) (setq first-fno fno))
-	  (push c (gethash p *params->ccs*))
-	  ))
+	(let* ((r (ignore-errors (load-result-file file))))
+	  (if r
+	      (let* ((c (compare r))
+		     (p (cdr (assoc :params r))))
+		;; Extract and check label
+		(let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
+		  (if (null label)
+		      (setq label new-label)
+		    (if (string-equal label new-label)
+			:ok
+		      (progn 
+			(format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
+				new-label label)
+			(setq label new-label)))))
+		(setq last-fno fno)
+		(if (null first-fno) (setq first-fno fno))
+		(push c (gethash p *params->ccs*))
+		) ;; Let*
+	    (format t "~a seems to be broken -- ignoring it!~%" file)
+	    )))
   (with-open-file 
    (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) (substitute #\_ #\space label))
 		:direction :output :if-exists :supersede) 

@@ -20,7 +20,7 @@ strategies = [ADD.count_from_either_strategy]
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"this is another test\""],
+scan_spec = {"settings.experiment_label": ["\"201508090757\""],
              "settings.n_problems": [200,400,600],
              "settings.RETRIEVAL_LOW_CC": [0.9],
              "settings.RETRIEVAL_HIGH_CC": [1.0],

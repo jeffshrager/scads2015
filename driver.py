@@ -159,6 +159,9 @@ def exec_strategy():
         else:
             strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
+        # !!! WWW WARNING: This gets displayed even if Dynamic
+        # Retrieval was used. You have to Analyze this distinction out
+        # of the log at the end by seeing that a DR message appeared!
         writer.writerow(["used",settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13 + strat_num, 13, 13 + len(settings.strategies))
