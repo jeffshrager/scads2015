@@ -112,16 +112,6 @@ def try_dynamical_retrieval():
     add_matrix[index + 5 + 1] = 1
     prediction = driver.add_strat_nn.predict(add_matrix)
     results_above_DRR = []
-    # ??? This looked wrong the way it was. I think that it used to
-    # return the val, whereas it should be returning a counter that is
-    # the result of the addtion. I added this k thing to try to make
-    # it work as expected, but possibly I don't understand what it was
-    # supposed to do.
-    # k = 0
-    # for val in prediction:
-    #     if val > settings.DR_threshold:
-    #         results_above_DRR.append(k)
-    #         k=k+1
     for i in range(0, 13):
         if prediction[i] > settings.DR_threshold:
             results_above_DRR.append(i)
@@ -131,7 +121,6 @@ def try_dynamical_retrieval():
         driver.writer.writerow(["!", "dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION])  # This might report twice
         return None
     return None
-
 
 # Manipulation in the echoic buffer where number facts live.  We
 # assume perfect knowledge of the number sequence.  That way incr
@@ -310,13 +299,8 @@ def raise_hand():
         CB += 1
         if CB >= ADDEND.addend:
             break
-    # !!! DYNAMIC RETRIEVAL: Here (maybe) is where you do a retreival
-    # using the current hand representation and possibly break with an
-    # answer if the ret. is above some very tight threshold. Create a
-    # new settings.DR_Threshold = 0.99 Call the DR_Try(...) in which
-    # you xlate from multi- to mono-finger rep. (uuddd => 01000) and
-    # then do a probe, and if it comes above DR_Threshold, break and
-    # return the solution.  Consider also doing it in count_fingers()
+    # !!! DYNAMIC RETRIEVAL !!! Try a retreival using the current hand
+    # representation and break with an answer if the ret works.
     try_dynamical_retrieval()
 
 
