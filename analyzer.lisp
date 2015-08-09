@@ -133,8 +133,11 @@ sumstats/ dir.
     ("count_from_one_once_strategy" . :cf1x1)
     ("count_from_one_twice_strategy" . :cf1x2)
     ("random_strategy" . :rand)
-    ("retrival" . :ret)
+    ("retrieval" . :ret)
     ("dynamic_retrival" . :dynaret)
+    ("used" . :used)
+    ("trying" . :trying)
+    ("!" . :!)
     ))
 
 (defun simplify-strategy-string (s)
@@ -155,6 +158,34 @@ sumstats/ dir.
 		  (simplify-strategy-string i)
 		  i))
 	  entry))
+
+;;; The log either contains singltons: (:USED :RET 4 3 6) 
+;;; or pairs: (:TRYING :CFE 5 2) (:USED :CFE 5 2 7) 
+;;; or triples: (:TRYING :CFE 5 2) (:! :DYNARET 5 2 7) (:USED :CFE 5 2 7) 
+;;; This combines them into singlton entries that all look like: (:RET 4 3 6), or (:CFE 5 2 7), or: ((:CFE :DYNARET) 5 2 7)
+
+;;; FFF This should have some checks in it for potential problems
+;;; 'cause it can make a real mess if it gets out of synch! FFF
+
+(defun reduce-log (log)
+   (loop for entry+ on log 
+	 as k from 1 by 1
+	 as entry = (car entry+)
+	 with r = nil
+	 do (if (eq :used (car entry))
+		(push (cdr entry) r)
+	      (if (eq :trying (car entry))
+		  (if (eq :used (car (second entry+)))
+		      (push `(,(second entry) ,(cdr (second entry+))) r)
+		    (if (eq :! (car (second entry+)))
+			(push `((,(second entry) :DYNARET) ,(cdr (second entry+))) r)
+		      (break "Something's wrong (A) with the log at ~a: ~s" k entry)))
+		(break "Something's wrong (B) with the log at ~a: ~s" k entry)))
+	 finally (return 
+		  (reverse 
+		   (loop for e in r
+			 when (not (member (car e) '(:! :trying :used)))
+			 collect e)))))
 
 ;;; =============================================================
 ;;; Math
