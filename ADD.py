@@ -110,22 +110,25 @@ def try_dynamical_retrieval():
     while index < 5 and HAND.s['right'][index] == 'u':
         index += 1
     add_matrix[index + 5 + 1] = 1
-    prediction = driver.add_strat_nn.predict(np.array(add_matrix))
+    prediction = driver.add_strat_nn.predict(add_matrix)
     results_above_DRR = []
     # ??? This looked wrong the way it was. I think that it used to
     # return the val, whereas it should be returning a counter that is
     # the result of the addtion. I added this k thing to try to make
     # it work as expected, but possibly I don't understand what it was
     # supposed to do.
-    k = 0
-    for val in prediction:
-        if val > settings.DR_threshold:
-            results_above_DRR.append(k)
-            k=k+1
+    # k = 0
+    # for val in prediction:
+    #     if val > settings.DR_threshold:
+    #         results_above_DRR.append(k)
+    #         k=k+1
+    for i in range(0, 13):
+        if prediction[i] > settings.DR_threshold:
+            results_above_DRR.append(i)
     if len(results_above_DRR) > 0:
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
-        driver.writer.writerow(["!","dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION]) # This might report twice
+        driver.writer.writerow(["!", "dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION])  # This might report twice
         return None
     return None
 
@@ -316,14 +319,17 @@ def raise_hand():
     # return the solution.  Consider also doing it in count_fingers()
     try_dynamical_retrieval()
 
+
 def count_fingers():
     for i in range(5):
         look_n_count()
+
 
 def look_n_count():
     if HAND.s[HAND.foa['hand']][HAND.foa['finger']] == 'u':
         say_next()
     HAND.increment_focus()
+
 
 # Finally we need to replace the n1 and n2 with echoic buffers so
 # that they aren't arguments to a lisp function. This also requires
@@ -394,7 +400,7 @@ def exec_strategy(strategy_choice):
 
     SOLUTION_COMPLETED = False
 
-    driver.writer.writerow(["trying",strategy_choice, ADDEND.ad1, ADDEND.ad2]) # This might report twice
+    driver.writer.writerow(["trying", strategy_choice, ADDEND.ad1, ADDEND.ad2])  # This might report twice
 
     EB = 0
     CB = 0
