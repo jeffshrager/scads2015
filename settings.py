@@ -25,7 +25,7 @@ scan_spec = {"settings.experiment_label": ["\"201508090917 Scanning n problems b
              "settings.INCR_WRONG": [1],
              "settings.DECR_WRONG": [0.5],
              "settings.learning_rate": [0.1],
-             "settings.DR_threshold": [0]}
+             "settings.DR_threshold": [1.0]}
 
 if __name__ == '__main__':
     driver.main()
