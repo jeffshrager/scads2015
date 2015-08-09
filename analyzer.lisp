@@ -1,3 +1,7 @@
+;;; Before running an analysis, you probably want to change these
+;;; variables. Below are examples of fns. that set these and do
+;;; various anlayses.
+
 (defparameter *low* 20150731154448) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
 
@@ -28,10 +32,6 @@ It starts by itself and will create a new summary stats tsv file in
 sumstats/ dir.
 
 |#
-
-;;; Before running an analysis, you probably want to change these
-;;; variables. Below are examples of fns. that set these and do
-;;; various anlayses.
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
@@ -68,8 +68,16 @@ sumstats/ dir.
     ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
     ))
 
+;;; =============================================================
+;;; Globals
+
 (defvar *resultsum* nil)
 (defvar *results-version* nil)
+(defvar *params->ccs* (make-hash-table :test #'equal))
+(defvar *file->data* (make-hash-table :test #'equal))
+
+;;; =============================================================
+;;; Parser
 
 ;;; FFF Make sure that all the files read have the same version
 ;;; number. Break if not!
@@ -80,13 +88,19 @@ sumstats/ dir.
    (i file)
    (let* ((vline (read-line i nil nil))
 	  ;; 1- bcs of the return on the end
-	  (version (setq *results-version* (parse-integer (subseq vline  (1+ (position #\, vline)) (1- (length vline)))))))
-     (case version 
+	  (version (parse-integer (subseq vline  (1+ (position #\, vline)) (1- (length vline))))))
+     (if (null *results-version*)
+	 (setq *results-version* version)
+       (unless (equal version *results-version*)
+	 (break "Uh oh. Some of the data is from version ~a, and some is from version ~a of the results format. I don't know how to handle this situation!"
+		*results-version* version)))
+     (case version
 	   (20150807 (parse-20150807-data i))
 	   (t (break "Unknown results version, vline=~s" vline))))))
 
 (defun parse-20150807-data (i)
-  `((:strategy-use-log .
+  `((:results-version . *results-version*) ;; NNN This is actually un-necessary since everything will have the same version 
+    (:strategy-use-log .
      ,(loop for l = (read-line i nil nil)
 	    until (search "===========" l)
 	    ;; 1- bcs of the return on the end
@@ -117,20 +131,12 @@ sumstats/ dir.
 			  ;; 1- bcs of the return on the end
 			  (subseq line (+ p 1) (1- (length line))))))))
 
-
-(defun string-substitute (in from to)
-  (loop with start2 = 0 
-        with lfrom = (length from)
-        with lto = (length to)
-        as p = (search from in :start2 start2)
-        if p
-        do (setq in (format nil "~a~a~a" (subseq in 0 p) to (subseq in (+ p lfrom)))
-                 start2 (+ p lto))
-        else do (return in)))
+;;; =============================================================
+;;; Math
 
 (defun compare (result-set)
   (let* ((result-set (cdr (assoc :results-predictions result-set)))
-	 (pairs (loop for a in (loop for (problem obs) in *sns84-data*
+	 (pairs (loop for a in (loop for (nil obs) in *sns84-data*
 				     append obs)
 		      for b in (loop for (problem) in *sns84-data*
 				     as sim = (report-sim-results-as-100ths problem result-set)
@@ -141,6 +147,9 @@ sumstats/ dir.
 (defun report-sim-results-as-100ths (problem result-set)
   (loop for r in (cdr (assoc problem result-set :test #'equal))
 	collect (* 100.0 r)))
+
+;;; =============================================================
+;;; Utils
 
 (defun string-split (string &key (delimiter #\,) (copy t))
   (let ((substrings '())
@@ -161,7 +170,15 @@ sumstats/ dir.
 	  (add-substring length)
 	  (nreverse substrings))))
 
-(defvar *params->ccs* (make-hash-table :test #'equal))
+(defun string-substitute (in from to)
+  (loop with start2 = 0 
+        with lfrom = (length from)
+        with lto = (length to)
+        as p = (search from in :start2 start2)
+        if p
+        do (setq in (format nil "~a~a~a" (subseq in 0 p) to (subseq in (+ p lfrom)))
+                 start2 (+ p lto))
+        else do (return in)))
 
 (defun dht (table &optional (n 10000))
   (maphash #'(lambda (key value)
@@ -170,11 +187,16 @@ sumstats/ dir.
 	       )
 	   table))
 
+;;; =============================================================
+;;; Main
+
 (defun analyze (&key (low *low*)
 		     (high *high*)
 		     &aux first-fno last-fno label)
+  (setq *results-version* nil)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
+  (clrhash *file->data*)
   (clrhash *params->ccs*)
   (loop for file in (directory "test_csv/*.csv")
 	as fno = (parse-integer (pathname-name file))
@@ -184,6 +206,8 @@ sumstats/ dir.
 	  (if r
 	      (let* ((c (compare r))
 		     (p (cdr (assoc :params r))))
+		;; Save data for later
+		(setf (gethash file *file->data*) r)
 		;; Extract and check label
 		(let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
 		  (if (null label)
