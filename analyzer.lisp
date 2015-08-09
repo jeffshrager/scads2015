@@ -99,12 +99,12 @@ sumstats/ dir.
 	   (t (break "Unknown results version, vline=~s" vline))))))
 
 (defun parse-20150807-data (i)
-  `((:results-version . *results-version*) ;; NNN This is actually un-necessary since everything will have the same version 
+  `((:results-version . ,*results-version*) ;; NNN This is actually un-necessary since everything will have the same version 
     (:strategy-use-log .
      ,(loop for l = (read-line i nil nil)
 	    until (search "===========" l)
 	    ;; 1- bcs of the return on the end
-	    collect (string-split (subseq l 0 (1- (length l))))))
+	    collect (interpret-log-entry (string-split (subseq l 0 (1- (length l)))))))
     (:params . ,(parse-params i))
     (:results-predictions .
      ,(loop for a from 1 to 5
@@ -116,12 +116,6 @@ sumstats/ dir.
 
 ;;; This is max ugly (UUU) we should go through and parse the properly.
 
-(defparameter *function-name-substitutions*
-  '(("<function count_from_either_strategy at 0x" . " cf_either @")
-    ("<function count_from_one_once_strategy at 0x" . " cf_1x1 @")
-    ("<function count_from_one_twice_strategy at 0x" . " cf_1x2 @")
-    ("<function random_strategy at 0x" . "rand @")))
-
 (defun parse-params (i)
   (loop for line = (read-line i nil nil)
 	until (search  "========" line)
@@ -130,6 +124,37 @@ sumstats/ dir.
 		    (cons (subseq line 0 p)
 			  ;; 1- bcs of the return on the end
 			  (subseq line (+ p 1) (1- (length line))))))))
+
+;;; =============================================================
+;;; Log Analysis
+
+(defparameter *function-name-substitutions*
+  '(("count_from_either_strategy" . :cfe)
+    ("count_from_one_once_strategy" . :cf1x1)
+    ("count_from_one_twice_strategy" . :cf1x2)
+    ("random_strategy" . :rand)
+    ("retrival" . :ret)
+    ("dynamic_retrival" . :dynaret)
+    ))
+
+(defun simplify-strategy-string (s)
+  ;; They come in like this: "<function count_from_either_strategy at 0x10ebcb848>"
+  ;; and go out like this: :cfe
+  (or 
+   (cdr (assoc (if (char-equal #\< (aref s 0))
+		   (subseq s 10 (search " at " s :test #'char-equal))
+		 s)
+	       *function-name-substitutions* :test #'string-equal))
+   s))
+
+(defun interpret-log-entry (entry)
+  ;; Understand anything in the log entry that we can.
+  (mapcar #'(lambda (i) 
+	      (or (let ((n (ignore-errors (parse-integer i))))
+		    (when (numberp n) n))
+		  (simplify-strategy-string i)
+		  i))
+	  entry))
 
 ;;; =============================================================
 ;;; Math
