@@ -100,11 +100,13 @@ sumstats/ dir.
 
 (defun parse-20150807-data (i)
   `((:results-version . ,*results-version*) ;; NNN This is actually un-necessary since everything will have the same version 
-    (:strategy-use-log .
-     ,(loop for l = (read-line i nil nil)
-	    until (search "===========" l)
-	    ;; 1- bcs of the return on the end
-	    collect (interpret-log-entry (string-split (subseq l 0 (1- (length l)))))))
+    (:strategy-use-log 
+     .
+     ,(reduce-log
+      (loop for l = (read-line i nil nil)
+	     until (search "===========" l)
+	     ;; 1- bcs of the return on the end
+	     collect (interpret-log-entry (string-split (subseq l 0 (1- (length l))))))))
     (:params . ,(parse-params i))
     (:results-predictions .
      ,(loop for a from 1 to 5
@@ -168,24 +170,26 @@ sumstats/ dir.
 ;;; 'cause it can make a real mess if it gets out of synch! FFF
 
 (defun reduce-log (log)
-   (loop for entry+ on log 
-	 as k from 1 by 1
-	 as entry = (car entry+)
-	 with r = nil
-	 do (if (eq :used (car entry))
-		(push (cdr entry) r)
-	      (if (eq :trying (car entry))
-		  (if (eq :used (car (second entry+)))
-		      (push `(,(second entry) ,(cdr (second entry+))) r)
-		    (if (eq :! (car (second entry+)))
-			(push `((,(second entry) :DYNARET) ,(cdr (second entry+))) r)
-		      (break "Something's wrong (A) with the log at ~a: ~s" k entry)))
-		(break "Something's wrong (B) with the log at ~a: ~s" k entry)))
-	 finally (return 
-		  (reverse 
-		   (loop for e in r
-			 when (not (member (car e) '(:! :trying :used)))
-			 collect e)))))
+  (loop for entry+ on log 
+	as k from 1 by 1
+	as entry = (car entry+)
+	with r = nil
+	do (if (eq :used (car entry))
+	       (if (eq :ret (second entry))
+		   (push (cdr entry) r)
+		 :skip)
+	     (if (eq :trying (car entry))
+		 (if (eq :used (car (second entry+)))
+		     (push `(,(second entry) ,(cdr (second entry+))) r)
+		   (if (eq :! (car (second entry+)))
+		       (push `((,(second entry) :DYNARET) ,@(cddr (second entry+))) r)
+		     (break "Something's wrong (A) with the log at ~a: ~s" k entry)))
+	       :skip))
+	finally (return 
+		 (reverse 
+		  (loop for e in r
+			when (not (member (car e) '(:! :trying :used)))
+			collect e)))))
 
 ;;; =============================================================
 ;;; Math
