@@ -191,7 +191,6 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     input_units = 14
     # this is the output matrix
     output_units = 13 + len(settings.strategies)
-
     # fits to counting network, the inputs are the addends matrix for (1+2) , (2+3), etc and the outputs are (1+2)=3 (2+3)=4
     NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
     X_count = []

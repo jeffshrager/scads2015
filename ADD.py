@@ -1,3 +1,4 @@
+import numpy as np
 from random import randint, shuffle, random
 # ----- Operators for actual addition strategies and test routines.
 
@@ -101,7 +102,7 @@ def try_dynamical_retrieval():
 
     global SOLUTION_COMPLETED, SOLUTION
 
-    add_matrix = [0] * (13 + len(settings.strategies))
+    add_matrix = [0] * 14
     index = 0
     while index < 5 and HAND.s['left'][index] == 'u':
         index += 1
@@ -109,7 +110,7 @@ def try_dynamical_retrieval():
     while index < 5 and HAND.s['right'][index] == 'u':
         index += 1
     add_matrix[index + 5 + 1] = 1
-    prediction = driver.add_strat_nn.predict(add_matrix)
+    prediction = driver.add_strat_nn.predict(np.array(add_matrix))
     results_above_DRR = []
     # ??? This looked wrong the way it was. I think that it used to
     # return the val, whereas it should be returning a counter that is
