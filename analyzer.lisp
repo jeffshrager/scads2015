@@ -132,6 +132,7 @@ sumstats/ dir.
 
 (defparameter *function-name-substitutions*
   '(("count_from_either_strategy" . :cfe)
+    ("min_strategy" . :min)
     ("count_from_one_once_strategy" . :cf1x1)
     ("count_from_one_twice_strategy" . :cf1x2)
     ("random_strategy" . :rand)
@@ -180,7 +181,7 @@ sumstats/ dir.
 		 :skip)
 	     (if (eq :trying (car entry))
 		 (if (eq :used (car (second entry+)))
-		     (push `(,(second entry) ,(cdr (second entry+))) r)
+		     (push `(,(second entry) ,@(cddr (second entry+))) r)
 		   (if (eq :! (car (second entry+)))
 		       (push `((,(second entry) :DYNARET) ,@(cddr (second entry+))) r)
 		     (break "Something's wrong (A) with the log at ~a: ~s" k entry)))

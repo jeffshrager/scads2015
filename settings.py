@@ -14,8 +14,8 @@ strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_fro
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"201508090917 Scanning n problems but shouldn't do any dynamic retrieval\""],
-             "settings.n_problems": [1000,2000,5000],
+scan_spec = {"settings.experiment_label": ["\"201508091017 Scanning n problems but should do some dynamic retrieval near the end\""],
+             "settings.n_problems": [1000,5000],
              "settings.RETRIEVAL_LOW_CC": [0.9],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
              "settings.STRATEGY_LOW_CC": [0.9],
@@ -25,7 +25,7 @@ scan_spec = {"settings.experiment_label": ["\"201508090917 Scanning n problems b
              "settings.INCR_WRONG": [1],
              "settings.DECR_WRONG": [0.5],
              "settings.learning_rate": [0.1],
-             "settings.DR_threshold": [1.0]}
+             "settings.DR_threshold": [0.8]}
 
 if __name__ == '__main__':
     driver.main()
