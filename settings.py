@@ -14,7 +14,7 @@ strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_fro
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"201508100718 Scanning n-problems down below 500 and DECR_WRONG\""],
+scan_spec = {"settings.experiment_label": ["\"201508100733 Scanning RET_LOW, STRAT_LOW, and INCR_WRONG\""],
              "settings.n_problems": [250], # = 10x CONFIRMED (peak 201508100718)
              "settings.RETRIEVAL_LOW_CC": [0.7,0.8,0.9],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
