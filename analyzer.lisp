@@ -1,8 +1,12 @@
 ;;; Before running an analysis, you probably want to change these
 ;;; variables. Below are examples of fns. that set these and do
-;;; various anlayses.
+;;; various anlayses. 
 
-(defparameter *low* 20150810110130) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+;;; !!! WWW If at least *low* isn't set, the analyzer will try to find
+;;; the files to analyze by the latest set of matching experiment
+;;; lables.
+
+(defparameter *low* nil) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
 
 #|
@@ -130,18 +134,34 @@ sumstats/ dir.
 ;;; Special purpose scanner to figure out which files to load.
 
 (defvar *label->files* (make-hash-table :test #'equal))
+(defvar *filename->label* (make-hash-table :test #'equal))
+(defvar *filename->pathname* (make-hash-table :test #'equal))
+(defvar *all-filenames* nil)
 
-(defun scan-results-labels ()
+(defun most-recent-set-of-results-pathnames-by-label-mathcing ()
+  ;; Collect all the labels and assocated filenames (numbers)
+  (setq *all-filenames* nil)
   (clrhash *label->files*)
-  (loop for file in (directory "test_csv/*.csv")
+  (clrhash *filename->label*)
+  (clrhash *filename->pathname*)
+  (loop for pathname in (directory "test_csv/*.csv")
+	as filename = (pathname-name pathname)
 	as label = (with-open-file
-		    (i (print file))
+		    (i pathname)
+		    (format t ".")
 		    (loop for l = (read-line i nil nil)
 			  until (search "settings.experiment_label" l)
-			  collect l))
-	do (push (file-namestring file)
-		 (gethash label *label->files*)))
-  (dht *label->files*))
+			  finally (return (subseq l 26 (1- (length l))))))
+	do 
+	(push filename (gethash label *label->files*))
+	(setf (gethash filename *filename->label*) label)
+	(push filename *all-filenames*)
+	(setf (gethash filename *filename->pathname*) pathname)
+	)
+  ;; Now find out which label has the "highest" filename and get all
+  ;; the filenames assocated with that label.
+  (loop for filename in (sort (copy-list (gethash (gethash (car (sort (copy-list *all-filenames*) #'string>)) *filename->label*) *label->files*)) #'string<)
+	collect (gethash filename *filename->pathname*)))
 
 ;;; =============================================================
 ;;; Log Analysis
@@ -275,7 +295,9 @@ sumstats/ dir.
   (if (null high) (setq high 99999999999999))
   (clrhash *file->data*)
   (clrhash *params->ccs*)
-  (loop for file in (directory "test_csv/*.csv")
+  (loop for file in (if (zerop low)
+			(most-recent-set-of-results-pathnames-by-label-mathcing)
+			(directory "test_csv/*.csv"))
 	as fno = (parse-integer (pathname-name file))
 	when (and (>= fno low) (<= fno high))
 	do
