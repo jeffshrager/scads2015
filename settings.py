@@ -15,15 +15,15 @@ strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_fro
 # extra set of "\"quotes\"" around it.
 
 scan_spec = {"settings.experiment_label": ["\"201508100718 Scanning n-problems down below 500 and DECR_WRONG\""],
-             "settings.n_problems": [100,250,500],
-             "settings.RETRIEVAL_LOW_CC": [0.9],
+             "settings.n_problems": [250], # = 10x CONFIRMED (peak 201508100718)
+             "settings.RETRIEVAL_LOW_CC": [0.7,0.8,0.9],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
-             "settings.STRATEGY_LOW_CC": [0.9],
+             "settings.STRATEGY_LOW_CC": [0.7,0.8,0.9],
              "settings.STRATEGY_HIGH_CC": [1.0],
              "settings.epoch": [10], # CONFIRMED by 201508091017 (no delta)
              "settings.INCR_RIGHT": [5], # CONFIRMED by 201508091017 (peak)
-             "settings.INCR_WRONG": [1],
-             "settings.DECR_WRONG": [1.0,2.0,3.0],
+             "settings.INCR_WRONG": [0.5,1.0,1.5,2.0],
+             "settings.DECR_WRONG": [2.0], # CONFIRMED (peak 201508100718)
              "settings.learning_rate": [0.1], # CONFIRMED by 201508091017 (peak)
              "settings.DR_threshold": [1.0]}
 
