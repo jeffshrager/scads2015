@@ -2,7 +2,7 @@
 ;;; variables. Below are examples of fns. that set these and do
 ;;; various anlayses.
 
-(defparameter *low* 20150810072108) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
+(defparameter *low* 20150810110130) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
 
 #|
