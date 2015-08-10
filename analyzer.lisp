@@ -77,7 +77,7 @@ sumstats/ dir.
 (defvar *file->data* (make-hash-table :test #'equal))
 
 ;;; =============================================================
-;;; Parser
+;;; File Reader and Parser
 
 ;;; FFF Make sure that all the files read have the same version
 ;;; number. Break if not!
@@ -126,6 +126,22 @@ sumstats/ dir.
 		    (cons (subseq line 0 p)
 			  ;; 1- bcs of the return on the end
 			  (subseq line (+ p 1) (1- (length line))))))))
+
+;;; Special purpose scanner to figure out which files to load.
+
+(defvar *label->files* (make-hash-table :test #'equal))
+
+(defun scan-results-labels ()
+  (clrhash *label->files*)
+  (loop for file in (directory "test_csv/*.csv")
+	as label = (with-open-file
+		    (i (print file))
+		    (loop for l = (read-line i nil nil)
+			  until (search "settings.experiment_label" l)
+			  collect l))
+	do (push (file-namestring file)
+		 (gethash label *label->files*)))
+  (dht *label->files*))
 
 ;;; =============================================================
 ;;; Log Analysis
