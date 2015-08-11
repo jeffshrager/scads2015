@@ -8,7 +8,7 @@ global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experi
 ndups = 10  # Number of replicates of each combo of params -- usually 3 unless testing.
 
 strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy,
-              ADD.count_from_one_twice_strategy, ADD.min_strategy]  # ADD.random_strategy
+              ADD.count_from_one_twice_strategy, ADD.min_strategy]
 
 # The settings.experiment_label is used by the analyzer to label the
 # results file because we set these by exec(), this has to have an

@@ -22,12 +22,12 @@ def tanh_prime(x):
 # in adults, but in kids the symbolic representation is more fuzzy, so they get confused, hence the extra 1's
 def addends_matrix(a1, a2):
     lis = [0] * 14
-    lis[a1 - 1] = 1
+    lis[a1 - 1] = 0.5
     lis[a1] = 1
-    lis[a1 + 1] = 1
-    lis[a2 + 6] = 1
+    lis[a1 + 1] = 0.5
+    lis[a2 + 6] = 0.5
     lis[a2 + 7] = 1
-    lis[a2 + 8] = 1
+    lis[a2 + 8] = 0.5
     return lis
 
 
