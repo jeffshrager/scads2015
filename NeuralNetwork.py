@@ -114,7 +114,7 @@ class NeuralNetwork:
         return a
 
     # returns a random number from a list of numbers above the confidence criterion
-    def guess(self, a1, a2, beg, end):
+    def guess(self, a1, a2, beg, end, cc):
         if (a1 > 5) or (a2 > 5):
             return (None)
         cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()

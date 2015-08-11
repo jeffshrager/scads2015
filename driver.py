@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, random
 import numpy as np
 import os
 import csv
@@ -143,7 +143,9 @@ def exec_strategy():
     global strat_list
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
-    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13)
+    cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
+    strat_cc = settings.STRATEGY_LOW_CC + (settings.STRATEGY_HIGH_CC - settings.STRATEGY_LOW_CC) * random()
+    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, cc)
     SOLUTION = 0
     if retrieval is not None:
         #trp(1, "Used Retrieval")
@@ -151,7 +153,7 @@ def exec_strategy():
         writer.writerow(["used","retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies))
+        strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies), strat_cc)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         else:

@@ -1,4 +1,3 @@
-import numpy as np
 from random import randint, shuffle, random
 # ----- Operators for actual addition strategies and test routines.
 
