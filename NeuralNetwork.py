@@ -117,7 +117,6 @@ class NeuralNetwork:
     def guess(self, a1, a2, beg, end, cc):
         if (a1 > 5) or (a2 > 5):
             return (None)
-        cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
         # trp(1, "Choose confidence criterion = %s" % cc)
         results_above_cc = []
         #
