@@ -31,7 +31,7 @@ class Distribution(object):
         a2 = eq[1]
         result = eq[2]
         if (a1 > 5) or (a2 > 5):
-            #trp(1, "Addends (%s+%s) is/are larger than the distribution table limits -- Ignored!" % (a1, a2))
+            # trp(1, "Addends (%s+%s) is/are larger than the distribution table limits -- Ignored!" % (a1, a2))
             return
 
         if result not in range(12):
@@ -136,8 +136,10 @@ class Distribution(object):
         plt.tight_layout(h_pad=1)
         plt.show()
 
+
 # we first try a retrieval on the sum, and if that fails we have to use a strategy, which we try to retrieve
-# , and if that fails we gotta use a random strategy. then we update the nn accordingly, and fit and update_y
+# and if that fails we gotta use a random strategy. then we update the nn accordingly, and fit and update_y
+# this is the main driver within driver that does the testing
 def exec_strategy():
     global writer
     global strat_list
@@ -148,9 +150,9 @@ def exec_strategy():
     retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, cc)
     SOLUTION = 0
     if retrieval is not None:
-        #trp(1, "Used Retrieval")
+        # trp(1, "Used Retrieval")
         SOLUTION = retrieval
-        writer.writerow(["used","retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+        writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies), strat_cc)
@@ -162,7 +164,7 @@ def exec_strategy():
         # !!! WWW WARNING: This gets displayed even if Dynamic
         # Retrieval was used. You have to Analyze this distinction out
         # of the log at the end by seeing that a DR message appeared!
-        writer.writerow(["used",settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+        writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
         add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13 + strat_num, 13, 13 + len(settings.strategies))
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0, 13)
@@ -186,6 +188,8 @@ def test(n_times):
 
 
 # sets up the neural network fitted to counting
+# kids learn how to count first, so thats why we initialize it to the counting network
+# afterwards we fit it to adding
 def counting_network(hidden_units=30, learning_rate=0.15):
     # this is the addends matrix
     input_units = 14
@@ -206,6 +210,7 @@ def counting_network(hidden_units=30, learning_rate=0.15):
 
 
 # Depth first search through all the possible configurations of parameters
+# after setting the params, it does the test
 def config_and_test(index):
     global file_name, DSTR, add_strat_nn, writer, scan_spec
     # checks if we have any more params to scan

@@ -12,7 +12,14 @@ def tanh_prime(x):
 
 
 # Transform two addends into a binary input matrix.
-
+# so for a representation of 3 + 4, it would produce a matrix like:
+# (index)    [ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 ]
+# (matrix)   [ 0 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 ,  0 ,  1 ,  1 ,  1 ,  0 ]
+# these is the matrix that represents the input units to the neural network
+# this should be
+# (index)    [ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 ]
+# (matrix)   [ 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0 ,  1 ,  0 ,  0 ]
+# in adults, but in kids the symbolic representation is more fuzzy, so they get confused, hence the extra 1's
 def addends_matrix(a1, a2):
     lis = [0] * 14
     lis[a1 - 1] = 1
@@ -25,7 +32,9 @@ def addends_matrix(a1, a2):
 
 
 # Transform the sum into a binary output matrix.
-
+# the output of the neural network, is of length (13 + length of strategies)
+# there is a 1 at the index of the sum, so for 1 + 1 = 2 the result is
+# (matrix) [ 0 , 0 , 1 , 0 ......]
 def sum_matrix(s):
     lis = [0] * (13 + len(settings.strategies))
     lis[s] = 1
@@ -61,6 +70,7 @@ class NeuralNetwork:
                 self.X.append(addends_matrix(i, j))
         self.X = np.array(self.X)
 
+    # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate=0.1, epochs=30000):
 
         # Add column of ones to X
@@ -107,6 +117,7 @@ class NeuralNetwork:
                 delta = np.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
 
+    # outputs a matrix given an input matrix, this is used heavily when we want to "know" what is in the kid's mind
     def predict(self, x):
         a = np.concatenate((np.ones(1).T, np.array(x)), axis=1)
         for l in range(0, len(self.weights)):
@@ -114,6 +125,11 @@ class NeuralNetwork:
         return a
 
     # returns a random number from a list of numbers above the confidence criterion
+    # this is used for the retrieval. when we want to try to retrieve a sum,
+    # for example 3 + 4 = 7, we pass in a1 = 3, a2 = 4, beg = 0, and end = 13
+    # guess loops through [beg,end) to see the values that are above the cc, and chooses
+    # a random number from those values. if there are none, it returns none.
+    # it does the same thing for when we want to retrieve a strategy, except beg = 13, and end = 13 + len(strategies)
     def guess(self, a1, a2, beg, end, cc):
         if (a1 > 5) or (a2 > 5):
             return (None)
@@ -130,6 +146,7 @@ class NeuralNetwork:
         return None
 
     # we change what we fit the neural network to (which is y) after each update
+    # the last step of the learning process, the part where y becomes our updated prediction
     def update_y(self):
         self.y = []
         for i in range(1, 6):
@@ -137,7 +154,8 @@ class NeuralNetwork:
                 self.y.append(self.predict(addends_matrix(i, j)))
 
     # check if al + a2 == ans, if so our_ans is correct so we add to that and decrement others.
-    #  else we add incr_wrong to our_ans
+    # else we add incr_wrong to our_ans in y
+    # so this is adding to y, and afterwards we would fit the nn to y, and then update y
     def update(self, a1, a2, our_ans, ans, beg, end):
         # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
         #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (

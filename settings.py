@@ -39,6 +39,3 @@ if __name__ == '__main__':
     # [0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25], or about 2.0 are the
     # best values. (These ends are a bit less variable than the res of the
     # ranges).
-
-
-    ##pass the cc when guess is used
