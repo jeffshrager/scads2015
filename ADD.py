@@ -122,6 +122,7 @@ def try_dynamical_retrieval():
         return None
     return None
 
+
 # Manipulation in the echoic buffer where number facts live.  We
 # assume perfect knowledge of the number sequence.  That way incr
 # and decr can be used.  This is where all possible errors come into

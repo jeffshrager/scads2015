@@ -5,7 +5,7 @@ global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
 global INCR_RIGHT, INCR_WRONG, DECR_WRONG
 global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 
-ndups = 3 # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5 # Number of replicates of each combo of params -- usually 3 unless testing.
 
 strategies = [ADD.count_from_either_strategy, ADD.random_strategy, ADD.count_from_one_once_strategy,
               ADD.count_from_one_twice_strategy, ADD.min_strategy] # ADD.random_strategy
@@ -25,7 +25,7 @@ scan_spec = {"settings.experiment_label": ["\"201508101125 scanning settings.DR_
              "settings.INCR_WRONG": [2.0], # SUGGESTED by 201508101051 (?)
              "settings.DECR_WRONG": [2.0], # CONFIRMED (peak 201508100718)
              "settings.learning_rate": [0.1], # CONFIRMED by 201508091017 (peak)
-             "settings.DR_threshold": [0.5,0.6,0.7,0.8,0.9,1.0]}
+             "settings.DR_threshold": [0.9]}
 
 if __name__ == '__main__':
     driver.main()

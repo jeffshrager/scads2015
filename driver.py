@@ -9,8 +9,6 @@ import datetime
 import timeit
 import settings
 
-global add_strat_nn
-
 
 def trp(tl, text):
     if TL > tl:

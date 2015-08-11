@@ -68,7 +68,6 @@ class NeuralNetwork:
 
         ones = np.atleast_2d(np.ones(X.shape[0]))
         X = np.concatenate((ones.T, X), axis=1)
-
         for k in range(epochs):
 
             # if k % (epochs/10) == 0: print 'epochs:', k
@@ -77,7 +76,6 @@ class NeuralNetwork:
 
             i = np.random.randint(X.shape[0])
             a = [X[i]]
-
             for l in range(len(self.weights)):
                 dot_value = np.dot(a[l], self.weights[l])
                 activation = self.activation(dot_value)
