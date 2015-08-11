@@ -1,41 +1,17 @@
-;;; Before running an analysis, you probably want to change these
-;;; variables. Below are examples of fns. that set these and do
-;;; various anlayses. 
+;(load (compile-file "analyzer.lisp"))
+
+;;; === ToDo ===
+;;; Finish incorporating the adult comparison set.
+;;; Analyze the strategy logs.
+
+(unless (find-package 'STATISTICS)
+  (load "lhstats.dx32fsl"))
 
 ;;; !!! WWW If at least *low* isn't set, the analyzer will try to find
 ;;; the files to analyze by the latest set of matching experiment
 ;;; lables.
-
 (defparameter *low* nil) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
-
-#|
-                  How to use the analyzer
-
-The first time you run the analyzer in a lisp session you should do this:
-
-(ext::cd "c:\\....")
-
-   (load (compile-file "lhstats.lisp"))
-
-This ensures that the stats package is recompiled and loaded. (The
-compiler might complain about format problems in lhstats. Don't worry
-about those.)
-
-After you've done that once (per session), all you need to do is to do
-a new analysis is
-
-1. Change *low*, and possibly *high*, as described just below this
-   block comment.
-
-2. Do: 
-
-   (load (compile-file "analyzer.lisp"))
-
-It starts by itself and will create a new summary stats tsv file in
-sumstats/ dir.
-
-|#
 
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
@@ -70,6 +46,35 @@ sumstats/ dir.
     ((5 . 3) (0 0 2 11 9 18 5 16 23 0 5 0 11))
     ((5 . 4) (0 0 0 0 11 21 16 5 11 16 4 0 16))
     ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
+    ))
+
+(defparameter *adult-data*
+  '(
+    ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
+    ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
+    ((1 . 3) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((1 . 4) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((1 . 5) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((2 . 1) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
+    ((2 . 2) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((2 . 3) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((2 . 4) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((2 . 5) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((3 . 1) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((3 . 2) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((3 . 3) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((3 . 4) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((3 . 5) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((4 . 1) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((4 . 2) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((4 . 3) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((4 . 4) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((4 . 5) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
+    ((5 . 1) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((5 . 2) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((5 . 3) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((5 . 4) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
+    ((5 . 5) (0 0 0 0 0 0 0 0 0 0 100 0 0 ))
     ))
 
 ;;; =============================================================

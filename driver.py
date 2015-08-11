@@ -147,7 +147,7 @@ def exec_strategy():
     # try getting a random number from a list above the confidence criterion
     cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
     strat_cc = settings.STRATEGY_LOW_CC + (settings.STRATEGY_HIGH_CC - settings.STRATEGY_LOW_CC) * random()
-    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, cc)
+    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13, cc)
     SOLUTION = 0
     if retrieval is not None:
         # trp(1, "Used Retrieval")
