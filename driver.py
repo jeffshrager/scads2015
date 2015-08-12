@@ -9,11 +9,9 @@ import datetime
 import timeit
 import settings
 
-
 def trp(tl, text):
     if TL > tl:
         print text
-
 
 # Answer distribution table
 
@@ -72,23 +70,20 @@ class Distribution(object):
     def print_csv(self, relative=False):
         global writer, scan_spec
         table = self.relative_table(relative)
-
         writer.writerow(['======================================='])
-
         for key in scan_spec:
             exec ("foo = " + key)
             writer.writerow([key, foo])
-
         writer.writerow(['======================================='])
-
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
+# We first try a retrieval on the sum, and if that fails we have to
+# use a strategy, which we try to retrieve and if that fails we choose
+# a random strategy. Then we update the nn accordingly, and fit and
+# update_y this is the main driver within driver that does the testing
 
-# we first try a retrieval on the sum, and if that fails we have to use a strategy, which we try to retrieve
-# and if that fails we gotta use a random strategy. then we update the nn accordingly, and fit and update_y
-# this is the main driver within driver that does the testing
 def exec_strategy():
     global writer
     global strat_list
@@ -120,17 +115,7 @@ def exec_strategy():
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
     # add method here to get what strategy is used
-
     return [ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION]
-
-
-def test(n_times):
-    # Repeat n times.
-    for i in range(n_times):
-        eq = exec_strategy()
-        DSTR.update(eq)
-    # Output tables for analysis:
-    DSTR.print_csv(relative=True)
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
@@ -185,6 +170,13 @@ def config_and_test(index=0):
             ADD.main() 
             add_strat_nn = counting_network() # Burn in the counting network (3+4=5)
             test(settings.n_problems) # Now run the real experiment!
+
+def test(n_times):
+    for i in range(n_times):
+        eq = exec_strategy()
+        DSTR.update(eq)
+    # Output tables for analysis:
+    DSTR.print_csv(relative=True)
 
 def main():
     global TL, param_keys, scan_spec
