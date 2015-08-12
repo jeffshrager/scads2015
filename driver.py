@@ -217,7 +217,7 @@ def counting_network(hidden_units=30, learning_rate=0.15):
 # parameters after setting the params, it does the test
 
 def config_and_test(index):
-    global file_name, DSTR, add_strat_nn, writer, scan_spec
+    global file_name, DSTR, add_strat_nn, writer, scan_spec, params
     # checks if we have any more params to scan
     if index < len(params):
         # Get the current param, for instance epochs: [100,200,300]
@@ -226,7 +226,7 @@ def config_and_test(index):
             # Jeff's Ugly lisp-like metaprogramming: Set the param
             # value, e.g., epoch = 100, then recurse to the next index
             exec (params[index] + '=' + str(param))
-            print (params[index] + '=' + str(param))
+            print (str(param)+":"+str(index)+" "+params[index] + '=' + str(param))
             config_and_test(index + 1)
     else: # Finally we have a set of choices, do it!
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -245,7 +245,7 @@ def main():
     scan_spec = settings.scan_spec
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
-    params = scan_spec.keys()
+    params = scan_spec.keys() # Used in the recursive config_and_test fn.
     print "Strategies in play:"
     print settings.scan_spec
     print "-----"
