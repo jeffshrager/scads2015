@@ -188,12 +188,15 @@ def config_and_test(index=0):
 
 def main():
     global TL, param_keys, scan_spec
-    scan_spec = settings.scan_spec
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
-    param_keys = scan_spec.keys() # Used in the recursive config_and_test fn.
-    print "Strategies in play:"
+    # Used in the recursive config_and_test fn.
+    scan_spec = settings.scan_spec
+    param_keys = scan_spec.keys() 
+    print "Paremeter spec:"
     print settings.scan_spec
+    print "Strategies in play:"
+    print settings.strategies
     print "-----"
     for i in range(settings.ndups):
         print ">>>>> Rep #"+ str(i+1)+" <<<<<"
