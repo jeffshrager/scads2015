@@ -2,39 +2,46 @@ import numpy as np
 import settings
 from random import random, randint
 
-
 def tanh(x):
     return np.tanh(x)
-
 
 def tanh_prime(x):
     return 1.0 - x ** 2
 
+# The fns addends_matrix and sum_matrix create the input and output
+# arrays that get appened up into training matrices by the caller (in
+# driver).
+#
+# Transform two addends into a distributed representation input array,
+# e.g., for a representation of 3 + 4, the input array created by
+# addends_matrix) is:
+#
+# Index:         0 , 1 , 2 ,   3 ,   4 , 5 , 6 , 7 , 8 , 9 , 10 ,   11 , 12 ,   13 , 14 
+# Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0.5 ,  1 ,  0.5 ,  0 ]
+#
+# The surrounding 0.5s are supposed to represent children's confusion
+# about the number actually stated. (Or about how to xform the stated
+# number into the exact internal representation).
+#
+# And the output array (created by sum_matrix) is:
+#
+# Index:         0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 
+# Output array:[ 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0 ,  1 ,  0 ,  0 ]
+#
+# WWW WARNING !!! Don't confuse these with the fingers on the hands!
 
-# Transform two addends into a binary input matrix.
-# so for a representation of 3 + 4, it would produce a matrix like:
-# (index)    [ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 ]
-# (matrix)   [ 0 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 ,  0 ,  1 ,  1 ,  1 ,  0 ]
-# these is the matrix that represents the input units to the neural network
-# this should be
-# (index)    [ 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 ]
-# (matrix)   [ 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0 ,  1 ,  0 ,  0 ]
-# in adults, but in kids the symbolic representation is more fuzzy, so they get confused, hence the extra 1's
 def addends_matrix(a1, a2):
     lis = [0] * 14
+    # First addend
     lis[a1 - 1] = 0.5
     lis[a1] = 1
     lis[a1 + 1] = 0.5
+    # Second addend
     lis[a2 + 6] = 0.5
     lis[a2 + 7] = 1
     lis[a2 + 8] = 0.5
     return lis
 
-
-# Transform the sum into a binary output matrix.
-# the output of the neural network, is of length (13 + length of strategies)
-# there is a 1 at the index of the sum, so for 1 + 1 = 2 the result is
-# (matrix) [ 0 , 0 , 1 , 0 ......]
 def sum_matrix(s):
     lis = [0] * (13 + len(settings.strategies))
     lis[s] = 1
