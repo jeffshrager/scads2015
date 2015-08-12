@@ -236,11 +236,13 @@
 ;;; =============================================================
 ;;; Math
 
-(defun compare (result-set)
+(defun compare (result-set target)
   (let* ((result-set (cdr (assoc :results-predictions result-set)))
-	 (pairs (loop for a in (loop for (nil obs) in *sns84-data*
+	 (pairs (loop for a in (loop for (nil obs) in target
 				     append obs)
-		      for b in (loop for (problem) in *sns84-data*
+		      ;; Slightly confusingly uses the same lables as
+		      ;; the above, but there are never actually used.
+		      for b in (loop for (problem) in target 
 				     as sim = (report-sim-results-as-100ths problem result-set)
 				     append sim)
 		     collect (list a b))))
@@ -292,9 +294,7 @@
 ;;; =============================================================
 ;;; Main
 
-(defun analyze (&key (low *low*)
-		     (high *high*)
-		     &aux first-fno last-fno label)
+(defun analyze (&key (low *low*) (high *high*) &aux first-fno last-fno label)
   (setq *results-version* nil)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
@@ -308,7 +308,7 @@
 	do
 	(let* ((r (ignore-errors (load-result-file file))))
 	  (if r
-	      (let* ((c (compare r))
+	      (let* ((c (compare r *sns84-data*))
 		     (p (cdr (assoc :params r))))
 		;; Save data for later
 		(setf (gethash file *file->data*) r)
