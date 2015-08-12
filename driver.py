@@ -170,9 +170,10 @@ def config_and_test(index=0):
             # Jeff's Ugly lisp-like metaprogramming: Set the param
             # value, e.g., epoch = 100, then recurse to the next index
             exec (param_keys[index] + '=' + str(param_value))
-            print (str(param_value)+":"+str(index)+" "+param_keys[index] + '=' + str(param_value))
-            config_and_test(index + 1)
+            print (param_keys[index] + '=' + str(param_value))
+            config_and_test(index + 1) # Next param (recursive!)
     else: # Finally we have a set of choices, do it!
+        print "---Running!---"
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
         with open(full_name, 'wb') as csvfile:
