@@ -67,25 +67,6 @@ class Distribution(object):
         else:
             return [[[self.table[x][y][z] for z in range(13)] for y in range(6)] for x in range(6)]
 
-    # Print the table.
-
-    def show(self, relative=True):
-        table = self.relative_table(relative)
-        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_txt'), file_name + '.txt')
-        f = open(full_name, 'w')
-        f.write('N_PROBLEMS: ' + str(settings.n_problems) + '\n')
-        f.write('EPOCHS: ' + str(settings.epoch) + '\n')
-        f.write('LEARNING_RATE: ' + str(settings.learning_rate) + '\n')
-        f.write('INCR_RIGHT: ' + str(settings.INCR_RIGHT) + '\n')
-        f.write('STRATEGIES: ' + str(settings.strategies) + '\n')
-        for i in range(1, 6):
-            for j in range(1, 6):
-                f.write("%s + %s = " % (i, j)),
-                for k in range(13):
-                    f.write("%s (%0.03f), " % (k, table[i][j][k])),
-                f.write('\n')
-            f.write('\n')
-
     # Export to csv file.
 
     def print_csv(self, relative=False):
@@ -103,38 +84,6 @@ class Distribution(object):
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
-
-    # Plot the distribution table into bar charts.
-
-    def bar_plot(self, relative=False):
-        if relative:
-            table = [[[self.relative_frequency1(x, y, z) for z in range(13)] for y in range(6)] for x in range(6)]
-
-        else:
-            table = [[[self.table[x][y][z] for z in range(13)] for y in range(6)] for x in range(6)]
-
-        maxheight = max([max([max(table[x][y]) for x in range(6)]) for y in range(6)])
-
-        plt.figure()
-
-        for i in range(1, 6):
-            for j in range(1, 6):
-                ax = plt.subplot(5, 5, (i - 1) * 5 + j)
-                plt.bar([x - 0.4 for x in range(13)], table[i][j], linewidth=0, color="steelblue")
-                plt.xlim(-0.5, 12.5)
-                plt.ylim(0, maxheight * 1.1)
-                plt.text(.5, 1.03, "%s + %s" % (i, j), horizontalalignment='center', transform=ax.transAxes)
-                plt.tick_params( \
-                    axis='both',
-                    which='both',
-                    bottom='off',
-                    top='off',
-                    left='off',
-                    right='off',
-                    labelleft='on',
-                    labelbottom='on', labelsize=8)
-        plt.tight_layout(h_pad=1)
-        plt.show()
 
 
 # we first try a retrieval on the sum, and if that fails we have to use a strategy, which we try to retrieve
@@ -180,12 +129,8 @@ def test(n_times):
     for i in range(n_times):
         eq = exec_strategy()
         DSTR.update(eq)
-
-    # Output tables and charts.
-    # DSTR.show(relative=True)  # Useful for debugging, but most analysis is now done by code.
+    # Output tables for analysis:
     DSTR.print_csv(relative=True)
-    # DSTR.bar_plot(relative=True)
-
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
@@ -213,20 +158,19 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     NN.update_y()
     return NN
 
-# Depth first search through all the possible configurations of
-# parameters after setting the params, it does the test
+# Execute with all the possible values of each parameter, scanned
+# recursively.
 
-def config_and_test(index):
-    global file_name, DSTR, add_strat_nn, writer, scan_spec, params
-    # checks if we have any more params to scan
-    if index < len(params):
-        # Get the current param, for instance epochs: [100,200,300]
-        # 100 200 and 300 are param:
-        for param in scan_spec[params[index]]:
+def config_and_test(index=0):
+    global file_name, DSTR, add_strat_nn, writer, scan_spec, param_keys
+    if index < len(param_keys): # Any more param_keys to scan?
+        # Get the current param_values, for instance: epochs = [100,200,300]
+        # 100 200 and 300 are param+values
+        for param_value in scan_spec[param_keys[index]]:
             # Jeff's Ugly lisp-like metaprogramming: Set the param
             # value, e.g., epoch = 100, then recurse to the next index
-            exec (params[index] + '=' + str(param))
-            print (str(param)+":"+str(index)+" "+params[index] + '=' + str(param))
+            exec (param_keys[index] + '=' + str(param_value))
+            print (str(param_value)+":"+str(index)+" "+param_keys[index] + '=' + str(param_value))
             config_and_test(index + 1)
     else: # Finally we have a set of choices, do it!
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -235,23 +179,24 @@ def config_and_test(index):
             # initialize the writer, DSTR, neural network for each config we want to test
             writer = csv.writer(csvfile)
             writer.writerow(['Output Format Version', '20150807'])
+            # Set up the NN
             DSTR = Distribution()
-            ADD.main()
-            add_strat_nn = counting_network()
-            test(settings.n_problems)
+            ADD.main() 
+            add_strat_nn = counting_network() # Burn in the counting network (3+4=5)
+            test(settings.n_problems) # Now run the real experiment!
 
 def main():
-    global TL, params, scan_spec
+    global TL, param_keys, scan_spec
     scan_spec = settings.scan_spec
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
-    params = scan_spec.keys() # Used in the recursive config_and_test fn.
+    param_keys = scan_spec.keys() # Used in the recursive config_and_test fn.
     print "Strategies in play:"
     print settings.scan_spec
     print "-----"
     for i in range(settings.ndups):
         print ">>>>> Rep #"+ str(i+1)+" <<<<<"
-        config_and_test(0)
+        config_and_test()
     stop = timeit.default_timer()
     print stop - start
 
