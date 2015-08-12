@@ -187,16 +187,20 @@ def test(n_times):
     # DSTR.bar_plot(relative=True)
 
 
-# sets up the neural network fitted to counting
-# kids learn how to count first, so thats why we initialize it to the counting network
-# afterwards we fit it to adding
+# Set up the neural network fitted to kids' having learned how to
+# count before we got here, so there is a tendency for problems what
+# look like 3+4 to result in saying 5. To do this we burn in a set of
+# I/O relationships that have this tendency.
+
 def counting_network(hidden_units=30, learning_rate=0.15):
-    # this is the addends matrix
-    input_units = 14
-    # this is the output matrix
+    input_units = 14 # Addends + 1 on either side of each for
+                     # distributed representation -- see code in
+                     # NeuralNetwork.py for more detail.
     output_units = 13 + len(settings.strategies)
-    # fits to counting network, the inputs are the addends matrix for (1+2) , (2+3), etc and the outputs are (1+2)=3 (2+3)=4
     NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
+    # Create the counting examples matrix k, the inputs are the
+    # addends matrix for (1+2) , (2+3), etc and the outputs are
+    # (1+2)=3 (2+3)=4.
     X_count = []
     y_count = []
     for i in range(1, 5):
@@ -204,30 +208,29 @@ def counting_network(hidden_units=30, learning_rate=0.15):
         y_count.append(nn1.sum_matrix(i + 2))
     X_count = np.array(X_count)
     y_count = np.array(y_count)
+    # Now burn it in:
     NN.fit(X_count, y_count, learning_rate, 15000)
     NN.update_y()
     return NN
 
+# Depth first search through all the possible configurations of
+# parameters after setting the params, it does the test
 
-# Depth first search through all the possible configurations of parameters
-# after setting the params, it does the test
 def config_and_test(index):
     global file_name, DSTR, add_strat_nn, writer, scan_spec
     # checks if we have any more params to scan
     if index < len(params):
-        # gets the current param, for instance epochs: [100,200,300] 100 200 and 300 are param
+        # Get the current param, for instance epochs: [100,200,300]
+        # 100 200 and 300 are param:
         for param in scan_spec[params[index]]:
-            # metaprogramming stuff, just sets the param value, e.g. epoch = 100, then recurses down to the next index
+            # Jeff's Ugly lisp-like metaprogramming: Set the param
+            # value, e.g., epoch = 100, then recurse to the next index
             exec (params[index] + '=' + str(param))
+            print (params[index] + '=' + str(param))
             config_and_test(index + 1)
-    else:
-        print settings.strategies
-        # this part is broken, it should print what the current params are but I can't get it to work
-        print settings.scan_spec
-        # the file name is the current time
+    else: # Finally we have a set of choices, do it!
         file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
-
         with open(full_name, 'wb') as csvfile:
             # initialize the writer, DSTR, neural network for each config we want to test
             writer = csv.writer(csvfile)
@@ -237,14 +240,17 @@ def config_and_test(index):
             add_strat_nn = counting_network()
             test(settings.n_problems)
 
-
 def main():
     global TL, params, scan_spec
     scan_spec = settings.scan_spec
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off
     params = scan_spec.keys()
+    print "Strategies in play:"
+    print settings.scan_spec
+    print "-----"
     for i in range(settings.ndups):
+        print ">>>>> Rep #"+ str(i+1)+" <<<<<"
         config_and_test(0)
     stop = timeit.default_timer()
     print stop - start
