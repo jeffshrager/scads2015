@@ -78,7 +78,7 @@ class NeuralNetwork:
         self.X = np.array(self.X)
 
     # the main forward feeding/backpropagation part
-    def fit(self, X, y, learning_rate=0.1, epochs=30000):
+    def fit(self, X, y, learning_rate, epochs):
 
         # Add column of ones to X
         # This is to add the bias unit to the input layer

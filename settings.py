@@ -21,7 +21,7 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 
 scan_spec = {"settings.experiment_label": ["\"201508131550 testing new output format\""],
              "settings.n_problems": [300],  # 250 = 10x CONFIRMED (peak 201508100718)
-             "settings.RETRIEVAL_LOW_CC": [0.8],  # 0.8 CONFIRMED by 201508100733 (peak)
+             "settings.RETRIEVAL_LOW_CC": [0.99],  # 0.8 CONFIRMED by 201508100733 (peak)
              "settings.RETRIEVAL_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.STRATEGY_LOW_CC": [0.75],  # 0.75 SUGGESTED by 201508101051 (?)
              "settings.STRATEGY_HIGH_CC": [1.0],  # Fixed at 1.0
@@ -30,8 +30,8 @@ scan_spec = {"settings.experiment_label": ["\"201508131550 testing new output fo
              "settings.INCR_WRONG": [0.5],  # 0.5 SUGGESTED by 201508101051 (?)
              "settings.DECR_WRONG": [2.0],  # 2.0 CONFIRMED (peak 201508100718)
              "settings.learning_rate": [0.1],  # 0.1 CONFIRMED by 201508091017 (peak)
-             "settings.initial_counting_network_burn_in_epochs": [15000],
-             "settings.initial_counting_network_learning_rate": [0.15],
+             "settings.initial_counting_network_burn_in_epochs": [0],
+             "settings.initial_counting_network_learning_rate": [0.0000],
              "settings.DR_threshold": [1.0]}
 
 if __name__ == '__main__':

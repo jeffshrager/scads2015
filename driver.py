@@ -100,7 +100,6 @@ def exec_strategy():
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
     cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
-    strat_cc = settings.STRATEGY_LOW_CC + (settings.STRATEGY_HIGH_CC - settings.STRATEGY_LOW_CC) * random()
     retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13, cc)
     SOLUTION = 0
     if retrieval is not None:
@@ -109,6 +108,7 @@ def exec_strategy():
         writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
+        strat_cc = settings.STRATEGY_LOW_CC + (settings.STRATEGY_HIGH_CC - settings.STRATEGY_LOW_CC) * random()
         strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies), strat_cc)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
@@ -133,15 +133,12 @@ def exec_strategy():
 # I/O relationships that have this tendency.
 
 def counting_network():
-    hidden_units=settings.hidden_units
-    burn_in_epochs=settings.initial_counting_network_burn_in_epochs
-    learning_rate=settings.initial_counting_network_learning_rate
-    writer.writerow(['Network created','hidden_units',hidden_units,'learning_rate',learning_rate])
+    writer.writerow(['Network created','hidden_units',settings.hidden_units,'learning_rate',settings.initial_counting_network_learning_rate])
     input_units = 14 # Addends + 1 on either side of each for
                      # distributed representation -- see code in
                      # NeuralNetwork.py for more detail.
     output_units = 13 + len(settings.strategies)
-    NN = nn1.NeuralNetwork([input_units, hidden_units, output_units])
+    NN = nn1.NeuralNetwork([input_units, settings.hidden_units, output_units])
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -153,8 +150,8 @@ def counting_network():
     X_count = np.array(X_count)
     y_count = np.array(y_count)
     # Now burn it in:
-    writer.writerow(['Burning in counting results','burn_in_epochs',burn_in_epochs])
-    NN.fit(X_count, y_count, learning_rate, burn_in_epochs)
+    writer.writerow(['Burning in counting results','burn_in_epochs',settings.initial_counting_network_burn_in_epochs])
+    NN.fit(X_count, y_count, settings.initial_counting_network_learning_rate, settings.initial_counting_network_burn_in_epochs)
     NN.update_y()
     return NN
 
