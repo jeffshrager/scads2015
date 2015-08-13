@@ -33,13 +33,13 @@ def tanh_prime(x):
 def addends_matrix(a1, a2):
     lis = [0] * 14
     # First addend
-    lis[a1 - 1] = 0.5
+    lis[a1 - 1] = 1 #0.5
     lis[a1] = 1
-    lis[a1 + 1] = 0.5
+    lis[a1 + 1] = 1 #0.5
     # Second addend
-    lis[a2 + 6] = 0.5
+    lis[a2 + 6] = 1 #0.5
     lis[a2 + 7] = 1
-    lis[a2 + 8] = 0.5
+    lis[a2 + 8] = 1 #0.5
     return lis
 
 def sum_matrix(s):
@@ -131,18 +131,19 @@ class NeuralNetwork:
             a = self.activation(np.dot(a, self.weights[l]))
         return a
 
-    # returns a random number from a list of numbers above the confidence criterion
-    # this is used for the retrieval. when we want to try to retrieve a sum,
-    # for example 3 + 4 = 7, we pass in a1 = 3, a2 = 4, beg = 0, and end = 13
-    # guess loops through [beg,end) to see the values that are above the cc, and chooses
-    # a random number from those values. if there are none, it returns none.
-    # it does the same thing for when we want to retrieve a strategy, except beg = 13, and end = 13 + len(strategies)
+    # Returns a random results from a list of results above the
+    # confidence criterion this is used for the retrieval. when we
+    # want to try to retrieve a sum, for example 3 + 4 = 7, we pass in
+    # a1 = 3, a2 = 4, beg = 0, and end = 13 guess loops through
+    # [beg,end) to see the values that are above the cc, and chooses a
+    # random number from those values. if there are none, it returns
+    # none.  it does the same thing for when we want to retrieve a
+    # strategy, except beg = 13, and end = 13 + len(strategies)
+
     def guess(self, a1, a2, beg, end, cc):
         if (a1 > 5) or (a2 > 5):
             return (None)
-        # trp(1, "Choose confidence criterion = %s" % cc)
         results_above_cc = []
-        #
         for i in range(beg, end):
             if self.y[5 * (a1 - 1) + a2 - 1][i] >= cc:
                 results_above_cc.append(i)
@@ -151,6 +152,17 @@ class NeuralNetwork:
         if l > 0:
             return results_above_cc[randint(0, l - 1)]
         return None
+
+    # Used for analysis output, this just gets the prediction values
+    # for a particular sum. FFF Maybe this could be used inside guess?
+    # FFF Anyway, see notes for guess to explain the begin and end
+    # things.
+
+    def guess_vector(self, a1, a2, beg, end):
+        vec = []
+        for i in range(beg, end):
+            vec.append(round(self.y[5 * (a1 - 1) + a2 - 1][i],5))
+        return(vec)
 
     # we change what we fit the neural network to (which is y) after each update
     # the last step of the learning process, the part where y becomes our updated prediction

@@ -39,16 +39,16 @@ class Distribution(object):
         a2 = eq[1]
         result = eq[2]
         if (a1 > 5) or (a2 > 5):
-            # trp(1, "Addends (%s+%s) is/are larger than the distribution table limits -- Ignored!" % (a1, a2))
             return
 
+        # Anything not within range(12) [i.e., 0-11] gets scored as [12]
         if result not in range(12):
             self.table[a1][a2][12] += 1
         else:
             self.table[a1][a2][result] += 1
 
-    # Calculate relative frequency, return blank string when frequency is zero
-    # so that the table looks clean when printed.
+    # Calculate relative frequency, return blank string when frequency
+    # is zero so that the table looks clean when printed.
 
     def relative_frequency(self, a1, a2, result):
         s = sum(self.table[a1][a2])
@@ -57,8 +57,8 @@ class Distribution(object):
         else:
             return round(float(self.table[a1][a2][result]) / s, 2)
 
-    # Same function but return zero when frequency is zero so that
-    # it can be plotted into graphs.
+    # Same function but return zero when frequency is zero so that it
+    # can be plotted into graphs.
 
     def relative_frequency1(self, a1, a2, result):
         s = sum(self.table[a1][a2])
@@ -80,11 +80,11 @@ class Distribution(object):
     def print_csv(self, relative=False):
         global writer, scan_spec
         table = self.relative_table(relative)
-        writer.writerow(['======================================='])
+        writer.writerow([' ======= Run Parameters ======='])
         for key in scan_spec:
             exec ("foo = " + key)
             writer.writerow([key, foo])
-        writer.writerow(['======================================='])
+        writer.writerow(['===== Results Distrubtion Table ======='])
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
@@ -132,7 +132,11 @@ def exec_strategy():
 # look like 3+4 to result in saying 5. To do this we burn in a set of
 # I/O relationships that have this tendency.
 
-def counting_network(hidden_units=30, learning_rate=0.15):
+def counting_network():
+    hidden_units=settings.hidden_units
+    burn_in_epochs=settings.initial_counting_network_burn_in_epochs
+    learning_rate=settings.initial_counting_network_learning_rate
+    writer.writerow(['Network created','hidden_units',hidden_units,'learning_rate',learning_rate])
     input_units = 14 # Addends + 1 on either side of each for
                      # distributed representation -- see code in
                      # NeuralNetwork.py for more detail.
@@ -149,7 +153,8 @@ def counting_network(hidden_units=30, learning_rate=0.15):
     X_count = np.array(X_count)
     y_count = np.array(y_count)
     # Now burn it in:
-    NN.fit(X_count, y_count, learning_rate, 15000)
+    writer.writerow(['Burning in counting results','burn_in_epochs',burn_in_epochs])
+    NN.fit(X_count, y_count, learning_rate, burn_in_epochs)
     NN.update_y()
     return NN
 
@@ -174,19 +179,28 @@ def config_and_test(index=0):
         with open(full_name, 'wb') as csvfile:
             # initialize the writer, DSTR, neural network for each config we want to test
             writer = csv.writer(csvfile)
-            writer.writerow(['Output Format Version', '20150807'])
+            writer.writerow(['Output Format Version', '20150813'])
             # Set up the NN
             DSTR = Distribution()
             ADD.main() 
             add_strat_nn = counting_network() # Burn in the counting network (3+4=5)
+            dump_nn_results_predictions()
             test(settings.n_problems) # Now run the real experiment!
+
+def dump_nn_results_predictions():
+    writer.writerow(['===== Results NN Prediction table ======'])
+    for i in range(1, 6):
+        for j in range(1, 6):
+            writer.writerow(["%s + %s = " % (i, j)]+ add_strat_nn.guess_vector(i, j, 0, 13))
+    writer.writerow(['========================================'])
 
 def test(n_times):
     for i in range(n_times):
         eq = exec_strategy()
         DSTR.update(eq)
-    # Output tables for analysis:
+    # Output tables for analysis
     DSTR.print_csv(relative=True)
+    dump_nn_results_predictions()
 
 def main():
     global TL, param_keys, scan_spec
