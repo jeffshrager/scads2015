@@ -13,7 +13,17 @@ def trp(tl, text):
     if TL > tl:
         print text
 
-# Answer distribution table
+# The Distribution table records every answer given to every problem
+# as they are created, and is output into the log at the end of the
+# run. It live in the global DSTR. The problem with this as the only
+# record of results is it's historicity; that is, it's covering not
+# only the final results, but also the results at the beginning. As a
+# result (pun!) of this fact, you essentially can't ever reach
+# completely correct results distribution (unless you run WAY over the
+# end of where the answers are all perfect, thereby masking the early
+# mistakes in a swamp of correct answers). The prediction table is
+# much more useful in assessing the state of knowledge of the system
+# at any given moment.
 
 class Distribution(object):
     # Record answers ranging from 0 to 11; 12 includes all other answers.
