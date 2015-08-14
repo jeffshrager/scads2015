@@ -35,11 +35,7 @@ class Distribution(object):
 
     # Update the distribution table when a new answer is generated.
 
-    def update(self, eq):
-        # eq is [a1,a2,result]
-        a1 = eq[0]
-        a2 = eq[1]
-        result = eq[2]
+    def update(self, a1, a2, result):
         if (a1 > 5) or (a2 > 5):
             return
 
@@ -97,12 +93,16 @@ class Distribution(object):
 # a random strategy. Then we update the nn accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
 
+def gen_cc(low_cc, high_cc):
+    return low_cc + (high_cc - low_cc) * random()
+
 def exec_strategy():
     global writer, DSTR
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
-    cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
-    retrieval = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 0, 13, cc)
+    cc = gen_cc(settings.RETRIEVAL_LOW_CC, settings.RETRIEVAL_HIGH_CC)
+    sum_guess = add_strat_nn.guess_in_range(0, 13)
+    retrieval = sum_guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, cc)
     SOLUTION = 0
     if retrieval is not None:
         # trp(1, "Used Retrieval")
@@ -110,23 +110,24 @@ def exec_strategy():
         writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_cc = settings.STRATEGY_LOW_CC + (settings.STRATEGY_HIGH_CC - settings.STRATEGY_LOW_CC) * random()
-        strat_num = add_strat_nn.guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, 13, 13 + len(settings.strategies), strat_cc)
+        strat_cc = gen_cc(settings.STRATEGY_LOW_CC, settings.STRATEGY_HIGH_CC)
+        strat_guess = add_strat_nn.guess_in_range(13, 13 + len(settings.strategies))
+        strat_num = strat_guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, strat_cc)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
-        else:
-            strat_num -= 13
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
         # !!! WWW WARNING: This gets displayed even if Dynamic
         # Retrieval was used. You have to Analyze this distinction out
         # of the log at the end by seeing that a DR message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
-        add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, 13 + strat_num, 13, 13 + len(settings.strategies))
-    add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0, 13)
+        strat_update = add_strat_nn.update_in_range(13, 13 + len(settings.strategies))
+        strat_update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num + 13)
+    sum_update = add_strat_nn.update_in_range(0, 13)
+    sum_update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
-    DSTR.update([ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+    DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
 
 
 # Set up the neural network fitted to kids' having learned how to

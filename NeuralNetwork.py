@@ -144,18 +144,16 @@ class NeuralNetwork:
     # none.  it does the same thing for when we want to retrieve a
     # strategy, except beg = 13, and end = 13 + len(strategies)
 
-    def guess(self, a1, a2, beg, end, cc):
-        if (a1 > 5) or (a2 > 5):
-            return (None)
-        results_above_cc = []
-        for i in range(beg, end):
-            if self.y[5 * (a1 - 1) + a2 - 1][i] >= cc:
-                results_above_cc.append(i)
-
-        l = len(results_above_cc)
-        if l > 0:
-            return results_above_cc[randint(0, l - 1)]
-        return None
+    def guess_in_range(self, beg, end):
+        def guess(a1, a2, cc):
+            if (a1 > 5) or (a2 > 5):
+                return None
+            results_above_cc = [x for x in self.y[y_index(a1, a2)][beg:end] if x > cc]
+            l = len(results_above_cc)
+            if l > 0:
+                return int(results_above_cc[randint(0, l - 1)])
+            return None
+        return guess
 
     # Used for analysis output, this just gets the prediction values
     # for a particular sum. FFF Maybe this could be used inside guess?
@@ -165,7 +163,7 @@ class NeuralNetwork:
     def guess_vector(self, a1, a2, beg, end):
         vec = []
         for i in range(beg, end):
-            vec.append(round(self.y[5 * (a1 - 1) + a2 - 1][i], 5))
+            vec.append(round(self.y[y_index(a1, a2)][i], 5))
         return (vec)
 
     # we change what we fit the neural network to (which is y) after each update
@@ -179,18 +177,26 @@ class NeuralNetwork:
     # check if al + a2 == ans, if so our_ans is correct so we add to that and decrement others.
     # else we add incr_wrong to our_ans in y
     # so this is adding to y, and afterwards we would fit the nn to y, and then update y
-    def update(self, a1, a2, our_ans, ans, beg, end):
-        # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
-        #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
-        #     # a1, a2, result))
-        index = 5 * (a1 - 1) + (a2 - 1)
-        if a1 + a2 == our_ans:
-            self.y[index][ans] += settings.INCR_RIGHT
-            for i in range(1, 6):
-                for j in range(1, 6):
-                    for k in range(beg, end):
-                        if (i != a1) and (j != a2) and (k != ans):
-                            self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
-        else:
-            self.y[index][ans] += settings.INCR_WRONG
+    def update_in_range(self, beg, end):
+        def update(a1, a2, our_ans, ans):
+            # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
+            #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
+            #     # a1, a2, result))
+            index = y_index(a1, a2)
+            if a1 + a2 == our_ans:
+                self.y[index][ans] += settings.INCR_RIGHT
+                for i in range(1, 6):
+                    for j in range(1, 6):
+                        for k in range(beg, end):
+                            if (i != a1) and (j != a2) and (k != ans):
+                                self.y[y_index(i, j)][k] -= settings.DECR_WRONG
+            else:
+                self.y[index][ans] += settings.INCR_WRONG
+        return update
 
+
+# the index in y is this because the list is generated such that
+# it goes from index = 0 a1: 1 a2 : 1
+#              index = 1 a1: 1 a2:  2 ... etc
+def y_index(a1, a2):
+    return 5 * (a1 - 1) + (a2 - 1)

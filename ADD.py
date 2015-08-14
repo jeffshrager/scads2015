@@ -1,7 +1,9 @@
 from random import randint, shuffle, random
+global ADDEND
 # ----- Operators for actual addition strategies and test routines.
 
 # General utilities for reporting, etc.
+
 
 def trp(tl, text):
     if TL > tl:
