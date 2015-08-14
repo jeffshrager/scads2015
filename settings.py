@@ -8,7 +8,8 @@ global initial_counting_network_burn_in_epochs, initial_counting_network_learnin
 global hidden_units
 
 hidden_units = 30
-ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+pbs = 25 #problem bin size, every pbs problems we dump the predictions
 
 # ADD.random_strategy -- Usually left out!
 
@@ -20,19 +21,19 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # extra set of "\"quotes\"" around it.
 
 scan_spec = {"settings.experiment_label": ["\"201508131550 testing new output format\""],
-             "settings.n_problems": [300],  # 250 = 10x CONFIRMED (peak 201508100718)
-             "settings.RETRIEVAL_LOW_CC": [0.99],  # 0.8 CONFIRMED by 201508100733 (peak)
+             "settings.n_problems": [500],  # 250 = 10x CONFIRMED (peak 201508100718)
+             "settings.RETRIEVAL_LOW_CC": [0.8],  # 0.8 CONFIRMED by 201508100733 (peak)
              "settings.RETRIEVAL_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.STRATEGY_LOW_CC": [0.75],  # 0.75 SUGGESTED by 201508101051 (?)
              "settings.STRATEGY_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.epoch": [10],  # 10 CONFIRMED by 201508091017 (no delta)
              "settings.INCR_RIGHT": [5],  # 5 CONFIRMED by 201508091017 (peak)
-             "settings.INCR_WRONG": [0.5],  # 0.5 SUGGESTED by 201508101051 (?)
-             "settings.DECR_WRONG": [2.0],  # 2.0 CONFIRMED (peak 201508100718)
+             "settings.INCR_WRONG": [0.1],  # 0.5 SUGGESTED by 201508101051 (?)
+             "settings.DECR_WRONG": [0.35],  # 2.0 CONFIRMED (peak 201508100718)
              "settings.learning_rate": [0.1],  # 0.1 CONFIRMED by 201508091017 (peak)
-             "settings.initial_counting_network_burn_in_epochs": [0],
-             "settings.initial_counting_network_learning_rate": [0.0000],
-             "settings.DR_threshold": [1.0]}
+             "settings.initial_counting_network_burn_in_epochs": [1500],
+             "settings.initial_counting_network_learning_rate": [0.15],
+             "settings.DR_threshold": [0.1]}
 
 if __name__ == '__main__':
     driver.main()

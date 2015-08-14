@@ -79,14 +79,14 @@ class Distribution(object):
 
     # Export to csv file.
 
-    def print_csv(self, relative=False):
+    def print_csv(self, relative=True):
         global writer, scan_spec
         table = self.relative_table(relative)
         writer.writerow([' ======= Run Parameters ======='])
         for key in scan_spec:
             exec ("foo = " + key)
             writer.writerow([key, foo])
-        writer.writerow(['===== Results Distrubtion Table ======='])
+        writer.writerow(['===== Results Distribution Table ======='])
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
@@ -126,7 +126,6 @@ def exec_strategy():
     add_strat_nn.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2, 0, 13)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
-    # add method here to get what strategy is used
     DSTR.update([ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
 
 
@@ -161,6 +160,27 @@ def counting_network():
     return NN
 
 
+def dump_nn_results_predictions():
+    writer.writerow(['===== Results NN Prediction table ======'])
+    for i in range(1, 6):
+        for j in range(1, 6):
+            writer.writerow(["%s + %s = " % (i, j)] + add_strat_nn.guess_vector(i, j, 0, 13))
+    writer.writerow(['========================================'])
+
+
+def init_problem_globals():
+    global add_strat_nn, DSTR
+    DSTR = Distribution()
+    ADD.main()
+    add_strat_nn = counting_network()  # Burn in the counting network (3+4=5)
+
+
+def gen_file_name():
+    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
+    return full_file__name
+
+
 # Execute with all the possible values of each parameter, scanned
 # recursively.
 
@@ -179,42 +199,20 @@ def config_and_test(index=0):
         test_n_times(settings.n_problems)
 
 
-def dump_nn_results_predictions():
-    writer.writerow(['===== Results NN Prediction table ======'])
-    for i in range(1, 6):
-        for j in range(1, 6):
-            writer.writerow(["%s + %s = " % (i, j)] + add_strat_nn.guess_vector(i, j, 0, 13))
-    writer.writerow(['========================================'])
-
-
-def init_problem_globals():
-    global add_strat_nn, full_file__name, file_name, DSTR
-    DSTR = Distribution()
-    ADD.main()
-    add_strat_nn = counting_network()  # Burn in the counting network (3+4=5)
-
-
-def gen_file_name():
-    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
-    return full_file__name
-
-
 def test_n_times(n_times):
     global add_strat_nn, DSTR, writer
     print "---Running!---"
-    init_problem_globals()
     with open(gen_file_name(), 'wb') as csvfile:
         # initialize the writer, DSTR, neural network for each config we want to test
         writer = csv.writer(csvfile)
         writer.writerow(['Output Format Version', '20150813'])
         init_problem_globals()
-        dump_nn_results_predictions()
         for i in range(n_times):
             exec_strategy()
+            if i % settings.pbs == 0 or i == n_times - 1:
+                dump_nn_results_predictions()
         # Output tables for analysis
-        DSTR.print_csv(relative=True)
-        dump_nn_results_predictions()
+        DSTR.print_csv()
 
 
 def main():
@@ -234,7 +232,3 @@ def main():
         config_and_test()
     stop = timeit.default_timer()
     print stop - start
-
-
-if __name__ == "__main__":
-    main()
