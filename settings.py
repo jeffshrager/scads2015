@@ -7,7 +7,7 @@ global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experi
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units
 
-hidden_units=30
+hidden_units = 30
 ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 
 # ADD.random_strategy -- Usually left out!

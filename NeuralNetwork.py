@@ -2,11 +2,14 @@ import numpy as np
 import settings
 from random import random, randint
 
+
 def tanh(x):
     return np.tanh(x)
 
+
 def tanh_prime(x):
     return 1.0 - x ** 2
+
 
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
@@ -33,14 +36,15 @@ def tanh_prime(x):
 def addends_matrix(a1, a2):
     lis = [0] * 14
     # First addend
-    lis[a1 - 1] = 1 #0.5
+    lis[a1 - 1] = 1  # 0.5
     lis[a1] = 1
-    lis[a1 + 1] = 1 #0.5
+    lis[a1 + 1] = 1  # 0.5
     # Second addend
-    lis[a2 + 6] = 1 #0.5
+    lis[a2 + 6] = 1  # 0.5
     lis[a2 + 7] = 1
-    lis[a2 + 8] = 1 #0.5
+    lis[a2 + 8] = 1  # 0.5
     return lis
+
 
 def sum_matrix(s):
     lis = [0] * (13 + len(settings.strategies))
@@ -161,8 +165,8 @@ class NeuralNetwork:
     def guess_vector(self, a1, a2, beg, end):
         vec = []
         for i in range(beg, end):
-            vec.append(round(self.y[5 * (a1 - 1) + a2 - 1][i],5))
-        return(vec)
+            vec.append(round(self.y[5 * (a1 - 1) + a2 - 1][i], 5))
+        return (vec)
 
     # we change what we fit the neural network to (which is y) after each update
     # the last step of the learning process, the part where y becomes our updated prediction
@@ -189,3 +193,4 @@ class NeuralNetwork:
                             self.y[5 * (i - 1) + (j - 1)][k] -= settings.DECR_WRONG
         else:
             self.y[index][ans] += settings.INCR_WRONG
+

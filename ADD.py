@@ -418,7 +418,3 @@ def main():
     global PERR, TL
     TL = 0  # trace level, 0 means off
     PERR = 0.04  # Probability of error
-
-
-if __name__ == "__main__":
-    main()

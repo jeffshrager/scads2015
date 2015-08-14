@@ -9,9 +9,11 @@ import datetime
 import timeit
 import settings
 
+
 def trp(tl, text):
     if TL > tl:
         print text
+
 
 # The Distribution table records every answer given to every problem
 # as they are created, and is output into the log at the end of the
@@ -89,14 +91,14 @@ class Distribution(object):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
+
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
 # a random strategy. Then we update the nn accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    global writer
-    global strat_list
+    global writer, DSTR
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
     cc = settings.RETRIEVAL_LOW_CC + (settings.RETRIEVAL_HIGH_CC - settings.RETRIEVAL_LOW_CC) * random()
@@ -125,7 +127,8 @@ def exec_strategy():
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
     # add method here to get what strategy is used
-    return [ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION]
+    DSTR.update([ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
+
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
@@ -133,10 +136,11 @@ def exec_strategy():
 # I/O relationships that have this tendency.
 
 def counting_network():
-    writer.writerow(['Network created','hidden_units',settings.hidden_units,'learning_rate',settings.initial_counting_network_learning_rate])
-    input_units = 14 # Addends + 1 on either side of each for
-                     # distributed representation -- see code in
-                     # NeuralNetwork.py for more detail.
+    writer.writerow(['Network created', 'hidden_units', settings.hidden_units, 'learning_rate',
+                     settings.initial_counting_network_learning_rate])
+    input_units = 14  # Addends + 1 on either side of each for
+    # distributed representation -- see code in
+    # NeuralNetwork.py for more detail.
     output_units = 13 + len(settings.strategies)
     NN = nn1.NeuralNetwork([input_units, settings.hidden_units, output_units])
     # Create the counting examples matrix k, the inputs are the
@@ -150,17 +154,19 @@ def counting_network():
     X_count = np.array(X_count)
     y_count = np.array(y_count)
     # Now burn it in:
-    writer.writerow(['Burning in counting results','burn_in_epochs',settings.initial_counting_network_burn_in_epochs])
-    NN.fit(X_count, y_count, settings.initial_counting_network_learning_rate, settings.initial_counting_network_burn_in_epochs)
+    writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.initial_counting_network_burn_in_epochs])
+    NN.fit(X_count, y_count, settings.initial_counting_network_learning_rate,
+           settings.initial_counting_network_burn_in_epochs)
     NN.update_y()
     return NN
+
 
 # Execute with all the possible values of each parameter, scanned
 # recursively.
 
 def config_and_test(index=0):
-    global file_name, DSTR, add_strat_nn, writer, scan_spec, param_keys
-    if index < len(param_keys): # Any more param_keys to scan?
+    global scan_spec, param_keys
+    if index < len(param_keys):  # Any more param_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
         for param_value in scan_spec[param_keys[index]]:
@@ -168,36 +174,48 @@ def config_and_test(index=0):
             # value, e.g., epoch = 100, then recurse to the next index
             exec (param_keys[index] + '=' + str(param_value))
             print (param_keys[index] + '=' + str(param_value))
-            config_and_test(index + 1) # Next param (recursive!)
-    else: # Finally we have a set of choices, do it!
-        print "---Running!---"
-        file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        full_name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
-        with open(full_name, 'wb') as csvfile:
-            # initialize the writer, DSTR, neural network for each config we want to test
-            writer = csv.writer(csvfile)
-            writer.writerow(['Output Format Version', '20150813'])
-            # Set up the NN
-            DSTR = Distribution()
-            ADD.main() 
-            add_strat_nn = counting_network() # Burn in the counting network (3+4=5)
-            dump_nn_results_predictions()
-            test(settings.n_problems) # Now run the real experiment!
+            config_and_test(index + 1)  # Next param (recursive!)
+    else:  # Finally we have a set of choices, do it!
+        test_n_times(settings.n_problems)
+
 
 def dump_nn_results_predictions():
     writer.writerow(['===== Results NN Prediction table ======'])
     for i in range(1, 6):
         for j in range(1, 6):
-            writer.writerow(["%s + %s = " % (i, j)]+ add_strat_nn.guess_vector(i, j, 0, 13))
+            writer.writerow(["%s + %s = " % (i, j)] + add_strat_nn.guess_vector(i, j, 0, 13))
     writer.writerow(['========================================'])
 
-def test(n_times):
-    for i in range(n_times):
-        eq = exec_strategy()
-        DSTR.update(eq)
-    # Output tables for analysis
-    DSTR.print_csv(relative=True)
-    dump_nn_results_predictions()
+
+def init_problem_globals():
+    global add_strat_nn, full_file__name, file_name, DSTR
+    DSTR = Distribution()
+    ADD.main()
+    add_strat_nn = counting_network()  # Burn in the counting network (3+4=5)
+
+
+def gen_file_name():
+    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
+    return full_file__name
+
+
+def test_n_times(n_times):
+    global add_strat_nn, DSTR, writer
+    print "---Running!---"
+    init_problem_globals()
+    with open(gen_file_name(), 'wb') as csvfile:
+        # initialize the writer, DSTR, neural network for each config we want to test
+        writer = csv.writer(csvfile)
+        writer.writerow(['Output Format Version', '20150813'])
+        init_problem_globals()
+        dump_nn_results_predictions()
+        for i in range(n_times):
+            exec_strategy()
+        # Output tables for analysis
+        DSTR.print_csv(relative=True)
+        dump_nn_results_predictions()
+
 
 def main():
     global TL, param_keys, scan_spec
@@ -205,14 +223,14 @@ def main():
     TL = 0  # trace level, 0 means off
     # Used in the recursive config_and_test fn.
     scan_spec = settings.scan_spec
-    param_keys = scan_spec.keys() 
+    param_keys = scan_spec.keys()
     print "Paremeter spec:"
     print settings.scan_spec
     print "Strategies in play:"
     print settings.strategies
     print "-----"
     for i in range(settings.ndups):
-        print ">>>>> Rep #"+ str(i+1)+" <<<<<"
+        print ">>>>> Rep #" + str(i + 1) + " <<<<<"
         config_and_test()
     stop = timeit.default_timer()
     print stop - start
