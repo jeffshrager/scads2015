@@ -88,21 +88,22 @@ class Distribution(object):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
 
-# We first try a retrieval on the sum, and if that fails we have to
-# use a strategy, which we try to retrieve and if that fails we choose
-# a random strategy. Then we update the nn accordingly, and fit and
-# update_y this is the main driver within driver that does the testing
-
 def gen_cc(low_cc, high_cc):
     return low_cc + (high_cc - low_cc) * random()
+
+
+# We first try a retrieval on the sum, and if that fails we have to
+# use a strategy, which we try to retrieve and if that fails we choose
+# a random strategy. Then we update the nn accordingly, and fit and update_y
+# this is the main driver within driver that does the testing
 
 def exec_strategy():
     global writer, DSTR
     ADD.PPA()
     # try getting a random number from a list above the confidence criterion
     cc = gen_cc(settings.RETRIEVAL_LOW_CC, settings.RETRIEVAL_HIGH_CC)
-    sum_guess = add_strat_nn.guess_in_range(0, 13)
-    retrieval = sum_guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, cc)
+    sum_guess = add_strat_nn.create_guess_in_range(0, 13)
+    retrieval = sum_guess(cc)
     SOLUTION = 0
     if retrieval is not None:
         # trp(1, "Used Retrieval")
@@ -111,8 +112,8 @@ def exec_strategy():
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_cc = gen_cc(settings.STRATEGY_LOW_CC, settings.STRATEGY_HIGH_CC)
-        strat_guess = add_strat_nn.guess_in_range(13, 13 + len(settings.strategies))
-        strat_num = strat_guess(ADD.ADDEND.ad1, ADD.ADDEND.ad2, strat_cc)
+        strat_guess = add_strat_nn.create_guess_in_range(13, 13 + len(settings.strategies))
+        strat_num = strat_guess(strat_cc)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
@@ -121,10 +122,10 @@ def exec_strategy():
         # of the log at the end by seeing that a DR message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
-        strat_update = add_strat_nn.update_in_range(13, 13 + len(settings.strategies))
-        strat_update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, strat_num + 13)
-    sum_update = add_strat_nn.update_in_range(0, 13)
-    sum_update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
+        strat_update = add_strat_nn.create_update_in_range(13, 13 + len(settings.strategies))
+        strat_update(SOLUTION, strat_num + 13)
+    sum_update = add_strat_nn.create_update_in_range(0, 13)
+    sum_update(SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
@@ -182,6 +183,10 @@ def gen_file_name():
     return full_file__name
 
 
+def is_dump_time(i):
+    return i % settings.pbs == 0 or i == settings.n_problems - 1
+
+
 # Execute with all the possible values of each parameter, scanned
 # recursively.
 
@@ -201,7 +206,7 @@ def config_and_test(index=0):
 
 
 def test_n_times(n_times):
-    global add_strat_nn, DSTR, writer
+    global writer
     print "---Running!---"
     with open(gen_file_name(), 'wb') as csvfile:
         # initialize the writer, DSTR, neural network for each config we want to test
@@ -210,7 +215,7 @@ def test_n_times(n_times):
         init_problem_globals()
         for i in range(n_times):
             exec_strategy()
-            if i % settings.pbs == 0 or i == n_times - 1:
+            if is_dump_time(i):
                 dump_nn_results_predictions()
         # Output tables for analysis
         DSTR.print_csv()

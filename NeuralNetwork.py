@@ -144,8 +144,13 @@ class NeuralNetwork:
     # none.  it does the same thing for when we want to retrieve a
     # strategy, except beg = 13, and end = 13 + len(strategies)
 
-    def guess_in_range(self, beg, end):
-        def guess(a1, a2, cc):
+    def create_guess_in_range(self, beg, end):
+        import ADD
+
+        a1 = ADD.ADDEND.ad1
+        a2 = ADD.ADDEND.ad2
+
+        def guess(cc):
             if (a1 > 5) or (a2 > 5):
                 return None
             results_above_cc = [x for x in self.y[y_index(a1, a2)][beg:end] if x > cc]
@@ -153,6 +158,7 @@ class NeuralNetwork:
             if l > 0:
                 return int(results_above_cc[randint(0, l - 1)])
             return None
+
         return guess
 
     # Used for analysis output, this just gets the prediction values
@@ -177,8 +183,13 @@ class NeuralNetwork:
     # check if al + a2 == ans, if so our_ans is correct so we add to that and decrement others.
     # else we add incr_wrong to our_ans in y
     # so this is adding to y, and afterwards we would fit the nn to y, and then update y
-    def update_in_range(self, beg, end):
-        def update(a1, a2, our_ans, ans):
+    def create_update_in_range(self, beg, end):
+        import ADD
+
+        a1 = ADD.ADDEND.ad1
+        a2 = ADD.ADDEND.ad2
+
+        def update(our_ans, ans):
             # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
             #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
             #     # a1, a2, result))
@@ -192,6 +203,7 @@ class NeuralNetwork:
                                 self.y[y_index(i, j)][k] -= settings.DECR_WRONG
             else:
                 self.y[index][ans] += settings.INCR_WRONG
+
         return update
 
 

@@ -9,7 +9,7 @@ global hidden_units
 
 hidden_units = 30
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
-pbs = 25 #problem bin size, every pbs problems we dump the predictions
+pbs = 25  # problem bin size, every pbs problems we dump the predictions
 
 # ADD.random_strategy -- Usually left out!
 
