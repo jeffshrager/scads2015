@@ -70,13 +70,23 @@ class NeuralNetwork:
 
         for i in range(1, len(layers) - 1):
             r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
-            r.fill(1.0) # DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+
+            # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+            for l in range(0,layers[i - 1] + 1):
+                for m in range(0,layers[i] + 1):
+                    r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+
             self.weights.append(r)
 
         # output layer - random((2+1, 1)) : 3 x 1
 
         r = 2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1
-        r.fill(1.0) # DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+
+        # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+        for l in range(0,layers[i] + 1):
+            for m in range(0,layers[i + 1]):
+                r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+
         self.weights.append(r)
 
         self.X = []
