@@ -36,13 +36,13 @@ def tanh_prime(x):
 def addends_matrix(a1, a2):
     lis = [0] * 14
     # First addend
-    lis[a1 - 1] = 1  # 0.5
+    lis[a1 - 1] = 1 - settings.addend_matrix_offby1_delta
     lis[a1] = 1
-    lis[a1 + 1] = 1  # 0.5
+    lis[a1 + 1] = 1 - settings.addend_matrix_offby1_delta
     # Second addend
-    lis[a2 + 6] = 1  # 0.5
+    lis[a2 + 6] = 1 - settings.addend_matrix_offby1_delta
     lis[a2 + 7] = 1
-    lis[a2 + 8] = 1  # 0.5
+    lis[a2 + 8] = 1 - settings.addend_matrix_offby1_delta
     return lis
 
 

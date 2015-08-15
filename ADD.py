@@ -79,7 +79,7 @@ class Hand(object):
             self.hand = 'left'
         else:
             self.hand = 'right'
-        trp(3, 'Looking to the %s hand.' % self.hand)
+        # trp(3, 'Looking to the %s hand.' % self.hand)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
         self.report()
@@ -91,7 +91,7 @@ class Hand(object):
         else:
             self.hand = 'left'
             # mempush(swap-hands, from right to left)
-        trp(3, 'Looking to the %s hand.' % self.hand)
+        # trp(3, 'Looking to the %s hand.' % self.hand)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
         self.report()
@@ -136,7 +136,7 @@ def try_dynamical_retrieval():
 # accomplished by this method.
 
 def say(n):
-    trp(2, '<%s>' % n)
+    # trp(2, '<%s>' % n)
     global EB
     EB = n
     # mempush(say, list n)
@@ -283,13 +283,6 @@ def random_strategy():
     shuffle(list_of_operations)
     return list_of_operations
 
-
-def exec_op(op):
-    trp(2, 'Doing:(%s)' % op)
-    # mempush (exect_op, lisp op)
-    # funcall (car op)
-
-
 # This version of raise assumes that hand control is done by the caller.
 
 def raise_hand():
@@ -350,7 +343,7 @@ class Addend(object):
             self.cla = 'larger'
         else:
             self.cla = 'smaller'
-        trp(3, 'Choose addend %s.' % self.addend)
+        # trp(3, 'Choose addend %s.' % self.addend)
 
     def swap(self):
         if self.addend == self.ad1:
@@ -359,7 +352,7 @@ class Addend(object):
         else:
             self.addend = self.ad1
             # mempush (swap_addeds, from 2 to 1)
-        trp(3, 'Looking to the other addend %s.' % self.addend)
+        # trp(3, 'Looking to the other addend %s.' % self.addend)
 
     def say(self):
         say(self.addend)
@@ -374,12 +367,10 @@ class Addend(object):
             self.cla = 'equal'
         else:
             self.cla = 'larger'
-        trp(3, 'Choose addend %s.' % self.addend)
+        # trp(3, 'Choose addend %s.' % self.addend)
 
-
-# Initialize hand, echoic buffer and
-# counting buffer,and carry out the strategy.
-# Update memory and distribution table at the end.
+# Initialize hand, echoic buffer and counting buffer,and carry out the
+# strategy.  Update memory and distribution table at the end.
 
 def exec_strategy(strategy_choice):
     global HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION
@@ -404,9 +395,8 @@ def exec_strategy(strategy_choice):
             break
         i()
 
-    trp(1, "Solution = %s" % SOLUTION)
+    # trp(1, "Solution = %s" % SOLUTION)
     return SOLUTION
-
 
 # Problem Presentation Algorithm (PPA).
 # Again, just random for now.
@@ -414,10 +404,10 @@ def exec_strategy(strategy_choice):
 def PPA():
     global ADDEND
     ADDEND = Addend(randint(1, 5), randint(1, 5))
-    trp(1, "%s + %s = ?" % (ADDEND.ad1, ADDEND.ad2))
-
+    # trp(1, "%s + %s = ?" % (ADDEND.ad1, ADDEND.ad2))
 
 def main():
+    import settings
     global PERR, TL
     TL = 0  # trace level, 0 means off
-    PERR = 0.04  # Probability of error
+    PERR = settings.PERR  # Probability of error
