@@ -66,16 +66,18 @@ class NeuralNetwork:
         # range of weight values (-1,1)
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
-        print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON !!!!!!!!!!!!!!!!!!"
-
         for i in range(1, len(layers) - 1):
             r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
 
+            
             # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-            for l in range(0,layers[i - 1] + 1):
-                for m in range(0,layers[i] + 1):
-                    r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
-
+            if settings.debugging_weight_fill:
+                print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (A) !!!!!!!!!!!!!!!!!!"
+                for l in range(0,layers[i - 1] + 1):
+                    for m in range(0,layers[i] + 1):
+                        r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+                print str(r)
+                        
             self.weights.append(r)
 
         # output layer - random((2+1, 1)) : 3 x 1
@@ -83,9 +85,12 @@ class NeuralNetwork:
         r = 2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1
 
         # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-        for l in range(0,layers[i] + 1):
-            for m in range(0,layers[i + 1]):
-                r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+        if settings.debugging_weight_fill:
+           print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
+           for l in range(0,layers[i] + 1):
+               for m in range(0,layers[i + 1]):
+                   r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+           print str(r)
 
         self.weights.append(r)
 
