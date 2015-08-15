@@ -67,12 +67,18 @@ class NeuralNetwork:
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
         for i in range(1, len(layers) - 1):
-            r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
+            #r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
+            r = np.empty([layers[i - 1] + 1, layers[i] + 1]) 
+            r.fill(1.0)
+            print "AAAAAA "+str(r)
             self.weights.append(r)
 
         # output layer - random((2+1, 1)) : 3 x 1
 
-        r = 2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1
+        #r = 2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1
+        r = np.empty([layers[i] + 1, layers[i + 1]])
+        r.fill(1.0)       
+        print "BBBBBB "+str(r)
         self.weights.append(r)
 
         self.X = []
@@ -135,14 +141,15 @@ class NeuralNetwork:
             a = self.activation(np.dot(a, self.weights[l]))
         return a
 
-    # Returns a random result from a list of results above the
-    # confidence criterion this is used for the retrieval. when we
-    # want to try to retrieve a sum, for example 3 + 4 = 7, we pass in
-    # a1 = 3, a2 = 4, beg = 0, and end = 13 guess loops through
-    # [beg,end) to see the values that are above the cc, and chooses a
-    # random number from those values. if there are none, it returns
-    # none.  it does the same thing for when we want to retrieve a
-    # strategy, except beg = 13, and end = 13 + len(strategies)
+    # Returns a function that picks a random result from a list of
+    # results above the confidence criterion this is used for the
+    # retrieval. when we want to try to retrieve a sum, for example 3
+    # + 4 = 7, we pass in a1 = 3, a2 = 4, beg = 0, and end = 13 guess
+    # loops through [beg,end) to see the values that are above the cc,
+    # and chooses a random number from those values. if there are
+    # none, it returns none.  it does the same thing for when we want
+    # to retrieve a strategy, except beg = 13, and end = 13 +
+    # len(strategies)
 
     def create_guess_in_range(self, beg, end):
         import ADD
@@ -160,7 +167,6 @@ class NeuralNetwork:
             if l > 0:
                 return int(results_above_cc[randint(0, l - 1)])
             return None
-
         return guess
 
     # Used for analysis output, this just gets the prediction values
@@ -170,6 +176,7 @@ class NeuralNetwork:
 
     def guess_vector(self, a1, a2, beg, end):
         vec = []
+        self.predict(addends_matrix(a1, a2))
         for i in range(beg, end):
             vec.append(round(self.y[y_index(a1, a2)][i], 5))
         return (vec)
