@@ -103,6 +103,10 @@ class NeuralNetwork:
     # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate, epochs):
 
+        print "================ FIT ==============="
+        print str(X)
+        print str(y)
+
         # Add column of ones to X
         # This is to add the bias unit to the input layer
 
@@ -172,9 +176,7 @@ class NeuralNetwork:
             index = y_index(a1, a2)
             if (a1 > 5) or (a2 > 5):
                 return None
-            # !!!!!!! THIS IS COMPLETELY WRONG !!!!!!!!
-            # results_above_cc = [x for x in self.y[index][beg:end] if self.y[index][x] > cc]
-            # Hopefully this is more correct:
+            # Collect the values that come above cc.
             results_above_cc = [x for x in range(beg,end) if self.y[index][x] > cc]
             l = len(results_above_cc)
             if l > 0:

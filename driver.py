@@ -127,6 +127,8 @@ def exec_strategy():
         strat_update(SOLUTION, strat_num + 13)
     sum_update = add_strat_nn.create_update_in_range(0, 13)
     sum_update(SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
+    # ???????????????? Why is the y[][] array a bunch of real numbers? (See debugging prints that happen inside fit)
+    # Shouldn't these be a binary (or nearly binary) representation of the desired output??????????????????
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
     add_strat_nn.update_y()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
