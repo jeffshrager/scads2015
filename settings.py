@@ -28,6 +28,7 @@ scan_spec = {"settings.experiment_label": ["\"201508131550 test output format\""
              "settings.STRATEGY_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.epoch": [10],  # 10 CONFIRMED by 201508091017 (no delta)
              "settings.INCR_RIGHT": [5],  # 5 CONFIRMED by 201508091017 (peak)
+             "settings.DECR_RIGHT": [0.35],  # ?? New ??
              "settings.INCR_WRONG": [0.1],  # 0.5 SUGGESTED by 201508101051 (?)
              "settings.DECR_WRONG": [0.35],  # 2.0 CONFIRMED (peak 201508100718)
              "settings.learning_rate": [0.1],  # 0.1 CONFIRMED by 201508091017 (peak)

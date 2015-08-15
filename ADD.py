@@ -396,16 +396,13 @@ def exec_strategy(strategy_choice):
             break
         i()
 
-    # trp(1, "Solution = %s" % SOLUTION)
     return SOLUTION
 
-# Problem Presentation Algorithm (PPA).
-# Again, just random for now.
+# Problem Presentation Algorithm (PPA).  Just random for now.
 
 def PPA():
     global ADDEND
     ADDEND = Addend(randint(1, 5), randint(1, 5))
-    # trp(1, "%s + %s = ?" % (ADDEND.ad1, ADDEND.ad2))
 
 def main():
     import settings

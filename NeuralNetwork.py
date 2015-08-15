@@ -135,7 +135,7 @@ class NeuralNetwork:
             a = self.activation(np.dot(a, self.weights[l]))
         return a
 
-    # Returns a random results from a list of results above the
+    # Returns a random result from a list of results above the
     # confidence criterion this is used for the retrieval. when we
     # want to try to retrieve a sum, for example 3 + 4 = 7, we pass in
     # a1 = 3, a2 = 4, beg = 0, and end = 13 guess loops through
@@ -146,15 +146,16 @@ class NeuralNetwork:
 
     def create_guess_in_range(self, beg, end):
         import ADD
-
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
-
         def guess(cc):
             index = y_index(a1, a2)
+            print "*** index: "+str(index)
             if (a1 > 5) or (a2 > 5):
                 return None
+            # !!!!!!! THIS IS COMPLETELY WRONG !!!!!!!!
             results_above_cc = [x for x in self.y[index][beg:end] if self.y[index][x] > cc]
+            print "*** results_above_cc: "+str(results_above_cc)
             l = len(results_above_cc)
             if l > 0:
                 return int(results_above_cc[randint(0, l - 1)])
@@ -181,9 +182,11 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.y.append(self.predict(addends_matrix(i, j)))
 
-    # check if al + a2 == ans, if so our_ans is correct so we add to that and decrement others.
-    # else we add incr_wrong to our_ans in y
-    # so this is adding to y, and afterwards we would fit the nn to y, and then update y
+    # Check if a1 + a2 == ans, if so our_ans is correct so we add to
+    # that and decrement others. Else we add incr_wrong to our_ans in
+    # y so this is adding to y, and afterwards we would fit the nn to
+    # y, and then update y.
+
     def create_update_in_range(self, beg, end):
         import ADD
 
@@ -193,7 +196,6 @@ class NeuralNetwork:
         def create_decr(x):
             def decr(y):
                 return y - x
-
             return decr
 
         def update(our_ans, ans):

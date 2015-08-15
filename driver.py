@@ -87,26 +87,25 @@ class Distribution(object):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
+# We first try a retrieval on the sum, and if that fails we have to
+# use a strategy, which we try to retrieve and if that fails we choose
+# a random strategy. Then we update the nn accordingly, and fit and
+# update_y this is the main driver within driver that does the testing
 
 def gen_cc(low_cc, high_cc):
     return low_cc + (high_cc - low_cc) * random()
 
-
-# We first try a retrieval on the sum, and if that fails we have to
-# use a strategy, which we try to retrieve and if that fails we choose
-# a random strategy. Then we update the nn accordingly, and fit and update_y
-# this is the main driver within driver that does the testing
-
 def exec_strategy():
     global writer, DSTR
-    ADD.PPA()
+    ADD.PPA() # Create a random problem: sets the global ADDEND to an Addend object
     # try getting a random number from a list above the confidence criterion
     cc = gen_cc(settings.RETRIEVAL_LOW_CC, settings.RETRIEVAL_HIGH_CC)
-    sum_guess = add_strat_nn.create_guess_in_range(0, 13)
+    # Note that sum_guess ends up being a function! (Which seems really weirdly un-necessarily complex!!!)
+    sum_guess = add_strat_nn.create_guess_in_range(0, 13) 
     retrieval = sum_guess(cc)
-    SOLUTION = 0
+    SOLUTION = -666 # Used to be 0, but why is this needed?! (DDD If this shows up, there's something really wrong!)
     if retrieval is not None:
-        # trp(1, "Used Retrieval")
+        print "BBBBB "+str(retrieval) 
         SOLUTION = retrieval
         writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
