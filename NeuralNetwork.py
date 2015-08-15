@@ -150,12 +150,12 @@ class NeuralNetwork:
         a2 = ADD.ADDEND.ad2
         def guess(cc):
             index = y_index(a1, a2)
-            print "*** index: "+str(index)
             if (a1 > 5) or (a2 > 5):
                 return None
             # !!!!!!! THIS IS COMPLETELY WRONG !!!!!!!!
-            results_above_cc = [x for x in self.y[index][beg:end] if self.y[index][x] > cc]
-            print "*** results_above_cc: "+str(results_above_cc)
+            # results_above_cc = [x for x in self.y[index][beg:end] if self.y[index][x] > cc]
+            # Hopefully this is more correct:
+            results_above_cc = [x for x in range(beg,end) if self.y[index][x] > cc]
             l = len(results_above_cc)
             if l > 0:
                 return int(results_above_cc[randint(0, l - 1)])

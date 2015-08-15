@@ -22,7 +22,7 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 
 scan_spec = {"settings.experiment_label": ["\"201508131550 test output format\""],
              "settings.n_problems": [5000],  # 250 = 10x CONFIRMED (peak 201508100718)
-             "settings.RETRIEVAL_LOW_CC": [0.8],  # 0.8 CONFIRMED by 201508100733 (peak)
+             "settings.RETRIEVAL_LOW_CC": [0.95],  # 0.8 CONFIRMED by 201508100733 (peak)
              "settings.RETRIEVAL_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.STRATEGY_LOW_CC": [0.75],  # 0.75 SUGGESTED by 201508101051 (?)
              "settings.STRATEGY_HIGH_CC": [1.0],  # Fixed at 1.0

@@ -105,7 +105,6 @@ def exec_strategy():
     retrieval = sum_guess(cc)
     SOLUTION = -666 # Used to be 0, but why is this needed?! (DDD If this shows up, there's something really wrong!)
     if retrieval is not None:
-        print "BBBBB "+str(retrieval) 
         SOLUTION = retrieval
         writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
@@ -114,11 +113,14 @@ def exec_strategy():
         strat_guess = add_strat_nn.create_guess_in_range(13, 13 + len(settings.strategies))
         strat_num = strat_guess(strat_cc)
         if strat_num is None:
-            strat_num = randint(0, len(settings.strategies) - 1)
+            strat_num = randint(0, len(settings.strategies) - 1) 
+        else:
+            strat_num = strat_num-13 # Remove the offset from the nn
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
-        # !!! WWW WARNING: This gets displayed even if Dynamic
-        # Retrieval was used. You have to Analyze this distinction out
-        # of the log at the end by seeing that a DR message appeared!
+        # !!! WWW WARNING (for analysis): This gets displayed even if
+        # Dynamic Retrieval was used. You have to Analyze this
+        # distinction out of the log at the end by seeing that a DR
+        # message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
         strat_update = add_strat_nn.create_update_in_range(13, 13 + len(settings.strategies))
