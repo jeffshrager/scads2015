@@ -2,7 +2,7 @@ import ADD
 import driver
 
 global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
-global INCR_RIGHT, INCR_WRONG, DECR_WRONG
+global INCR_RIGHT, INCR_WRONG, DECR_WRONG, DECR_RIGHT
 global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units, addend_matrix_offby1_delta, PERR
