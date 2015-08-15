@@ -151,9 +151,10 @@ class NeuralNetwork:
         a2 = ADD.ADDEND.ad2
 
         def guess(cc):
+            index = y_index(a1, a2)
             if (a1 > 5) or (a2 > 5):
                 return None
-            results_above_cc = [x for x in self.y[y_index(a1, a2)][beg:end] if x > cc]
+            results_above_cc = [x for x in self.y[index][beg:end] if self.y[index][x] > cc]
             l = len(results_above_cc)
             if l > 0:
                 return int(results_above_cc[randint(0, l - 1)])
@@ -189,20 +190,25 @@ class NeuralNetwork:
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
 
+        def create_decr(x):
+            def decr(y):
+                return y - x
+
+            return decr
+
         def update(our_ans, ans):
             # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
             #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
             #     # a1, a2, result))
             index = y_index(a1, a2)
+            decr = ()
             if a1 + a2 == our_ans:
                 self.y[index][ans] += settings.INCR_RIGHT
-                for i in range(1, 6):
-                    for j in range(1, 6):
-                        for k in range(beg, end):
-                            if (i != a1) and (j != a2) and (k != ans):
-                                self.y[y_index(i, j)][k] -= settings.DECR_WRONG
+                decr = create_decr(settings.DECR_RIGHT)
             else:
                 self.y[index][ans] += settings.INCR_WRONG
+                decr = create_decr(settings.DECR_WRONG)
+            [decr(i) for i in self.y[y_index(a1, a2)][beg:end] if i != ans]
 
         return update
 

@@ -2,7 +2,7 @@ import ADD
 import driver
 
 global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
-global INCR_RIGHT, INCR_WRONG, DECR_WRONG
+global INCR_RIGHT, INCR_WRONG, DECR_WRONG, DECR_RIGHT
 global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units
@@ -26,14 +26,15 @@ scan_spec = {"settings.experiment_label": ["\"201508131550 testing new output fo
              "settings.RETRIEVAL_HIGH_CC": [1.0],  # Fixed at 1.0
              "settings.STRATEGY_LOW_CC": [0.75],  # 0.75 SUGGESTED by 201508101051 (?)
              "settings.STRATEGY_HIGH_CC": [1.0],  # Fixed at 1.0
-             "settings.epoch": [10],  # 10 CONFIRMED by 201508091017 (no delta)
-             "settings.INCR_RIGHT": [5],  # 5 CONFIRMED by 201508091017 (peak)
-             "settings.INCR_WRONG": [0.1],  # 0.5 SUGGESTED by 201508101051 (?)
-             "settings.DECR_WRONG": [0.35],  # 2.0 CONFIRMED (peak 201508100718)
-             "settings.learning_rate": [0.1],  # 0.1 CONFIRMED by 201508091017 (peak)
+             "settings.epoch": [20],  # 10 CONFIRMED by 201508091017 (no delta)
+             "settings.INCR_RIGHT": [10],  # 5 CONFIRMED by 201508091017 (peak)
+             "settings.INCR_WRONG": [5],  # 0.5 SUGGESTED by 201508101051 (?)
+             "settings.DECR_RIGHT": [10],  # 2.0 CONFIRMED (peak 201508100718)
+             "settings.DECR_WRONG": [5],
+             "settings.learning_rate": [0.12],  # 0.1 CONFIRMED by 201508091017 (peak)
              "settings.initial_counting_network_burn_in_epochs": [1500],
              "settings.initial_counting_network_learning_rate": [0.15],
-             "settings.DR_threshold": [0.1]}
+             "settings.DR_threshold": [0.9]}
 
 if __name__ == '__main__':
     driver.main()
