@@ -284,6 +284,7 @@ def random_strategy():
     shuffle(list_of_operations)
     return list_of_operations
 
+
 # This version of raise assumes that hand control is done by the caller.
 
 def raise_hand():
@@ -344,7 +345,7 @@ class Addend(object):
             self.cla = 'larger'
         else:
             self.cla = 'smaller'
-        # trp(3, 'Choose addend %s.' % self.addend)
+            # trp(3, 'Choose addend %s.' % self.addend)
 
     def swap(self):
         if self.addend == self.ad1:
@@ -353,7 +354,7 @@ class Addend(object):
         else:
             self.addend = self.ad1
             # mempush (swap_addeds, from 2 to 1)
-        # trp(3, 'Looking to the other addend %s.' % self.addend)
+            # trp(3, 'Looking to the other addend %s.' % self.addend)
 
     def say(self):
         say(self.addend)
@@ -368,7 +369,8 @@ class Addend(object):
             self.cla = 'equal'
         else:
             self.cla = 'larger'
-        # trp(3, 'Choose addend %s.' % self.addend)
+            # trp(3, 'Choose addend %s.' % self.addend)
+
 
 # Initialize hand, echoic buffer and counting buffer,and carry out the
 # strategy.  Update memory and distribution table at the end.
@@ -398,14 +400,17 @@ def exec_strategy(strategy_choice):
 
     return SOLUTION
 
+
 # Problem Presentation Algorithm (PPA).  Just random for now.
 
 def PPA():
     global ADDEND
     ADDEND = Addend(randint(1, 5), randint(1, 5))
 
+
 def main():
     import settings
+
     global PERR, TL
     TL = 0  # trace level, 0 means off
     PERR = settings.PERR  # Probability of error

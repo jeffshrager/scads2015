@@ -87,35 +87,53 @@ class Distribution(object):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
+
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
 # a random strategy. Then we update the nn accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
 
-def gen_cc(low_cc, high_cc):
-    return low_cc + (high_cc - low_cc) * random()
+
+class subNeuralNetwork:
+    def __init__(self, type):
+        # initializing member variables
+        self.low_cc, self.high_cc, self.beg, self.end = -1, -1, -1, -1
+        exec ("self.low_cc = settings." + type + "_LOW_CC")
+        exec ("self.high_cc = settings." + type + "_HIGH_CC")
+        if type == "RETRIEVAL":
+            self.beg = 0
+            self.end = 13
+        elif type == "STRATEGY":
+            self.beg = 13
+            self.end = 13 + len(settings.strategies)
+        else:
+            print 'ERROR'
+        self.cc = self.gen_cc()
+
+    def gen_cc(self):
+        return self.low_cc + (self.high_cc - self.low_cc) * random()
+
 
 def exec_strategy():
-    global writer, DSTR
-    ADD.PPA() # Create a random problem: sets the global ADDEND to an Addend object
+    global writer, DSTR, add_strat_nn
+    ADD.PPA()  # Create a random problem: sets the global ADDEND to an Addend object
+    # create the sub nn, which are used as parameters into the main nn for easier updating/retrieval
+    add_nn = subNeuralNetwork("RETRIEVAL")
+    strat_nn = subNeuralNetwork("STRATEGY")
     # try getting a random number from a list above the confidence criterion
-    cc = gen_cc(settings.RETRIEVAL_LOW_CC, settings.RETRIEVAL_HIGH_CC)
-    # Note that sum_guess ends up being a function! (Which seems really weirdly un-necessarily complex!!!)
-    sum_guess = add_strat_nn.create_guess_in_range(0, 13) 
-    retrieval = sum_guess(cc)
-    SOLUTION = -666 # Used to be 0, but why is this needed?! (DDD If this shows up, there's something really wrong!)
+    retrieval = add_strat_nn.try_memory_retrieval(add_nn)
+    SOLUTION = -666  # Used to be 0, but why is this needed?! (DDD If this shows up, there's something really wrong!) (this is just used to initialize solution, or else it's not in the right code block
+    add_strat_nn.reset_target()
     if retrieval is not None:
         SOLUTION = retrieval
         writer.writerow(["used", "retrieval", ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_cc = gen_cc(settings.STRATEGY_LOW_CC, settings.STRATEGY_HIGH_CC)
-        strat_guess = add_strat_nn.create_guess_in_range(13, 13 + len(settings.strategies))
-        strat_num = strat_guess(strat_cc)
+        strat_num = add_strat_nn.try_memory_retrieval(strat_nn)
         if strat_num is None:
-            strat_num = randint(0, len(settings.strategies) - 1) 
+            strat_num = randint(0, len(settings.strategies) - 1)
         else:
-            strat_num = strat_num-13 # Remove the offset from the nn
+            strat_num = strat_num - 13  # Remove the offset from the nn
         SOLUTION = ADD.exec_strategy(settings.strategies[strat_num])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
@@ -123,14 +141,10 @@ def exec_strategy():
         # message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
         # update the neural networks based on if the strategy worked or not
-        strat_update = add_strat_nn.create_update_in_range(13, 13 + len(settings.strategies))
-        strat_update(SOLUTION, strat_num + 13)
-    sum_update = add_strat_nn.create_update_in_range(0, 13)
-    sum_update(SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
-    # ???????????????? Why is the y[][] array a bunch of real numbers? (See debugging prints that happen inside fit)
-    # Shouldn't these be a binary (or nearly binary) representation of the desired output??????????????????
-    add_strat_nn.fit(add_strat_nn.X, add_strat_nn.y, settings.learning_rate, settings.epoch)
-    add_strat_nn.update_y()
+        add_strat_nn.update_target(strat_nn, SOLUTION, strat_num + 13)
+    add_strat_nn.update_target(add_nn, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
+    add_strat_nn.fit(add_strat_nn.X, add_strat_nn.target, settings.learning_rate, settings.epoch)
+    add_strat_nn.update_predictions()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
 
 
@@ -161,7 +175,7 @@ def counting_network():
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.initial_counting_network_burn_in_epochs])
     NN.fit(X_count, y_count, settings.initial_counting_network_learning_rate,
            settings.initial_counting_network_burn_in_epochs)
-    NN.update_y()
+    NN.update_predictions()
     return NN
 
 
@@ -184,10 +198,6 @@ def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
     return full_file__name
-
-
-def is_dump_time(i):
-    return i % settings.pbs == 0 or i == settings.n_problems - 1
 
 
 # Execute with all the possible values of each parameter, scanned
@@ -222,6 +232,10 @@ def test_n_times(n_times):
                 dump_nn_results_predictions()
         # Output tables for analysis
         DSTR.print_csv()
+
+
+def is_dump_time(i):
+    return i % settings.pbs == 0 or i == settings.n_problems - 1
 
 
 def main():

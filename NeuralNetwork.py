@@ -62,22 +62,22 @@ class NeuralNetwork:
 
         self.weights = []
 
-        self.y = []
+        self.target = []
         # range of weight values (-1,1)
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
         for i in range(1, len(layers) - 1):
             r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
 
-            
+
             # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
             if settings.debugging_weight_fill:
                 print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (A) !!!!!!!!!!!!!!!!!!"
-                for l in range(0,layers[i - 1] + 1):
-                    for m in range(0,layers[i] + 1):
-                        r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
+                for l in range(0, layers[i - 1] + 1):
+                    for m in range(0, layers[i] + 1):
+                        r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
                 print str(r)
-                        
+
             self.weights.append(r)
 
         # output layer - random((2+1, 1)) : 3 x 1
@@ -86,11 +86,11 @@ class NeuralNetwork:
 
         # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
         if settings.debugging_weight_fill:
-           print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
-           for l in range(0,layers[i] + 1):
-               for m in range(0,layers[i + 1]):
-                   r[l,m]=np.random.uniform(-0.01,+0.01,1)[0]
-           print str(r)
+            print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
+            for l in range(0, layers[i] + 1):
+                for m in range(0, layers[i + 1]):
+                    r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
+            print str(r)
 
         self.weights.append(r)
 
@@ -99,6 +99,8 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
         self.X = np.array(self.X)
+
+        self.predictions = []
 
     # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate, epochs):
@@ -168,21 +170,20 @@ class NeuralNetwork:
     # to retrieve a strategy, except beg = 13, and end = 13 +
     # len(strategies)
 
-    def create_guess_in_range(self, beg, end):
+    def try_memory_retrieval(self, sub_nn):
         import ADD
+
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
-        def guess(cc):
-            index = y_index(a1, a2)
-            if (a1 > 5) or (a2 > 5):
-                return None
-            # Collect the values that come above cc.
-            results_above_cc = [x for x in range(beg,end) if self.y[index][x] > cc]
-            l = len(results_above_cc)
-            if l > 0:
-                return int(results_above_cc[randint(0, l - 1)])
+        index = y_index(a1, a2)
+        if (a1 > 5) or (a2 > 5):
             return None
-        return guess
+        # Collect the values that come above cc.
+        results_above_cc = [x for x in range(sub_nn.beg, sub_nn.end) if self.predictions[index][x] > sub_nn.cc]
+        l = len(results_above_cc)
+        if l > 0:
+            return int(results_above_cc[randint(0, l - 1)])
+        return None
 
     # Used for analysis output, this just gets the prediction values
     # for a particular sum. FFF Maybe this could be used inside guess?
@@ -193,48 +194,41 @@ class NeuralNetwork:
         vec = []
         self.predict(addends_matrix(a1, a2))
         for i in range(beg, end):
-            vec.append(round(self.y[y_index(a1, a2)][i], 5))
+            vec.append(round(self.predictions[y_index(a1, a2)][i], 5))
         return (vec)
 
-    # we change what we fit the neural network to (which is y) after each update
-    # the last step of the learning process, the part where y becomes our updated prediction
-    def update_y(self):
-        self.y = []
+    def update_predictions(self):
+        self.predictions = []
         for i in range(1, 6):
             for j in range(1, 6):
-                self.y.append(self.predict(addends_matrix(i, j)))
+                self.predictions.append(self.predict(addends_matrix(i, j)))
 
-    # Check if a1 + a2 == ans, if so our_ans is correct so we add to
-    # that and decrement others. Else we add incr_wrong to our_ans in
-    # y so this is adding to y, and afterwards we would fit the nn to
-    # y, and then update y.
+    ####targets require change
 
-    def create_update_in_range(self, beg, end):
+    def reset_target(self):
+        self.target = []
+        for i in range(25):
+            self.target.append([0.5] * (13 + len(settings.strategies)))
+        self.target = np.array(self.target)
+
+    def update_target(self, sub_nn, our_ans, ans):
         import ADD
 
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
 
-        def create_decr(x):
-            def decr(y):
-                return y - x
-            return decr
+        index = y_index(a1, a2)
 
-        def update(our_ans, ans):
-            # if (a1 > 5) or (a2 > 5) or (our_ans > 10):
-            #     # trp(1, "Addends (%s+%s) or result (%s) is/are larger than the memory table limits -- Ignored!" % (
-            #     # a1, a2, result))
-            index = y_index(a1, a2)
-            decr = ()
-            if a1 + a2 == our_ans:
-                self.y[index][ans] += settings.INCR_RIGHT
-                decr = create_decr(settings.DECR_RIGHT)
-            else:
-                self.y[index][ans] += settings.INCR_WRONG
-                decr = create_decr(settings.DECR_WRONG)
-            [decr(i) for i in self.y[y_index(a1, a2)][beg:end] if i != ans]
-
-        return update
+        if a1 + a2 == our_ans:
+            self.target[index][ans] += settings.INCR_RIGHT
+        else:
+            self.target[index][ans] += settings.INCR_WRONG
+        for i in range(sub_nn.beg, sub_nn.end):
+            if i != ans:
+                if a1 + a2 == our_ans:
+                    self.target[index][i] -= settings.DECR_RIGHT
+                else:
+                    self.target[index][i] -= settings.DECR_WRONG
 
 
 # the index in y is this because the list is generated such that

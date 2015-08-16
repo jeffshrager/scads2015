@@ -10,7 +10,7 @@ global hidden_units, addend_matrix_offby1_delta, PERR, debugging_weight_fill
 hidden_units = 30
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 25  # problem bin size, every pbs problems we dump the predictions
-debugging_weight_fill = True
+debugging_weight_fill = False
 
 # ADD.random_strategy -- Usually left out!
 
@@ -22,16 +22,16 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # extra set of "\"quotes\"" around it.
 
 scan_spec = {"settings.experiment_label": ["\"201508142232 Test\""],
-             "settings.n_problems": [10000], 
-             "settings.RETRIEVAL_LOW_CC": [1.0],  
+             "settings.n_problems": [100],
+             "settings.RETRIEVAL_LOW_CC": [0.75],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
-             "settings.STRATEGY_LOW_CC": [1.0], 
-             "settings.STRATEGY_HIGH_CC": [1.0], 
+             "settings.STRATEGY_LOW_CC": [0.75],
+             "settings.STRATEGY_HIGH_CC": [1.0],
              "settings.epoch": [10],
-             "settings.INCR_RIGHT": [1],
-             "settings.DECR_RIGHT": [0],
-             "settings.INCR_WRONG": [1],
-             "settings.DECR_WRONG": [0],
+             "settings.INCR_RIGHT": [0.12],
+             "settings.DECR_RIGHT": [0.13],
+             "settings.INCR_WRONG": [0.14],
+             "settings.DECR_WRONG": [0.15],
              "settings.learning_rate": [0.001],
              "settings.initial_counting_network_burn_in_epochs": [0],
              "settings.initial_counting_network_learning_rate": [0.1],
