@@ -123,6 +123,7 @@ def exec_strategy():
     # try getting a random number from a list above the confidence criterion
     retrieval = add_strat_nn.try_memory_retrieval(add_nn)
     SOLUTION = -666  # Used to be 0, but why is this needed?! (DDD If this shows up, there's something really wrong!) (this is just used to initialize solution, or else it's not in the right code block
+    # we have to reset the target for every problem, or else it uses the target from the last problem
     add_strat_nn.reset_target()
     if retrieval is not None:
         SOLUTION = retrieval
@@ -140,10 +141,12 @@ def exec_strategy():
         # distinction out of the log at the end by seeing that a DR
         # message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION])
-        # update the neural networks based on if the strategy worked or not
+        # update the target based on if the strategy worked or not
         add_strat_nn.update_target(strat_nn, SOLUTION, strat_num + 13)
+    # update the target based on if the sum is correct or not
     add_strat_nn.update_target(add_nn, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
     add_strat_nn.fit(add_strat_nn.X, add_strat_nn.target, settings.learning_rate, settings.epoch)
+    # update predictions in case we want to print
     add_strat_nn.update_predictions()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
 

@@ -204,7 +204,9 @@ class NeuralNetwork:
                 self.predictions.append(self.predict(addends_matrix(i, j)))
 
     ####targets require change
-
+    # what target does for now is create a square matrix filled with 0.5, and for the 1d matrix at
+    # y_index(a1, a2) it will have everything but the correct answer be -= DECR_RIGHT/WRONG and the correct answer
+    # will have INCR_RIGHT/WRONG added to it
     def reset_target(self):
         self.target = []
         for i in range(25):
