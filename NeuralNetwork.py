@@ -68,14 +68,12 @@ class NeuralNetwork:
 
         for i in range(1, len(layers) - 1):
             r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
-
-
             # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
             if settings.debugging_weight_fill:
                 print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (A) !!!!!!!!!!!!!!!!!!"
-                for l in range(0, layers[i - 1] + 1):
-                    for m in range(0, layers[i] + 1):
-                        r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
+                for l in range(0,layers[i - 1] + 1):
+                    for m in range(0,layers[i] + 1):
+                        r[l,m]=np.random.uniform(-settings.initial_weight_delta,+settings.initial_weight_delta,1)[0]
                 print str(r)
 
             self.weights.append(r)
@@ -86,11 +84,11 @@ class NeuralNetwork:
 
         # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
         if settings.debugging_weight_fill:
-            print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
-            for l in range(0, layers[i] + 1):
-                for m in range(0, layers[i + 1]):
-                    r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
-            print str(r)
+           print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
+           for l in range(0,layers[i] + 1):
+               for m in range(0,layers[i + 1]):
+                   r[l,m]=np.random.uniform(-settings.initial_weight_delta,+settings.initial_weight_delta,1)[0]
+           print str(r)
 
         self.weights.append(r)
 
@@ -105,9 +103,9 @@ class NeuralNetwork:
     # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate, epochs):
 
-        print "================ FIT ==============="
-        print str(X)
-        print str(y)
+#        print "================ FIT ==============="
+#        print str(X)
+#        print str(y)
 
         # Add column of ones to X
         # This is to add the bias unit to the input layer
@@ -153,7 +151,9 @@ class NeuralNetwork:
                 delta = np.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
 
-    # outputs a matrix given an input matrix, this is used heavily when we want to "know" what is in the kid's mind
+    # Outputs a matrix given an input matrix, this is used heavily
+    # when we want to "know" what is in the kid's mind
+
     def predict(self, x):
         a = np.concatenate((np.ones(1).T, np.array(x)), axis=1)
         for l in range(0, len(self.weights)):
@@ -214,6 +214,24 @@ class NeuralNetwork:
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
+
+    # We change what we fit the neural network to (which is y) after
+    # each update the last step of the learning process, the part
+    # where y becomes our updated prediction
+
+    def update_y(self):
+        self.y = []
+        for i in range(1, 6):
+            for j in range(1, 6):
+                self.y.append(self.predict(addends_matrix(i, j)))
+
+
+    # This version creates a vector that's 1 at the correct point, if
+    # the answer was correct, or else 0 at the incorrect point, if the
+    # answer was incorrect, and 0.5 everywhere else. (Jeff's version
+    # of 20150815)
+
+    def create_update_in_range(self, beg, end):
         import ADD
 
         a1 = ADD.ADDEND.ad1
@@ -232,9 +250,10 @@ class NeuralNetwork:
                 else:
                     self.target[index][i] -= settings.DECR_WRONG
 
-
-# the index in y is this because the list is generated such that
+# JS20150815: I have no idea what this means!!!???
+# The index in y is this because the list is generated such that
 # it goes from index = 0 a1: 1 a2 : 1
 #              index = 1 a1: 1 a2:  2 ... etc
+
 def y_index(a1, a2):
     return 5 * (a1 - 1) + (a2 - 1)

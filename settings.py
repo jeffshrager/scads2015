@@ -6,6 +6,7 @@ global INCR_RIGHT, INCR_WRONG, DECR_WRONG, DECR_RIGHT
 global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units, addend_matrix_offby1_delta, PERR, debugging_weight_fill
+global initial_weight_delta, non_result_y_filler
 
 hidden_units = 30
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
@@ -22,20 +23,24 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # extra set of "\"quotes\"" around it.
 
 scan_spec = {"settings.experiment_label": ["\"201508142232 Test\""],
-             "settings.n_problems": [100],
-             "settings.RETRIEVAL_LOW_CC": [0.75],
+             "settings.n_problems": [10000], 
+             "settings.RETRIEVAL_LOW_CC": [0.99],  
              "settings.RETRIEVAL_HIGH_CC": [1.0],
-             "settings.STRATEGY_LOW_CC": [0.75],
-             "settings.STRATEGY_HIGH_CC": [1.0],
-             "settings.epoch": [10],
+             "settings.STRATEGY_LOW_CC": [1.0], 
+             "settings.STRATEGY_HIGH_CC": [1.0], 
+             "settings.initial_weight_delta": [0.001],
+             "settings.epoch": [10], # Number of training epochs on EACH test problem
+             "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
+             "settings.non_result_y_filler": [0.5], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
              "settings.INCR_RIGHT": [0.12],
              "settings.DECR_RIGHT": [0.13],
              "settings.INCR_WRONG": [0.14],
              "settings.DECR_WRONG": [0.15],
+             "settings.INCR_RIGHT": [5],
+             "settings.DECR_WRONG": [-5],
              "settings.learning_rate": [0.001],
              "settings.initial_counting_network_burn_in_epochs": [0],
              "settings.initial_counting_network_learning_rate": [0.1],
-             "settings.addend_matrix_offby1_delta": [1.0],
              "settings.DR_threshold": [1.0],
              "settings.PERR": [0.0]
              }
