@@ -230,9 +230,10 @@ def test_n_times(n_times):
         writer.writerow(['Output Format Version', '20150813'])
         init_problem_globals()
         for i in range(n_times):
-            exec_strategy()
             if is_dump_time(i):
                 dump_nn_results_predictions()
+            exec_strategy()
+
         # Output tables for analysis
         DSTR.print_csv()
 

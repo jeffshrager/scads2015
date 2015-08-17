@@ -32,10 +32,8 @@ scan_spec = {"settings.experiment_label": ["\"201508142232 Test\""],
              "settings.epoch": [10], # Number of training epochs on EACH test problem
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              "settings.non_result_y_filler": [0.5], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
-             "settings.INCR_RIGHT": [0.12],
              "settings.DECR_RIGHT": [0.13],
              "settings.INCR_WRONG": [0.14],
-             "settings.DECR_WRONG": [0.15],
              "settings.INCR_RIGHT": [5],
              "settings.DECR_WRONG": [-5],
              "settings.learning_rate": [0.001],
