@@ -214,24 +214,6 @@ class NeuralNetwork:
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
-
-    # We change what we fit the neural network to (which is y) after
-    # each update the last step of the learning process, the part
-    # where y becomes our updated prediction
-
-    def update_y(self):
-        self.y = []
-        for i in range(1, 6):
-            for j in range(1, 6):
-                self.y.append(self.predict(addends_matrix(i, j)))
-
-
-    # This version creates a vector that's 1 at the correct point, if
-    # the answer was correct, or else 0 at the incorrect point, if the
-    # answer was incorrect, and 0.5 everywhere else. (Jeff's version
-    # of 20150815)
-
-    def create_update_in_range(self, beg, end):
         import ADD
 
         a1 = ADD.ADDEND.ad1
