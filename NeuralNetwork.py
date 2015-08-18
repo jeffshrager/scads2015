@@ -105,7 +105,7 @@ class NeuralNetwork:
     # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate, epochs):
 
-        print "================ FIT ==============="
+        # print "================ FIT ==============="
         # print str(X)
         # this should print y in a more readable way
         # np.set_printoptions(precision=3, linewidth=160, suppress=True)
