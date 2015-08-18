@@ -104,32 +104,55 @@
 	 (break "Uh oh. Some of the data is from version ~a, and some is from version ~a of the results format. I don't know how to handle this situation!"
 		*results-version* version)))
      (case version
-	   (20150807 (parse-20150807-data i))
+	   (20150813 (parse-20150807-data i))
 	   (t (break "Unknown results version, vline=~s" vline))))))
 
 (defun parse-20150807-data (i)
-  `((:results-version . ,*results-version*) ;; NNN This is actually un-necessary since everything will have the same version 
-    (:strategy-use-log 
-     .
-     ,(reduce-log
-      (loop for l = (read-line i nil nil)
-	     until (search "===========" l)
-	     ;; 1- bcs of the return on the end
-	     collect (interpret-log-entry (string-split (subseq l 0 (1- (length l))))))))
-    (:params . ,(parse-params i))
-    (:results-predictions .
-     ,(loop for a from 1 to 5
+  (loop for line = (read-line i nil nil)
+	with n = 0 
+	with all = nil
+	with local = nil
+	with rnnpt = nil
+	until (null line)
+	finally (break "parse-20150807-data hit the end of the stream: ~s" i)
+       	do (if (search "Results NN Prediction table" line)
+	       (progn 
+		 (setq rnnpt (parse-rnnp-table i))
+		 (push `((:n ,n)
+			 (:rnnpt ,rnnpt) 
+			 (:log ,(reduce-log (reverse local))))
+		       all)
+		 (setq local nil rnnpt nil))
+	     (if (search "Run Parameters" line) ;; This will always come right after an rnnp table
+		 (progn 
+		   (push (list :params (parse-params i)) all)
+		   (push (list :rd-table (parse-rd-table i)) all)
+		   (return-from parse-20150807-data (reverse all))
+		   )
+	       (push (interpret-log-entry (string-split (subseq line 0 (1- (length line))))) local)))))
+
+(defun parse-rnnp-table (i)
+  (prog1 
+  (loop for a from 1 to 5
 	    append (loop for b from 1 to 5
 			 collect (cons (cons a b)
 				       (mapcar #'read-from-string 
 					       ;; Drop the first thing, which is just the problem statement
-					       (cdr (string-split (read-line i nil nil))))))))))
+					       (cdr (string-split (read-line i nil nil)))))))
+  (read-line i nil nil) ;; Skip the tail line
+  ))
 
-;;; This is max ugly (UUU) we should go through and parse the properly.
+(defun parse-rd-table (i)
+  (loop for a from 1 to 5
+	    append (loop for b from 1 to 5
+			 collect (cons (cons a b)
+				       (mapcar #'read-from-string 
+					       ;; Drop the first thing, which is just the problem statement
+					       (cdr (string-split (read-line i nil nil))))))))
 
 (defun parse-params (i)
   (loop for line = (read-line i nil nil)
-	until (search  "========" line)
+	until (search  "====" line)
 	collect (let ((p (position #\, line)))
 		  (when p
 		    (cons (subseq line 0 p)
@@ -350,5 +373,5 @@
 		 ))))
 
 (untrace)
-;(trace parse-params)
+;(trace parse-params parse-rd-table)
 (analyze) 
