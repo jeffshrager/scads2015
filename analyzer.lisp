@@ -110,7 +110,7 @@
 (defun parse-20150807-data (i)
   (loop for line = (read-line i nil nil)
 	with n = 0 
-	with all = nil
+	with logs = nil
 	with local = nil
 	with rnnpt = nil
 	until (null line)
@@ -118,17 +118,20 @@
        	do (if (search "Results NN Prediction table" line)
 	       (progn 
 		 (setq rnnpt (parse-rnnp-table i))
-		 (push `((:n ,n)
-			 (:rnnpt ,rnnpt) 
-			 (:log ,(reduce-log (reverse local))))
-		       all)
+		 (push `((:n ,(incf n))
+			 (:log ,(reduce-log (reverse local)))
+			 (:rnnpt ,rnnpt))
+		       logs)
 		 (setq local nil rnnpt nil))
-	     (if (search "Run Parameters" line) ;; This will always come right after an rnnp table
+	     (if (search "Run Parameters" line) ;; should follow an rnnpt, so don't have to push held log entries
 		 (progn 
-		   (push (list :params (parse-params i)) all)
-		   (push (list :rd-table (parse-rd-table i)) all)
-		   (return-from parse-20150807-data (reverse all))
-		   )
+		   (if (or local rnnpt)
+		       (break "In parse-20150807-data, rnnpt seems to be followed by log entries incorrectly."))
+		   (return-from 
+		    parse-20150807-data 
+		    `((:params ,(parse-params i))
+		      (:logs ,(reverse logs))
+		      (:rd-table ,(parse-rd-table i)))))
 	       (push (interpret-log-entry (string-split (subseq line 0 (1- (length line))))) local)))))
 
 (defun parse-rnnp-table (i)
@@ -374,4 +377,5 @@
 
 (untrace)
 ;(trace parse-params parse-rd-table)
-(analyze) 
+;(analyze) 
+(pprint (Setq r (load-result-file "test_csv/20150817105244.csv")))
