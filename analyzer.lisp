@@ -362,16 +362,18 @@
 	(with-open-file 
 	 (*sum* (format nil "sumstats/~a-logsummary.xls" (substitute #\_ #\space (pathname-name file)))
 		      :direction :output :if-exists :supersede) 
-	 (format *sum* "n	n retrival	n ret correct	% ret correct~%")
+	 (format *sum* "n	n retrival	n ret correct	% ret	% ret correct~%")
 	 (loop for entry in (second (assoc :logs data))
 	       as log = (second (assoc :log entry))
+	       as nlog = (length log)
 	       as rets = (loop for entry in log as (key) = entry when (eq :ret key) collect entry)
 	       as nrets = (length rets)
 	       as ncrets = (loop for (nil a1 a2 sum) in rets when (= sum (+ a1 a2)) sum 1)
-	       do (format *sum* "~a	~a	~a	~a~%"
-			  (length log)
+	       do (format *sum* "~a	~a	~a	~a	~a~%"
+			  nlog
 			  nrets
 			  ncrets
+			  (if (zerop nlog) " " (/ (float nrets) nlog))
 			  (if (zerop nrets) " " (/ (float ncrets) nrets))
 			  ))))
   )
