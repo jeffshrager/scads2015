@@ -2,7 +2,7 @@ import ADD
 import driver
 
 global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
-global INCR_RIGHT, INCR_WRONG, DECR_WRONG, DECR_RIGHT
+global INCR_on_RIGHT, DECR_on_WRONG, INCR_the_right_answer_on_WRONG
 global epoch, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units, addend_matrix_offby1_delta, PERR, debugging_weight_fill
@@ -31,11 +31,10 @@ scan_spec = {"settings.experiment_label": ["\"201508201252 Test\""],
              "settings.initial_weight_delta": [0.0005],
              "settings.epoch": [10], # Number of training epochs on EACH test problem
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
-             "settings.non_result_y_filler": [-1], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
-             "settings.DECR_RIGHT": [0],
-             "settings.INCR_WRONG": [2],
-             "settings.INCR_RIGHT": [2],
-             "settings.DECR_WRONG": [0],
+             "settings.non_result_y_filler": [0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
+             "settings.INCR_on_RIGHT": [2], # Added to non_result_y_filler at the response value when you get it right.
+             "settings.DECR_on_WRONG": [0], # Substrated from non_result_y_filler at the response value when you get it right.
+             "settings.INCR_the_right_answer_on_WRONG": [2], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
              "settings.learning_rate": [0.001],
              "settings.initial_counting_network_burn_in_epochs": [1000],
              "settings.initial_counting_network_learning_rate": [0.1],

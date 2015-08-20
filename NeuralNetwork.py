@@ -204,15 +204,14 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.predictions.append(self.predict(addends_matrix(i, j)))
 
-    ####targets require change
-    # what target does for now is create a square matrix filled with 0.5, and for the 1d matrix at
-    # y_index(a1, a2) it will have everything but the correct answer be -= DECR_RIGHT/WRONG and the correct answer
-    # will have INCR_RIGHT/WRONG added to it
+    # What target does for now is create a square matrix filled with
+    # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
+    # everything but the correct answer be -= DECR_RIGHT/WRONG and the
+    # correct answer will have INCR_RIGHT/WRONG added to it
+
     def reset_target(self):
         self.target = []
-        #for i in range(25):
-            # self.target.append(self.predictions[i])
-        self.target.append([0.25] * (13 + len(settings.strategies)))
+        self.target.append([settings.non_result_y_filler] * (13 + len(settings.strategies)))
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
@@ -221,27 +220,17 @@ class NeuralNetwork:
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
 
-        # Temporarily set the input to just be the representation of the current solution.
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = np.array(self.X)
 
-        # Now set the target (as this fn used to do before the above was added)
-        index = y_index(a1, a2)
-
-        self.target[0][a1+a2] = 0.75 # Temporarily testing force only the correct answer to +1
-        # Everything else should already be -1 by 
-
-#         if a1 + a2 == our_ans:
-#             self.target[index][ans] += settings.INCR_RIGHT
-#         else:
-#             self.target[index][ans] += settings.INCR_WRONG
-        # for i in range(sub_nn.beg, sub_nn.end):
-        #     if i != ans:
-        #         if a1 + a2 == our_ans:
-        #             self.target[index][i] -= settings.DECR_RIGHT
-        #         else:
-        #             self.target[index][i] -= settings.DECR_WRONG
+        if a1 + a2 == our_ans:
+            # RIGHT
+            self.target[0][ans] += settings.INCR_on_RIGHT
+        else:
+            # WRONG
+            self.target[0][ans] -= settings.DECR_on_WRONG
+            self.target[0][a1+a2] += INCR_the_right_answer_on_WRONG
 
 # JS20150815: I have no idea what this means!!!???
 # basically this is used to retrieve the output array from either predictions or target
