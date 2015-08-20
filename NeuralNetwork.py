@@ -211,8 +211,8 @@ class NeuralNetwork:
     def reset_target(self):
         self.target = []
         for i in range(25):
-            self.target.append(self.predictions[i])
-            # self.target.append([0.5] * (13 + len(settings.strategies)))
+            # self.target.append(self.predictions[i])
+            self.target.append([0.5] * (13 + len(settings.strategies)))
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
