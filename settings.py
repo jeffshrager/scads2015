@@ -22,9 +22,9 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"201508142232 Test\""],
+scan_spec = {"settings.experiment_label": ["\"201508201252 Test\""],
              "settings.n_problems": [5000],
-             "settings.RETRIEVAL_LOW_CC": [0.95],
+             "settings.RETRIEVAL_LOW_CC": [1.0],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
              "settings.STRATEGY_LOW_CC": [1.0], 
              "settings.STRATEGY_HIGH_CC": [1.0], 

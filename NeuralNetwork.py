@@ -105,11 +105,11 @@ class NeuralNetwork:
     # the main forward feeding/backpropagation part
     def fit(self, X, y, learning_rate, epochs):
 
-        # print "================ FIT ==============="
-        # print str(X)
+#        print "================ FIT ==============="
+#        print str(X)
         # # this should print y in a more readable way
         # np.set_printoptions(precision=3, linewidth=160, suppress=True)
-        # print(y)
+#        print(y)
         # Add column of ones to X
         # This is to add the bias unit to the input layer
 
@@ -210,9 +210,9 @@ class NeuralNetwork:
     # will have INCR_RIGHT/WRONG added to it
     def reset_target(self):
         self.target = []
-        for i in range(25):
+        #for i in range(25):
             # self.target.append(self.predictions[i])
-            self.target.append([settings.non_result_y_filler] * (13 + len(settings.strategies)))
+        self.target.append([0.25] * (13 + len(settings.strategies)))
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
@@ -221,12 +221,21 @@ class NeuralNetwork:
         a1 = ADD.ADDEND.ad1
         a2 = ADD.ADDEND.ad2
 
+        # Temporarily set the input to just be the representation of the current solution.
+        self.X = []
+        self.X.append(addends_matrix(a1, a2))
+        self.X = np.array(self.X)
+
+        # Now set the target (as this fn used to do before the above was added)
         index = y_index(a1, a2)
 
-        if a1 + a2 == our_ans:
-            self.target[index][ans] += settings.INCR_RIGHT
-        else:
-            self.target[index][ans] += settings.INCR_WRONG
+        self.target[0][a1+a2] = 0.75 # Temporarily testing force only the correct answer to +1
+        # Everything else should already be -1 by 
+
+#         if a1 + a2 == our_ans:
+#             self.target[index][ans] += settings.INCR_RIGHT
+#         else:
+#             self.target[index][ans] += settings.INCR_WRONG
         # for i in range(sub_nn.beg, sub_nn.end):
         #     if i != ans:
         #         if a1 + a2 == our_ans:
