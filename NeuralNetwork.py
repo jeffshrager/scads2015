@@ -107,7 +107,7 @@ class NeuralNetwork:
 
         # print "================ FIT ==============="
         # print str(X)
-        # this should print y in a more readable way
+        # # this should print y in a more readable way
         # np.set_printoptions(precision=3, linewidth=160, suppress=True)
         # print(y)
         # Add column of ones to X
@@ -212,7 +212,7 @@ class NeuralNetwork:
         self.target = []
         for i in range(25):
             # self.target.append(self.predictions[i])
-            self.target.append([0.5] * (13 + len(settings.strategies)))
+            self.target.append([settings.non_result_y_filler] * (13 + len(settings.strategies)))
         self.target = np.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans):
@@ -227,12 +227,12 @@ class NeuralNetwork:
             self.target[index][ans] += settings.INCR_RIGHT
         else:
             self.target[index][ans] += settings.INCR_WRONG
-        for i in range(sub_nn.beg, sub_nn.end):
-            if i != ans:
-                if a1 + a2 == our_ans:
-                    self.target[index][i] -= settings.DECR_RIGHT
-                else:
-                    self.target[index][i] -= settings.DECR_WRONG
+        # for i in range(sub_nn.beg, sub_nn.end):
+        #     if i != ans:
+        #         if a1 + a2 == our_ans:
+        #             self.target[index][i] -= settings.DECR_RIGHT
+        #         else:
+        #             self.target[index][i] -= settings.DECR_WRONG
 
 # JS20150815: I have no idea what this means!!!???
 # basically this is used to retrieve the output array from either predictions or target
