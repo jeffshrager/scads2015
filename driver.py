@@ -145,7 +145,8 @@ def exec_strategy():
         add_strat_nn.update_target(strat_nn, SOLUTION, strat_num + 13)
     # update the target based on if the sum is correct or not
     add_strat_nn.update_target(add_nn, SOLUTION, ADD.ADDEND.ad1 + ADD.ADDEND.ad2)
-    add_strat_nn.fit(add_strat_nn.X, add_strat_nn.target, settings.learning_rate, settings.epoch)
+    add_start_nn.fit(add_strat_nn.X, add_strat_nn.target, settings.learning_rate, settings.epoch)
+    add_strat_nn.fit(np.atleast_2d(nn1.addends_matrix(ADD.ADDEND.ad1,ADD.ADDEND.ad2)), add_strat_nn.target[nn1.y_index(ADD.ADDEND.ad1,ADD.ADDEND.ad2)], settings.learning_rate, settings.epoch)
     # update predictions in case we want to print
     add_strat_nn.update_predictions()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
