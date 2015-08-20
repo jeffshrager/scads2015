@@ -29,7 +29,7 @@ scan_spec = {"settings.experiment_label": ["\"2015081542: Targets centered on 0.
              # Problem presentation and execution
              "settings.n_problems": [5000],
              "settings.DR_threshold": [1.0],
-             "settings.PERR": [0.0]
+             "settings.PERR": [0.0],
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              # Choosing to use retrieval v. a strategy
              "settings.RETRIEVAL_LOW_CC": [1.0],
@@ -42,18 +42,8 @@ scan_spec = {"settings.experiment_label": ["\"2015081542: Targets centered on 0.
              "settings.DECR_on_WRONG": [-1.0], # Substrated from non_result_y_filler at the response value when you get it right.
              "settings.INCR_the_right_answer_on_WRONG": [0.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
              "settings.learning_rate": [0.001],
-             "settings.in_process_training_epochs": [10], # Number of training epochs on EACH test problem
+             "settings.in_process_training_epochs": [10] # Number of training epochs on EACH test problem
              }
 
 if __name__ == '__main__':
     driver.main()
-
-    # Experiment: 201508100733 Scanning RET_LOW, STRAT_LOW, and INCR_WRONG
-    # Gave hard to interpret results where there seemed to be an
-    # interaction between STRAT_LOW and INCR_WRONG. Deep scanned these
-    # (x10) in 201508101051. From that it looks like the lower end of
-    # STRATEGY_LOW_CC: [0.7,0.75,0.8,0.85,0.9], or about 0.75, and the
-    # higher end of settings.INCR_WRONG:
-    # [0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25], or about 2.0 are the
-    # best values. (These ends are a bit less variable than the res of the
-    # ranges).
