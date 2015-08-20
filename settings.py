@@ -22,17 +22,17 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"2015081542: Targets centered on 0.0 with -1 range +1\""],
+scan_spec = {"settings.experiment_label": ["\"2015081557: Started to widen cc\""],
              # Setting up the initial counting network
              "settings.initial_counting_network_burn_in_epochs": [1000],
              "settings.initial_counting_network_learning_rate": [0.1],
              # Problem presentation and execution
-             "settings.n_problems": [5000],
+             "settings.n_problems": [15000],
              "settings.DR_threshold": [1.0],
              "settings.PERR": [0.0],
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              # Choosing to use retrieval v. a strategy
-             "settings.RETRIEVAL_LOW_CC": [1.0],
+             "settings.RETRIEVAL_LOW_CC": [0.6],
              "settings.RETRIEVAL_HIGH_CC": [1.0],
              "settings.STRATEGY_LOW_CC": [1.0], 
              "settings.STRATEGY_HIGH_CC": [1.0], 

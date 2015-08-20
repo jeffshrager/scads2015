@@ -126,7 +126,7 @@
 	     (if (search "Run Parameters" line) ;; should follow an rnnpt, so don't have to push held log entries
 		 (progn 
 		   (if (or local rnnpt)
-		       (break "In parse-20150807-data, rnnpt seems to be followed by log entries incorrectly."))
+		       (format t "WARNING: In parse-20150807-data, rnnpt seems to be followed by log entries incorrectly. These will be lost!"))
 		   (return-from 
 		    parse-20150807-data 
 		    `((:params ,(parse-params i))
@@ -326,6 +326,8 @@
   (if (null high) (setq high 99999999999999))
   (clrhash *file->data*)
   (clrhash *params->ccs*)
+  ;; Load all the data, do some preliminary analysis, and store
+  ;; partial results for report production
   (loop for file in (if (zerop low)
 			(most-recent-set-of-results-pathnames-by-label-mathcing)
 			(directory "test_csv/*.csv"))
@@ -334,48 +336,102 @@
 	do
 	(let* ((r (ignore-errors (load-result-file file))))
 	  (if r
-	      (let* ((c (compare r *sns84-data*))
-		     (p (cdr (assoc :params r))))
+	      (progn
 		;; Save data for later
 		(setf (gethash file *file->data*) r)
-		;; Extract and check label
-		(let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
-		  (if (null label)
-		      (setq label new-label)
-		    (if (string-equal label new-label)
-			:ok
-		      (progn 
-			(format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
-				new-label label)
-			(setq label new-label)))))
-		(setq last-fno fno)
-		(if (null first-fno) (setq first-fno fno))
-		(push c (gethash p *params->ccs*))
-		) ;; Let*
+		(let* ((p (second (assoc :params r))))
+		  ;; Extract and check label
+		  (let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
+		    (if (null label)
+			(setq label new-label)
+		      (if (string-equal label new-label)
+			  :ok
+			(progn 
+			  (format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
+				  new-label label)
+			  (setq label new-label)))))
+		  (setq last-fno fno)
+		  (if (null first-fno) (setq first-fno fno))
+		  )) ;; If r
 	    (format t "~a seems to be broken -- ignoring it!~%" file)
 	    )))
-  (with-open-file 
-   (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) (substitute #\_ #\space label))
-		:direction :output :if-exists :supersede) 
-   (format *resultsum* "~a~%from	f~a~%to	f~a~%" label first-fno last-fno)
-   (loop for p being the hash-keys of *params->ccs*
-	 using (hash-value cs)
-	 with header-shown? = nil
-	 when (cdr cs)
-	 do 
-	 (unless header-shown?
-	   ;;(mapcar #'print p)
-	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
-	   (format *resultsum* "n	meancc	stderr~%")
-	   (setq header-shown? t))
-	 (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
-	 (format *resultsum* "~a	~a	~a~%"
-		 (length cs)
-		 (STATISTICS:MEAN cs)
-		 (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
-		 ))))
+  ;; Report the retrieval fractions and % correct mean and serr for each dataset
+  (loop for file being the hash-keys of *file->data*
+	using (hash-value data)
+	do 
+	(with-open-file 
+	 (*sum* (format nil "sumstats/~a-logsummary.xls" (substitute #\_ #\space (pathname-name file)))
+		      :direction :output :if-exists :supersede) 
+	 (format *sum* "n	n retrival	n ret correct	% ret correct~%")
+	 (loop for entry in (second (assoc :logs data))
+	       as log = (second (assoc :log entry))
+	       as rets = (loop for entry in log as (key) = entry when (eq :ret key) collect entry)
+	       as nrets = (length rets)
+	       as ncrets = (loop for (nil a1 a2 sum) in rets when (= sum (+ a1 a2)) sum 1)
+	       do (format *sum* "~a	~a	~a	~a~%"
+			  (length log)
+			  nrets
+			  ncrets
+			  (if (zerop nrets) " " (/ (float ncrets) nrets))
+			  ))))
+  )
+
+
+;; (defun analyze (&key (low *low*) (high *high*) &aux first-fno last-fno label)
+;;   (setq *results-version* nil)
+;;   (if (null low) (setq low 0))
+;;   (if (null high) (setq high 99999999999999))
+;;   (clrhash *file->data*)
+;;   (clrhash *params->ccs*)
+;;   (loop for file in (if (zerop low)
+;; 			(most-recent-set-of-results-pathnames-by-label-mathcing)
+;; 			(directory "test_csv/*.csv"))
+;; 	as fno = (parse-integer (pathname-name file))
+;; 	when (and (>= fno low) (<= fno high))
+;; 	do
+;; 	(let* ((r (ignore-errors (load-result-file file))))
+;; 	  (if r
+;; 	      (let* ((c (compare r *sns84-data*))
+;; 		     (p (cdr (assoc :params r))))
+;; 		;; Save data for later
+;; 		(setf (gethash file *file->data*) r)
+;; 		;; Extract and check label
+;; 		(let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
+;; 		  (if (null label)
+;; 		      (setq label new-label)
+;; 		    (if (string-equal label new-label)
+;; 			:ok
+;; 		      (progn 
+;; 			(format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
+;; 				new-label label)
+;; 			(setq label new-label)))))
+;; 		(setq last-fno fno)
+;; 		(if (null first-fno) (setq first-fno fno))
+;; 		(push c (gethash p *params->ccs*))
+;; 		) ;; Let*
+;; 	    (format t "~a seems to be broken -- ignoring it!~%" file)
+;; 	    )))
+;;   (with-open-file 
+;;    (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) (substitute #\_ #\space label))
+;; 		:direction :output :if-exists :supersede) 
+;;    (format *resultsum* "~a~%from	f~a~%to	f~a~%" label first-fno last-fno)
+;;    (loop for p being the hash-keys of *params->ccs*
+;; 	 using (hash-value cs)
+;; 	 with header-shown? = nil
+;; 	 when (cdr cs)
+;; 	 do 
+;; 	 (unless header-shown?
+;; 	   ;;(mapcar #'print p)
+;; 	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
+;; 	   (format *resultsum* "n	meancc	stderr~%")
+;; 	   (setq header-shown? t))
+;; 	 (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
+;; 	 (format *resultsum* "~a	~a	~a~%"
+;; 		 (length cs)
+;; 		 (STATISTICS:MEAN cs)
+;; 		 (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
+;; 		 ))))
 
 (untrace)
 ;(trace parse-params parse-rd-table)
-;(analyze) 
-(pprint (Setq r (load-result-file "test_csv/20150817105244.csv")))
+(analyze :low 20150820160140)

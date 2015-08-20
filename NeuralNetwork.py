@@ -230,7 +230,7 @@ class NeuralNetwork:
         else:
             # WRONG
             self.target[0][ans] -= settings.DECR_on_WRONG
-            self.target[0][a1+a2] += INCR_the_right_answer_on_WRONG
+            self.target[0][a1+a2] += settings.INCR_the_right_answer_on_WRONG
 
 # JS20150815: I have no idea what this means!!!???
 # basically this is used to retrieve the output array from either predictions or target
