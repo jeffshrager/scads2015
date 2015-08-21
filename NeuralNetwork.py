@@ -2,12 +2,6 @@ import numpy as np
 import settings
 from random import random, randint
 
-def tanh(x):
-    return np.tanh(x)
-
-def tanh_prime(x):
-    return 1.0 - x ** 2
-
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
 # driver).
@@ -47,13 +41,23 @@ def sum_matrix(s):
     lis = [0] * (13 + len(settings.strategies))
     lis[s] = 1
     return lis
-
+# JS20150815: I have no idea what this means!!!???
+# basically this is used to retrieve the output array from either predictions or target
+# when we create the array we loop through like:
+# for i in range(1,6){ for j in range (1,6){  //generate the array and append  }   }
+# so for our pair (i,j), the index in target is 5 * (i - 1) + (j - 1)
+# the index in y is this because the list is generated such that
+# it goes from index = 0 a1: 1 a2 : 1
+#              index = 1 a1: 1 a2:  2 ... etc
+def y_index(a1, a2):
+    return 5 * (a1 - 1) + (a2 - 1)
+    # 
 
 class NeuralNetwork:
     def __init__(self, layers):
-
-        self.activation = tanh
-        self.activation_prime = tanh_prime
+        self.errr=[]
+        self.activation = lambda x: np.tanh(x)
+        self.activation_prime = lambda x: 1.0 - x**2
 
         # Set weights
 
@@ -72,6 +76,7 @@ class NeuralNetwork:
         self.weights.append(r)
 
         self.X = []
+        # initial input, counting numbers. 
         for i in range(1, 6):
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
@@ -95,6 +100,7 @@ class NeuralNetwork:
 
             # Output layer
             error = y[i] - a[-1]
+            self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
 
             # We need to begin at the second to last layer 
@@ -135,11 +141,7 @@ class NeuralNetwork:
     # to retrieve a strategy, except beg = 13, and end = 13 +
     # len(strategies)
 
-    def try_memory_retrieval(self, sub_nn):
-        import ADD
-
-        a1 = ADD.ADDEND.ad1
-        a2 = ADD.ADDEND.ad2
+    def try_memory_retrieval(self, sub_nn, a1, a2):
         index = y_index(a1, a2)
         if (a1 > 5) or (a2 > 5):
             return None
@@ -178,12 +180,7 @@ class NeuralNetwork:
         self.target.append([settings.non_result_y_filler] * (13 + len(settings.strategies)))
         self.target = np.array(self.target)
 
-    def update_target(self, sub_nn, our_ans, ans):
-        import ADD
-
-        a1 = ADD.ADDEND.ad1
-        a2 = ADD.ADDEND.ad2
-
+    def update_target(self, sub_nn, our_ans, ans, a1,a2):
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = np.array(self.X)
@@ -196,13 +193,3 @@ class NeuralNetwork:
             self.target[0][ans] -= settings.DECR_on_WRONG
             self.target[0][a1+a2] += settings.INCR_the_right_answer_on_WRONG
 
-# JS20150815: I have no idea what this means!!!???
-# basically this is used to retrieve the output array from either predictions or target
-# when we create the array we loop through like:
-# for i in range(1,6){ for j in range (1,6){  //generate the array and append  }   }
-# so for our pair (i,j), the index in target is 5 * (i - 1) + (j - 1)
-# the index in y is this because the list is generated such that
-# it goes from index = 0 a1: 1 a2 : 1
-#              index = 1 a1: 1 a2:  2 ... etc
-def y_index(a1, a2):
-    return 5 * (a1 - 1) + (a2 - 1)

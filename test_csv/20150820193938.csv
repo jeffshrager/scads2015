@@ -1,0 +1,3 @@
+Output Format Version,20150813
+Network created,hidden_units,30,learning_rate,0.1
+Burning in counting results,burn_in_epochs,1000

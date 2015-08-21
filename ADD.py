@@ -1,6 +1,7 @@
 from random import randint, shuffle, random
 
 global ADDEND
+
 # ----- Operators for actual addition strategies and test routines.
 
 # The peripheral system.This is a very simple representation of the
@@ -88,10 +89,9 @@ class Hand(object):
 
 def try_dynamical_retrieval():
     # this part is really messy, but necessary so the imports dont go mess with each other
+    global SOLUTION_COMPLETED, SOLUTION
     import driver
     import settings
-
-    global SOLUTION_COMPLETED, SOLUTION
 
     add_matrix = [0] * 14
     index = 0
@@ -101,7 +101,7 @@ def try_dynamical_retrieval():
     while index < 5 and HAND.s['right'][index] == 'u':
         index += 1
     add_matrix[index + 5 + 1] = 1
-    prediction = driver.add_strat_nn.predict(add_matrix)
+    prediction = driver.nn.predict(add_matrix)
     results_above_DRR = []
     for i in range(0, 13):
         if prediction[i] > settings.DR_threshold:
@@ -135,7 +135,7 @@ def say_next():
     if EB == 0:
         say(1)
     elif PERR > random():
-        say(EB)
+        say(EB)  #forgot to count but flipped finger
     else:
         say(EB + 1)
 
@@ -150,7 +150,7 @@ def clear_eb():
     EB = 0
 
 
-# This tells the driver to stop.
+# This tells the driver.py to stop.
 
 def end():
     global SOLUTION_COMPLETED, SOLUTION
@@ -158,7 +158,7 @@ def end():
     SOLUTION = EB
 
 
-# Raise is an important heart of this process.  The question is how
+# Raise is an important part of this process.  The question is how
 # to do the test-for-done.  That is, when putting up fingers, how
 # does the child know when he's got the right number up?  In this
 # version, he uses the echoic buffer trace, but that can't be right
@@ -285,10 +285,10 @@ def raise_hand():
         CB += 1
         if CB >= ADDEND.addend:
             break
-    # !!! DYNAMIC RETRIEVAL !!! Try a retreival using the current hand
-    # representation and break with an answer if the ret works.
     try_dynamical_retrieval()
-
+    # if retrieved a result with good confidence
+        # set global SOLUTION as the result
+        # otherwise nay
 
 def count_fingers():
     for i in range(5):
@@ -372,7 +372,8 @@ def exec_strategy(strategy_choice):
     # Get the list of operations from the strategy.
 
     list_of_operations = strategy_choice()
-
+        # this part is really confusing. ADD.py is using it's own functions and arguments
+            # but it's functions and arguments are all exprted out and back in..
     # Carry out the operations.
 
     for i in list_of_operations:
@@ -392,7 +393,6 @@ def PPA():
 
 def main():
     import settings
-
     global PERR, TL
     TL = 0  # trace level, 0 means off
     PERR = settings.PERR  # Probability of error
