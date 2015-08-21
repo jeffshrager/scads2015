@@ -2,14 +2,11 @@ import numpy as np
 import settings
 from random import random, randint
 
-
 def tanh(x):
     return np.tanh(x)
 
-
 def tanh_prime(x):
     return 1.0 - x ** 2
-
 
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
@@ -68,29 +65,9 @@ class NeuralNetwork:
 
         for i in range(1, len(layers) - 1):
             r = 2 * np.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
-
-
-            # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-            if settings.debugging_weight_fill:
-                print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (A) !!!!!!!!!!!!!!!!!!"
-                for l in range(0, layers[i - 1] + 1):
-                    for m in range(0, layers[i] + 1):
-                        r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
-                print str(r)
-
             self.weights.append(r)
 
-        # output layer - random((2+1, 1)) : 3 x 1
-
         r = 2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1
-
-        # Special debugging fill DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-        if settings.debugging_weight_fill:
-            print "!!!!!!!!!!!!!!!!! WARNING! DEBUGGING WEIGHT FILL IS ON (B) !!!!!!!!!!!!!!!!!!"
-            for l in range(0, layers[i] + 1):
-                for m in range(0, layers[i + 1]):
-                    r[l, m] = np.random.uniform(-0.01, +0.01, 1)[0]
-            print str(r)
 
         self.weights.append(r)
 
@@ -99,28 +76,16 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
         self.X = np.array(self.X)
-
         self.predictions = []
 
-    # the main forward feeding/backpropagation part
+    # Main forward feeding/backpropagation part
+
     def fit(self, X, y, learning_rate, epochs):
-
-#        print "================ FIT ==============="
-#        print str(X)
-        # # this should print y in a more readable way
-        # np.set_printoptions(precision=3, linewidth=160, suppress=True)
-#        print(y)
-        # Add column of ones to X
-        # This is to add the bias unit to the input layer
-
         ones = np.atleast_2d(np.ones(X.shape[0]))
         X = np.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
 
-            # if k % (epochs/10) == 0: print 'epochs:', k
-
-            # choose a random training set
-
+            # Choose a random training set
             i = np.random.randint(X.shape[0])
             a = [X[i]]
             for l in range(len(self.weights)):
@@ -128,18 +93,15 @@ class NeuralNetwork:
                 activation = self.activation(dot_value)
                 a.append(activation)
 
-            # output layer
-
+            # Output layer
             error = y[i] - a[-1]
             deltas = [error * self.activation_prime(a[-1])]
 
-            # we need to begin at the second to last layer 
+            # We need to begin at the second to last layer 
             # (a layer before the output layer)
-
             for l in range(len(a) - 2, 0, -1):
                 deltas.append(deltas[-1].dot(self.weights[l].T) * self.activation_prime(a[l]))
 
-            # reverse
             # [level3(output)->level2(hidden)]  => [level2(hidden)->level3(output)]
 
             deltas.reverse()
@@ -154,7 +116,9 @@ class NeuralNetwork:
                 delta = np.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
 
-    # outputs a matrix given an input matrix, this is used heavily when we want to "know" what is in the kid's mind
+    # Outputs a matrix given an input matrix, this is used heavily
+    # when we want to "know" what is in the kid's mind
+
     def predict(self, x):
         a = np.concatenate((np.ones(1).T, np.array(x)), axis=1)
         for l in range(0, len(self.weights)):

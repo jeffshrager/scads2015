@@ -3,14 +3,6 @@ from random import randint, shuffle, random
 global ADDEND
 # ----- Operators for actual addition strategies and test routines.
 
-# General utilities for reporting, etc.
-
-
-def trp(tl, text):
-    if TL > tl:
-        print text
-
-
 # The peripheral system.This is a very simple representation of the
 # stuff needed for the addition domains: ten "fingers", a focus of
 # attention, and an echoic memory into which numbers are stored.
@@ -64,7 +56,6 @@ class Hand(object):
                     else:
                         text += self.s[i][j]
                         text = text[:5] + '|' + text[5:]
-                        trp(4, text)
 
     # Finger raising; always does the focussed finger.
 
@@ -79,7 +70,6 @@ class Hand(object):
             self.hand = 'left'
         else:
             self.hand = 'right'
-        # trp(3, 'Looking to the %s hand.' % self.hand)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
         self.report()
@@ -91,7 +81,6 @@ class Hand(object):
         else:
             self.hand = 'left'
             # mempush(swap-hands, from right to left)
-        # trp(3, 'Looking to the %s hand.' % self.hand)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
         self.report()
@@ -137,7 +126,6 @@ def try_dynamical_retrieval():
 # accomplished by this method.
 
 def say(n):
-    # trp(2, '<%s>' % n)
     global EB
     EB = n
     # mempush(say, list n)
@@ -345,16 +333,12 @@ class Addend(object):
             self.cla = 'larger'
         else:
             self.cla = 'smaller'
-            # trp(3, 'Choose addend %s.' % self.addend)
 
     def swap(self):
         if self.addend == self.ad1:
             self.addend = self.ad2
-            # mempush (swap_addends, from 1 to 2)
         else:
             self.addend = self.ad1
-            # mempush (swap_addeds, from 2 to 1)
-            # trp(3, 'Looking to the other addend %s.' % self.addend)
 
     def say(self):
         say(self.addend)
@@ -369,8 +353,6 @@ class Addend(object):
             self.cla = 'equal'
         else:
             self.cla = 'larger'
-            # trp(3, 'Choose addend %s.' % self.addend)
-
 
 # Initialize hand, echoic buffer and counting buffer,and carry out the
 # strategy.  Update memory and distribution table at the end.

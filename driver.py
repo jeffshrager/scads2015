@@ -9,12 +9,6 @@ import datetime
 import timeit
 import settings
 
-
-def trp(tl, text):
-    if TL > tl:
-        print text
-
-
 # The Distribution table records every answer given to every problem
 # as they are created, and is output into the log at the end of the
 # run. It live in the global DSTR. The problem with this as the only
@@ -87,12 +81,10 @@ class Distribution(object):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
 
-
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
 # a random strategy. Then we update the nn accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
-
 
 class subNeuralNetwork:
     def __init__(self, type):
@@ -112,7 +104,6 @@ class subNeuralNetwork:
 
     def gen_cc(self):
         return self.low_cc + (self.high_cc - self.low_cc) * random()
-
 
 def exec_strategy():
     global writer, DSTR, add_strat_nn
@@ -150,7 +141,6 @@ def exec_strategy():
     add_strat_nn.update_predictions()
     DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
 
-
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
 # look like 3+4 to result in saying 5. To do this we burn in a set of
@@ -181,7 +171,6 @@ def counting_network():
     NN.update_predictions()
     return NN
 
-
 def dump_nn_results_predictions():
     writer.writerow(['===== Results NN Prediction table ======'])
     for i in range(1, 6):
@@ -189,19 +178,16 @@ def dump_nn_results_predictions():
             writer.writerow(["%s + %s = " % (i, j)] + add_strat_nn.guess_vector(i, j, 0, 13))
     writer.writerow(['========================================'])
 
-
 def init_problem_globals():
     global add_strat_nn, DSTR
     DSTR = Distribution()
     ADD.main()
     add_strat_nn = counting_network()  # Burn in the counting network (3+4=5)
 
-
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
     return full_file__name
-
 
 # Execute with all the possible values of each parameter, scanned
 # recursively.
@@ -220,7 +206,6 @@ def config_and_test(index=0):
     else:  # Finally we have a set of choices, do it!
         test_n_times(settings.n_problems)
 
-
 def test_n_times(n_times):
     global writer
     print "---Running!---"
@@ -233,14 +218,11 @@ def test_n_times(n_times):
             if is_dump_time(i):
                 dump_nn_results_predictions()
             exec_strategy()
-
         # Output tables for analysis
         DSTR.print_csv()
 
-
 def is_dump_time(i):
     return i % settings.pbs == 0 or i == settings.n_problems - 1
-
 
 def main():
     global TL, param_keys, scan_spec

@@ -13,7 +13,7 @@ ndups = 1  # Number of replicates of each combo of params -- usually 3 unless te
 pbs = 25  # problem bin size, every pbs problems we dump the predictions
 debugging_weight_fill = False
 
-# ADD.random_strategy -- Usually left out!
+# ADD.random_strategy -- Usually left out
 
 strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
               ADD.count_from_one_twice_strategy, ADD.min_strategy]
