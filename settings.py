@@ -6,12 +6,13 @@ global INCR_on_RIGHT, DECR_on_WRONG, INCR_the_right_answer_on_WRONG
 global in_process_training_epochs, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
 global hidden_units, addend_matrix_offby1_delta, PERR, debugging_weight_fill
-global non_result_y_filler
+global non_result_y_filler, dynamical_retrieval_on
 
 hidden_units = 30
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 25  # problem bin size, every pbs problems we dump the predictions
 debugging_weight_fill = False
+dynamical_retrieval_on = False
 
 # ADD.random_strategy -- Usually left out
 
@@ -28,7 +29,7 @@ scan_spec = {"settings.experiment_label": ["\"201508211707: DR and CC thresholds
              "settings.initial_counting_network_learning_rate": [0.1],
              # Problem presentation and execution
              "settings.n_problems": [15000],
-             "settings.DR_threshold": [0.6],
+             "settings.DR_threshold": [1.0], # WWW!!! Only used if dynamical_retrieval_on = True
              "settings.PERR": [0.0],
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              # Choosing to use retrieval v. a strategy

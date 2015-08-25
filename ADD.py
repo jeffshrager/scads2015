@@ -41,22 +41,6 @@ class Hand(object):
 
             else:
                 self.foa['finger'] += 1
-        self.report()
-
-    # This is just a reporting function (and helpers).  The fingers are
-    # shown up (u) or down (d) for each hand, and the one begin attended to
-    # is capitalized.
-
-    def report(self):
-        if TL > 4:  # Efficiency hack bcs this is almost never displayed, so why go through the work?
-            text = ''
-            for i in ['left', 'right']:
-                for j in range(5):
-                    if i == self.foa['hand'] and j == self.foa['finger']:
-                        text += self.s[i][j].upper()
-                    else:
-                        text += self.s[i][j]
-                        text = text[:5] + '|' + text[5:]
 
     # Finger raising; always does the focussed finger.
 
@@ -73,7 +57,6 @@ class Hand(object):
             self.hand = 'right'
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
-        self.report()
 
     def swap(self):
         if self.hand == 'left':
@@ -84,15 +67,33 @@ class Hand(object):
             # mempush(swap-hands, from right to left)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
-        self.report()
 
+# Dynamic Retrieval (DR) simulates the case where when the child looks
+# at his hands after raising his fingers it primes a retrival that
+# interrupts the problem flow with an answer. There are several
+# complexities with this, some theoretical and some pratical. The
+# practical problem is that we have to transform the fingers-on-a-hand
+# representation into the input layer representation, and then do the
+# nn probe. That's what most of this does. A more interesting problem
+# is that theoretical problem of what precisely is being primed by
+# having one's fingers raised. For example, suppose the problem is
+# 3+4, the child raises 3 fingers on one hand, but if we were to do a
+# primed probe at that moment (which we DO when DR is on!), why would
+# that prime 7? It should prime 3, right? Do we want 3 or 7? That is,
+# does this prime CORRECT or INCORRECT solutions? And if it's supposed
+# to prime 7, then you'd need some other representational machinery to
+# make that happen...maybe, or maybe the nn will have a slight 3->7
+# (and 4->7) links already burned in, as well as the "correct" 3+4->7
+# links. 
 
 def try_dynamical_retrieval():
-    # this part is really messy, but necessary so the imports dont go mess with each other
-    global SOLUTION_COMPLETED, SOLUTION
+    global SOLUTION_COMPLETED, SOLUTION 
+
+    # Messy, so the imports don't conflict
     import driver
     import settings
 
+    # Transform fingers-on-a-hand representation into input layer rep
     add_matrix = [0] * 14
     index = 0
     while index < 5 and HAND.s['left'][index] == 'u':
@@ -101,6 +102,7 @@ def try_dynamical_retrieval():
     while index < 5 and HAND.s['right'][index] == 'u':
         index += 1
     add_matrix[index + 5 + 1] = 1
+    # Make a prediction
     prediction = driver.nn.predict(add_matrix)
     results_above_DRR = []
     for i in range(0, 13):
@@ -110,7 +112,6 @@ def try_dynamical_retrieval():
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
         driver.writer.writerow(["!", "dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION])  # This might report twice
-
         return None
     return None
 
@@ -285,10 +286,10 @@ def raise_hand():
         CB += 1
         if CB >= ADDEND.addend:
             break
-    try_dynamical_retrieval()
-    # if retrieved a result with good confidence
-        # set global SOLUTION as the result
-        # otherwise nay
+    if settings.dynamical_retrieval_on
+        # DR (if on) will set global SOLUTION and SOLUTION_COMPLETED
+        # if it works, otherwise, things will just move along.
+        try_dynamical_retrieval()
 
 def count_fingers():
     for i in range(5):
