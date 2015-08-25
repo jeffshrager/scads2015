@@ -9,8 +9,6 @@ import datetime
 import timeit
 import settings
 
-
-#  begin with some trivial helper functions.
 def dump_nn_results_predictions():
     writer.writerow(['===== Results NN Prediction table ======'])
     for i in range(1, 6):
@@ -25,7 +23,6 @@ def gen_file_name():
 
 def is_dump_time(i):
     return i % settings.pbs == 0 or i == settings.n_problems - 1
-    # 
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
@@ -56,7 +53,6 @@ def counting_network():
            settings.initial_counting_network_burn_in_epochs)
     NN.update_predictions()
     return NN
-
 
 # The Distribution table records every answer given to every problem
 # as they are created, and is output into the log at the end of the
