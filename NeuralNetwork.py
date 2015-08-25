@@ -36,22 +36,24 @@ def addends_matrix(a1, a2):
     lis[a2 + 8] = 1 - settings.addend_matrix_offby1_delta
     return lis
 
-
 def sum_matrix(s):
     lis = [0] * (13 + len(settings.strategies))
     lis[s] = 1
     return lis
-# JS20150815: I have no idea what this means!!!???
-# basically this is used to retrieve the output array from either predictions or target
-# when we create the array we loop through like:
-# for i in range(1,6){ for j in range (1,6){  //generate the array and append  }   }
-# so for our pair (i,j), the index in target is 5 * (i - 1) + (j - 1)
-# the index in y is this because the list is generated such that
-# it goes from index = 0 a1: 1 a2 : 1
-#              index = 1 a1: 1 a2:  2 ... etc
+
+# The output array from the NN is created by .append(ing) a bunch of
+# probe results, something like this: 
+#
+#    for i in range(1,6):
+#        for j in range (1,6):
+#          ...generate the i+j output array and append to the growing vector...
+#
+# What results is a long array where the index of the problem we're looking for 
+# is position: 5 * (i - 1) + (j - 1). For example, for 3+4 you end up with 
+# 5 * 2 * 3 = position 30 in the output units array. 
+
 def y_index(a1, a2):
     return 5 * (a1 - 1) + (a2 - 1)
-    # 
 
 class NeuralNetwork:
     def __init__(self, layers):
