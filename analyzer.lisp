@@ -181,8 +181,9 @@
 		    (i pathname)
 		    (format t ".")
 		    (loop for l = (read-line i nil nil)
-			  until (search "settings.experiment_label" l)
-			  finally (return (subseq l 26 (1- (length l))))))
+			  until (or (null l) (search "settings.experiment_label" l))
+			  finally (return (if l (subseq l 26 (1- (length l)))))))
+	when label
 	do 
 	(push filename (gethash label *label->files*))
 	(setf (gethash filename *filename->label*) label)
@@ -362,19 +363,26 @@
 	(with-open-file 
 	 (*sum* (format nil "sumstats/~a-logsummary.xls" (substitute #\_ #\space (pathname-name file)))
 		      :direction :output :if-exists :supersede) 
-	 (format *sum* "n	n retrival	n ret correct	% ret	% ret correct~%")
+	 (format *sum* "n	n retrival	n ret correct	% ret	% ret correct	n dynarets	n drets correct	% dynaret	%dr correct~%")
 	 (loop for entry in (second (assoc :logs data))
 	       as log = (second (assoc :log entry))
 	       as nlog = (length log)
 	       as rets = (loop for entry in log as (key) = entry when (eq :ret key) collect entry)
 	       as nrets = (length rets)
 	       as ncrets = (loop for (nil a1 a2 sum) in rets when (= sum (+ a1 a2)) sum 1)
-	       do (format *sum* "~a	~a	~a	~a	~a~%"
+	       as drets = (loop for entry in log as (key) = entry when (and (listp key) (eq :dynaret (cadr key))) collect entry)
+	       as ndrets = (length drets)
+	       as ncdrets = (loop for (nil a1 a2 sum) in drets when (= sum (+ a1 a2)) sum 1)
+	       do (format *sum* "~a	~a	~a	~a	~a	~a	~a	~a	~a~%"
 			  nlog
 			  nrets
 			  ncrets
 			  (if (zerop nlog) " " (/ (float nrets) nlog))
 			  (if (zerop nrets) " " (/ (float ncrets) nrets))
+			  ndrets
+			  ncdrets
+			  (if (zerop nlog) " " (/ (float ndrets) nlog))
+			  (if (zerop nrets) " " (/ (float ncdrets) ndrets))
 			  ))))
   )
 
@@ -436,4 +444,4 @@
 
 (untrace)
 ;(trace parse-params parse-rd-table)
-(analyze :low 20150820160140)
+(analyze)
