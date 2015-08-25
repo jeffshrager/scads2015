@@ -5,13 +5,12 @@ global RETRIEVAL_LOW_CC, RETRIEVAL_HIGH_CC, STRATEGY_HIGH_CC, STRATEGY_LOW_CC
 global INCR_on_RIGHT, DECR_on_WRONG, INCR_the_right_answer_on_WRONG
 global in_process_training_epochs, learning_rate, n_problems, strategies, ndups, DR_threshold, experiment_label
 global initial_counting_network_burn_in_epochs, initial_counting_network_learning_rate
-global hidden_units, addend_matrix_offby1_delta, PERR, debugging_weight_fill
+global hidden_units, addend_matrix_offby1_delta, PERR
 global non_result_y_filler, dynamical_retrieval_on
 
 hidden_units = 30
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 25  # problem bin size, every pbs problems we dump the predictions
-debugging_weight_fill = False
 dynamical_retrieval_on = False
 
 # ADD.random_strategy -- Usually left out

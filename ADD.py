@@ -274,7 +274,8 @@ def random_strategy():
     return list_of_operations
 
 
-# This version of raise assumes that hand control is done by the caller.
+# This version of raise assumes that hand control is done by the
+# caller.
 
 def raise_hand():
     global CB
