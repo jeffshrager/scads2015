@@ -48,7 +48,7 @@
     ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
     ))
 
-(defparameter *adult-data*
+(defparameter *correct-sums-matrix*
   '(
     ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
     ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
@@ -264,8 +264,7 @@
 ;;; Math
 
 (defun compare (result-set target)
-  (let* ((result-set (cdr (assoc :results-predictions result-set)))
-	 (pairs (loop for a in (loop for (nil obs) in target
+  (let* ((pairs (loop for a in (loop for (nil obs) in target
 				     append obs)
 		      ;; Slightly confusingly uses the same lables as
 		      ;; the above, but there are never actually used.
@@ -363,8 +362,9 @@
 	(with-open-file 
 	 (*sum* (format nil "sumstats/~a-logsummary.xls" (substitute #\_ #\space (pathname-name file)))
 		      :direction :output :if-exists :supersede) 
-	 (format *sum* "n	n retrival	n ret correct	% ret	% ret correct	n dynarets	n drets correct	% dynaret	%dr correct~%")
+	 (format *sum* "i	corrcoef w/correct	corrcoef w/sns84	n	n retrival	n ret correct	% ret	% ret correct	n dynarets	n drets correct	% dynaret	%dr correct~%")
 	 (loop for entry in (second (assoc :logs data))
+	       as i = (second (assoc :n entry))
 	       as log = (second (assoc :log entry))
 	       as nlog = (length log)
 	       as rets = (loop for entry in log as (key) = entry when (eq :ret key) collect entry)
@@ -373,7 +373,14 @@
 	       as drets = (loop for entry in log as (key) = entry when (and (listp key) (eq :dynaret (cadr key))) collect entry)
 	       as ndrets = (length drets)
 	       as ncdrets = (loop for (nil a1 a2 sum) in drets when (= sum (+ a1 a2)) sum 1)
-	       do (format *sum* "~a	~a	~a	~a	~a	~a	~a	~a	~a~%"
+	       as rnnpt = (second (assoc :rnnpt entry))
+	       as corrcoef-*correct-sums-matrix* = (compare rnnpt *correct-sums-matrix*)
+	       as corrcoef-*sns84-data* = (compare rnnpt *sns84-data*)
+	       do 
+	       (format *sum* "~a	~a	~a	~a	~a	~a	~a	~a	~a	~a	~a	~a~%"
+			  i
+			  corrcoef-*correct-sums-matrix*
+			  corrcoef-*sns84-data*
 			  nlog
 			  nrets
 			  ncrets
@@ -382,66 +389,10 @@
 			  ndrets
 			  ncdrets
 			  (if (zerop nlog) " " (/ (float ndrets) nlog))
-			  (if (zerop nrets) " " (/ (float ncdrets) ndrets))
-			  ))))
-  )
-
-
-;; (defun analyze (&key (low *low*) (high *high*) &aux first-fno last-fno label)
-;;   (setq *results-version* nil)
-;;   (if (null low) (setq low 0))
-;;   (if (null high) (setq high 99999999999999))
-;;   (clrhash *file->data*)
-;;   (clrhash *params->ccs*)
-;;   (loop for file in (if (zerop low)
-;; 			(most-recent-set-of-results-pathnames-by-label-mathcing)
-;; 			(directory "test_csv/*.csv"))
-;; 	as fno = (parse-integer (pathname-name file))
-;; 	when (and (>= fno low) (<= fno high))
-;; 	do
-;; 	(let* ((r (ignore-errors (load-result-file file))))
-;; 	  (if r
-;; 	      (let* ((c (compare r *sns84-data*))
-;; 		     (p (cdr (assoc :params r))))
-;; 		;; Save data for later
-;; 		(setf (gethash file *file->data*) r)
-;; 		;; Extract and check label
-;; 		(let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
-;; 		  (if (null label)
-;; 		      (setq label new-label)
-;; 		    (if (string-equal label new-label)
-;; 			:ok
-;; 		      (progn 
-;; 			(format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
-;; 				new-label label)
-;; 			(setq label new-label)))))
-;; 		(setq last-fno fno)
-;; 		(if (null first-fno) (setq first-fno fno))
-;; 		(push c (gethash p *params->ccs*))
-;; 		) ;; Let*
-;; 	    (format t "~a seems to be broken -- ignoring it!~%" file)
-;; 	    )))
-;;   (with-open-file 
-;;    (*resultsum* (format nil "sumstats/~a-~a-sumstats.xls" (get-universal-time) (substitute #\_ #\space label))
-;; 		:direction :output :if-exists :supersede) 
-;;    (format *resultsum* "~a~%from	f~a~%to	f~a~%" label first-fno last-fno)
-;;    (loop for p being the hash-keys of *params->ccs*
-;; 	 using (hash-value cs)
-;; 	 with header-shown? = nil
-;; 	 when (cdr cs)
-;; 	 do 
-;; 	 (unless header-shown?
-;; 	   ;;(mapcar #'print p)
-;; 	   (mapcar #'(lambda (r) (format *resultsum* "~a	" (car r))) p)
-;; 	   (format *resultsum* "n	meancc	stderr~%")
-;; 	   (setq header-shown? t))
-;; 	 (mapcar #'(lambda (r) (format *resultsum* "~a	" (cdr r))) p)
-;; 	 (format *resultsum* "~a	~a	~a~%"
-;; 		 (length cs)
-;; 		 (STATISTICS:MEAN cs)
-;; 		 (STATISTICS:STANDARD-ERROR-OF-THE-MEAN cs)
-;; 		 ))))
+			  (if (zerop ndrets) " " (/ (float ncdrets) ndrets))
+			  )
+	       ))))
 
 (untrace)
-;(trace parse-params parse-rd-table)
+;(trace compare)
 (analyze)
