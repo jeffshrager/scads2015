@@ -278,6 +278,7 @@ def random_strategy():
 # caller.
 
 def raise_hand():
+    import settings
     global CB
     CB = 0
     while True:
@@ -287,7 +288,7 @@ def raise_hand():
         CB += 1
         if CB >= ADDEND.addend:
             break
-    if settings.dynamical_retrieval_on
+    if settings.dynamical_retrieval_on:
         # DR (if on) will set global SOLUTION and SOLUTION_COMPLETED
         # if it works, otherwise, things will just move along.
         try_dynamical_retrieval()
