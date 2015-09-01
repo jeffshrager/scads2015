@@ -320,12 +320,28 @@
 ;;; =============================================================
 ;;; Main
 
-(defun analyze (&key (low *low*) (high *high*) &aux first-fno last-fno label)
-  (setq *results-version* nil)
-  (if (null low) (setq low 0))
-  (if (null high) (setq high 99999999999999))
+(defvar *d* nil) ;; This is just a drop so that we can look at an
+		 ;; example of the data after the fact.
+
+(defvar *file->summary* (make-hash-table :test #'equal))
+
+;;; This is the order in which they'll show up in the analyzed
+;;; results.
+(defparameter *strat-keys* '(:ret :cfe :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
+(defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
+
+(defun analyze (&key (low *low*) (high *high*) &aux  (ts (get-universal-time)))
+  (setq *results-version* nil *d* nil)
   (clrhash *file->data*)
   (clrhash *params->ccs*)
+  (analyze-load-data low high)
+  (analyze-summarize-logs ts)
+  (analyze-summarize-coefs ts)
+  )
+
+(defun analyze-load-data (low high &aux first-fno last-fno label)
+  (if (null low) (setq low 0))
+  (if (null high) (setq high 99999999999999))
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
   (loop for file in (if (zerop low)
@@ -339,6 +355,7 @@
 	      (progn
 		;; Save data for later
 		(setf (gethash file *file->data*) r)
+		(push r *d*)
 		(let* ((p (second (assoc :params r))))
 		  ;; Extract and check label
 		  (let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
@@ -354,45 +371,141 @@
 		  (if (null first-fno) (setq first-fno fno))
 		  )) ;; If r
 	    (format t "~a seems to be broken -- ignoring it!~%" file)
-	    )))
-  ;; Report the retrieval fractions and % correct mean and serr for each dataset
+	    ))))
+
+(defun analyze-summarize-logs (ts)
+  ;; Report the retrieval fractions and % correct mean and serr for each dataset seprately
+  ;; meanwhile storing the overall stats for summarization
+  (clrhash *file->summary*)
   (loop for file being the hash-keys of *file->data*
 	using (hash-value data)
 	do 
 	(with-open-file 
-	 (*sum* (format nil "sumstats/~a-logsummary.xls" (substitute #\_ #\space (pathname-name file)))
+	 (o (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file)))
 		      :direction :output :if-exists :supersede) 
-	 (format *sum* "i	corrcoef w/correct	corrcoef w/sns84	n	n retrival	n ret correct	% ret	% ret correct	n dynarets	n drets correct	% dynaret	%dr correct~%")
+	 (format o "i	corrcoef w/correct	corrcoef w/sns84	n")
+	 (loop for s in *strat-keys*
+	       do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
+	 (format o "~%")
+
+	 ;; The :log entry looks like this:
+	 ;; (:LOG
+	 ;;  (((:CF1X1 :DYNARET) 3 2 3) (:RET 1 3 2) (:RET 2 3 4) (:RET 2 4 6)
+	 ;;   (:RET 4 5 6) (:RET 2 4 4) ((:CF1X1 :DYNARET) 3 5 4) (:RET 3 5 10)
+	 ;;   (:RET 3 2 3) (:RET 5 4 4) (:RET 5 1 4) (:RET 1 3 2) (:RET 4 5 6)
+	 ;;   (:RET 2 3 4) ((:CF1X1 :DYNARET) 5 3 3) (:RET 2 2 11) (:RET 3 4 5)
+	 ;;   (:RET 4 4 6) (:RET 1 1 4) ((:MIN :DYNARET) 5 3 3) ((:CF1X1 :DYNARET) 5 5 5)
+	 ;;   (:RET 3 5 8) (:RET 1 4 4) (:RET 4 3 7) (:RET 3 4 5)))
+
 	 (loop for entry in (second (assoc :logs data))
 	       as i = (second (assoc :n entry))
 	       as log = (second (assoc :log entry))
 	       as nlog = (length log)
-	       as rets = (loop for entry in log as (key) = entry when (eq :ret key) collect entry)
-	       as nrets = (length rets)
-	       as ncrets = (loop for (nil a1 a2 sum) in rets when (= sum (+ a1 a2)) sum 1)
-	       as drets = (loop for entry in log as (key) = entry when (and (listp key) (eq :dynaret (cadr key))) collect entry)
-	       as ndrets = (length drets)
-	       as ncdrets = (loop for (nil a1 a2 sum) in drets when (= sum (+ a1 a2)) sum 1)
 	       as rnnpt = (second (assoc :rnnpt entry))
 	       as corrcoef-*correct-sums-matrix* = (compare rnnpt *correct-sums-matrix*)
 	       as corrcoef-*sns84-data* = (compare rnnpt *sns84-data*)
 	       do 
-	       (format *sum* "~a	~a	~a	~a	~a	~a	~a	~a	~a	~a	~a	~a~%"
-			  i
-			  corrcoef-*correct-sums-matrix*
-			  corrcoef-*sns84-data*
-			  nlog
-			  nrets
-			  ncrets
-			  (if (zerop nlog) " " (/ (float nrets) nlog))
-			  (if (zerop nrets) " " (/ (float ncrets) nrets))
-			  ndrets
-			  ncdrets
-			  (if (zerop nlog) " " (/ (float ndrets) nlog))
-			  (if (zerop ndrets) " " (/ (float ncdrets) ndrets))
-			  )
+	       (push `((:i ,i)
+		       (:corrcoef-*correct-sums-matrix* ,corrcoef-*correct-sums-matrix*)
+		       (:corrcoef-*sns84-data* ,corrcoef-*sns84-data*))
+		     (gethash file *file->summary*))
+	       (format o "~a	~a	~a	~a" i corrcoef-*correct-sums-matrix* corrcoef-*sns84-data* nlog)
+	       ;; Now analyze the strategy distributions:
+	       (clrhash *strat-key->correct+incorrect*)
+	       ;; Init pairs for (correct . incorrect) counts...
+	       (loop for s in *strat-keys* do (setf (gethash s *strat-key->correct+incorrect*) (cons 0 0)))
+	       ;; ...and count 'em up!
+	       (loop for (s a b r) in log
+		     do 
+		     (if (listp s) (setf s (second s))) ;; recode (:CF1X1 :DYNARET) -> :DYNARET
+		     (let ((c/ic-pair (gethash s *strat-key->correct+incorrect*))
+			   (real-r (+ a b)))
+		       (if (= r real-r)
+			   (incf (car c/ic-pair))
+			 (incf (cdr c/ic-pair)))))
+	       ;; Special computation for :allret (+ :ret :dynaret)
+	       (let ((r (gethash :ret *strat-key->correct+incorrect*))
+		     (d (gethash :dynaret *strat-key->correct+incorrect*))
+		     (a (gethash :allret *strat-key->correct+incorrect*)))
+		 (setf (car a) (+ (car r) (car d)))		 
+		 (setf (cdr a) (+ (cdr r) (cdr d))))
+	       ;; Reporting
+	       (loop for s in *strat-keys*
+		     as pair = (gethash s *strat-key->correct+incorrect*)
+		     as nc = (car pair)
+		     as nw = (cdr pair)
+		     as ns = (+ nc nw)
+		     do (format o "	~a	~a	~a	~a" 
+				ns 
+				(if (zerop nlog) "x" (/ (float ns) nlog))
+				nc
+				(if (zerop ns) "x" (/ (float nc) ns)))
+		     )
+	       (format o "~%")
 	       ))))
+
+(defparameter *param-reporting-order* 
+  '(
+    ("settings.DECR_on_WRONG" . DECR_on_WRONG)
+    ("settings.non_result_y_filler" . non_result_y_filler)
+    ("settings.initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
+    ("settings.DR_threshold " . DR_threshold )
+    ("settings.initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
+    ("settings.experiment_label" . experiment_label)
+    ("settings.RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
+    ("settings.INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
+    ("settings.STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
+    ("settings.STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
+    ("settings.addend_matrix_offby1_delta" . addend_matrix_offby1_delta)
+    ("settings.RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
+    ("settings.PERR" . PERR)
+    ("settings.learning_rate" . learning_rate)
+    ("settings.in_process_training_epochs" . in_process_training_epochs)
+    ("settings.INCR_on_RIGHT" . INCR_on_RIGHT)
+    ("settings.n_problems" . n_problems)
+    ))
+
+(defun analyze-summarize-coefs (ts)
+  ;; Dump summaries
+  (with-open-file 
+   (o (format nil "sumstats/~a-mastersummary.xls" ts) :direction :output :if-exists :supersede) 
+   ;; Report params
+   (loop for (ps . pn) in *param-reporting-order*
+	 do 
+	 (format o "~a" pn)
+	 (loop for file being the hash-keys of *file->summary*
+	       as params = (second (assoc :params (gethash file *file->data*)))
+	       as pv = (cdr (assoc ps params :test #'string-equal))
+	       do (format o "	~a" pv))
+	 (format o "~%"))
+   ;; Report coefs (FFF %%% This is sooooooooooo inefficient -- scanning these tables over and over and over again!)
+   ;; Header
+   (loop for file being the hash-keys of *file->summary*
+	 as nn = (substitute #\_ #\space (pathname-name file))
+	 do (format o "	~a_correct	~a_sns84" nn nn))
+   (format o "~%")
+   ;; Find the highest value
+   (let ((maxi (loop for data being the hash-values of *file->summary*
+		     with max = 0
+		     as newmax = (reduce #'max (loop for d in data collect (second (assoc :i d))))
+		     do (setf max (max max newmax))
+		     finally (return max))))
+     ;; Now print each i for each file
+     (loop for i below maxi
+	   do 
+	   (format o "~a" i)
+	   (loop for data being the hash-values of *file->summary*
+		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
+		 do (format o "	~a	~a" 
+			    (second (assoc :CORRCOEF-*CORRECT-SUMS-MATRIX* idata))
+			    (second (assoc :CORRCOEF-*SNS84-DATA* idata))))
+	   (format o "~%"))))
+  )
+				     
+
+
+
 
 (untrace)
 ;(trace compare)
-(analyze)
+;(analyze)
