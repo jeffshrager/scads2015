@@ -476,14 +476,18 @@
 	 (loop for file being the hash-keys of *file->summary*
 	       as params = (second (assoc :params (gethash file *file->data*)))
 	       as pv = (cdr (assoc ps params :test #'string-equal))
-	       do (format o "	~a" pv))
+	       ;; These are repeated twice bcs there are two coefs below UUU
+	       do (format o "	~a	~a" pv pv))
 	 (format o "~%"))
    ;; Report coefs (FFF %%% This is sooooooooooo inefficient -- scanning these tables over and over and over again!)
-   ;; Header
+   ;; Header. 
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
-	 do (format o "	~a_correct	~a_sns84" nn nn))
+	 do (format o "	adult	sns84"))
    (format o "~%")
+   (loop for file being the hash-keys of *file->summary*
+	 as nn = (substitute #\_ #\space (pathname-name file))
+	 do (format o "	_~a_	_~a_" nn nn)) ;; _ so that excel doesn't turn large numbers to Enotation
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
 		     with max = 0
