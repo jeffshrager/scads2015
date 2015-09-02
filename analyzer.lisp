@@ -466,10 +466,11 @@
     ))
 
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
+(defvar *params->all-values* (make-hash-table :test #'equal)) ;; Let's us tell which ones actually changed.
 
 (defun analyze-summarize-coefs (ts &aux file->coefs)
   ;; Dump summaries.
-
+  (clrhash *params->all-values*)
   ;; As we go along we carry forward the data required to make a pivot
   ;; csv of the final results for statistical analysis in R.
   (clrhash *params->final-coefs*)
@@ -484,7 +485,9 @@
 	       as params = (second (assoc :params (gethash file *file->data*)))
 	       as pv = (cdr (assoc ps params :test #'string-equal))
 	       ;; These are repeated twice bcs there are two coefs below UUU
-	       do (format o "	~a	~a" pv pv))
+	       do 
+	       (pushnew pv (gethash pn *params->all-values*) :test #'string-equal)
+	       (format o "	~a	~a" pv pv))
 	 (format o "~%"))
 
    ;; Report coefs -- WWW THIS ALL DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
@@ -529,27 +532,34 @@
 		     )))
 	   (format o "~%"))))
   ;; Finally, dump the R-ready csv file.
-  (with-open-file 
-   (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
-   (format o "file")
-   (loop for (nil . pn) in *param-reporting-order*
-	 unless (eq pn 'EXPERIMENT_LABEL)
-	 do (format o ",~a" pn))
-   (format o ",adult,sns84")
-   (format o "~%")
-   (loop for p* being the hash-keys of *params->final-coefs*
-	 using (hash-value coefs)
-	 do 
-	 (loop for coef in coefs
-	       as (a . b) = coef
-	       do 
-	       (format o "_~a_" (substitute #\_ #\space (pathname-name (cdr (assoc coef file->coefs)))))
-	       (loop for (ps . pn) in *param-reporting-order*
-		     unless (eq pn 'EXPERIMENT_LABEL)
-		     do 
-		     (format o ",~a" (cdr (assoc ps p* :test #'string-equal))))
-	       (format o ",~a,~a~%" a b)))
-   )
+  ;; Figure out which parameters actually change!
+  (let ((pns-that-change 
+	 (loop for pn being the hash-keys of *params->all-values*
+	       using (hash-value pvs)
+	       when (cdr pvs)
+	       collect pn)))
+    (print pns-that-change)
+    (with-open-file 
+     (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
+     (format o "file")
+     (loop for (nil . pn) in *param-reporting-order*
+	   when (member pn pns-that-change)
+	   do (format o ",~a" pn))
+     (format o ",adult,sns84")
+     (format o "~%")
+     (loop for p* being the hash-keys of *params->final-coefs*
+	   using (hash-value coefs)
+	   do 
+	   (loop for coef in coefs
+		 as (a . b) = coef
+		 do 
+		 (format o "_~a_" (substitute #\_ #\space (pathname-name (cdr (assoc coef file->coefs)))))
+		 (loop for (ps . pn) in *param-reporting-order*
+		       when (member pn pns-that-change)
+		       do 
+		       (format o ",~a" (cdr (assoc ps p* :test #'string-equal))))
+		 (format o ",~a,~a~%" a b)))
+     ))
   )
 
 (untrace)
