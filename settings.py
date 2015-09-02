@@ -22,14 +22,14 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"201509010826: scanning perr, (internal)epochs, and learning rate\""],
+scan_spec = {"settings.experiment_label": ["\"201509010902: scanning initial network params\""],
              # Setting up the initial counting network
-             "settings.initial_counting_network_burn_in_epochs": [1000],
-             "settings.initial_counting_network_learning_rate": [0.1],
+             "settings.initial_counting_network_burn_in_epochs": [100,1000,2500,5000],
+             "settings.initial_counting_network_learning_rate": [0.25,0.5,0.75],
              # Problem presentation and execution
              "settings.n_problems": [5000],
              "settings.DR_threshold": [1.0], # WWW!!! Only used if dynamical_retrieval_on = True
-             "settings.PERR": [0.0,0.1,0.25],
+             "settings.PERR": [0.1], # Confirmed 201509010826
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              # Choosing to use retrieval v. a strategy
              "settings.RETRIEVAL_LOW_CC": [0.6],
@@ -41,8 +41,8 @@ scan_spec = {"settings.experiment_label": ["\"201509010826: scanning perr, (inte
              "settings.INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
              "settings.DECR_on_WRONG": [-1.0], # Substrated from non_result_y_filler at the response value when you get it right.
              "settings.INCR_the_right_answer_on_WRONG": [0.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-             "settings.learning_rate": [0.001,0.01,0.1],
-             "settings.in_process_training_epochs": [1,10,25,100] # Number of training epochs on EACH test problem
+             "settings.learning_rate": [0.01], # Explored 201509010826
+             "settings.in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
              }
 
 if __name__ == '__main__':
