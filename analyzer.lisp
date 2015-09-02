@@ -465,8 +465,15 @@
     ("settings.n_problems" . n_problems)
     ))
 
+(defvar *params->final-coefs* (make-hash-table :test #'equal))
+
 (defun analyze-summarize-coefs (ts)
-  ;; Dump summaries
+  ;; Dump summaries.
+
+  ;; As we go along we carry forward the data required to make a pivot
+  ;; csv of the final results for statistical analysis in R.
+  (clrhash *params->final-coefs*)
+  ;; Dump params:
   (with-open-file 
    (o (format nil "sumstats/~a-mastersummary.xls" ts) :direction :output :if-exists :supersede) 
    ;; Report params
@@ -479,15 +486,19 @@
 	       ;; These are repeated twice bcs there are two coefs below UUU
 	       do (format o "	~a	~a" pv pv))
 	 (format o "~%"))
-   ;; Report coefs (FFF %%% This is sooooooooooo inefficient -- scanning these tables over and over and over again!)
-   ;; Header. 
+
+   ;; Report coefs
+
+   ;; Sub Header to distinguish adult from sn84 data
    (loop for file being the hash-keys of *file->summary*
-	 as nn = (substitute #\_ #\space (pathname-name file))
 	 do (format o "	adult	sns84"))
    (format o "~%")
+   ;; (FFF %%% This is sooooooooooo inefficient -- scanning these
+   ;; tables over and over and over again, but there's no a whole lot
+   ;; of data here, so what the hey!)
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
-	 do (format o "	_~a_	_~a_" nn nn)) ;; _ so that excel doesn't turn large numbers to Enotation
+	 do (format o "	_~a_	_~a_" nn nn)) ;; _ so that excel doesn't turn large numbers to E-notation
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
 		     with max = 0
@@ -498,17 +509,36 @@
      (loop for i below maxi
 	   do 
 	   (format o "~a" i)
-	   (loop for data being the hash-values of *file->summary*
+	   (loop for file being the hash-keys of *file->summary*
+		 using (hash-value data)
+		 as params = (second (assoc :params (gethash file *file->data*)))
 		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
-		 do (format o "	~a	~a" 
-			    (second (assoc :CORRCOEF-*CORRECT-SUMS-MATRIX* idata))
-			    (second (assoc :CORRCOEF-*SNS84-DATA* idata))))
+		 as CORRCOEF-*CORRECT-SUMS-MATRIX* = (second (assoc :CORRCOEF-*CORRECT-SUMS-MATRIX* idata))
+		 as CORRCOEF-*SNS84-DATA* = (second (assoc :CORRCOEF-*SNS84-DATA* idata))
+		 do 
+		 (format o "	~a	~a" CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
+		 ;; Store for pivot. This keeps replacing these,
+		 ;; ending up with only the final values.  Although
+		 ;; inefficient, this is slightly convenient bcs if
+		 ;; you like you can do something with all the values
+		 ;; along the way.
+		 (setf (gethash params *params->final-coefs*)
+		       (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)))
 	   (format o "~%"))))
-  )
-				     
 
-
-
+  ;; Finally, dump the R-ready csv file.
+  (with-open-file 
+   (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
+   (format o "file")
+   (loop for pn in *param-reporting-order*
+	 do (format o ",~a" (cdr pn)))
+   (format o ",adult,sns84")
+   (format o "~%")
+   (loop for p* being the hash-keys of *params->final-coefs*
+	 using (hash-value coefs)
+	 do (pprint p* o)
+	 (print coefs o))
+   ))
 
 (untrace)
 ;(trace compare)
