@@ -487,7 +487,7 @@
 	       do (format o "	~a	~a" pv pv))
 	 (format o "~%"))
 
-   ;; Report coefs
+   ;; Report coefs -- WWW THIS ALL DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
 
    ;; Sub Header to distinguish adult from sn84 data
    (loop for file being the hash-keys of *file->summary*
@@ -506,9 +506,12 @@
 		     do (setf max (max max newmax))
 		     finally (return max))))
      ;; Now print each i for each file
-     (loop for i below maxi
+     (loop for i from 1 to maxi
 	   do 
 	   (format o "~a" i)
+	   ;; UUU This is mega ugly, pushing the final values from
+	   ;; each loop through all data into the table for pivot
+	   ;; recovery later.
 	   (loop for file being the hash-keys of *file->summary*
 		 using (hash-value data)
 		 as params = (second (assoc :params (gethash file *file->data*)))
@@ -517,28 +520,32 @@
 		 as CORRCOEF-*SNS84-DATA* = (second (assoc :CORRCOEF-*SNS84-DATA* idata))
 		 do 
 		 (format o "	~a	~a" CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
-		 ;; Store for pivot. This keeps replacing these,
-		 ;; ending up with only the final values.  Although
-		 ;; inefficient, this is slightly convenient bcs if
-		 ;; you like you can do something with all the values
-		 ;; along the way.
-		 (setf (gethash params *params->final-coefs*)
-		       (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)))
+		 ;; Store the final value for pivot reporting later. 
+		 (when (= i maxi)
+		   (push (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
+			 (gethash params *params->final-coefs*))))
 	   (format o "~%"))))
-
   ;; Finally, dump the R-ready csv file.
   (with-open-file 
    (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
    (format o "file")
    (loop for pn in *param-reporting-order*
+	 unless (eq pn 'EXPERIMENT_LABEL)
 	 do (format o ",~a" (cdr pn)))
    (format o ",adult,sns84")
    (format o "~%")
    (loop for p* being the hash-keys of *params->final-coefs*
 	 using (hash-value coefs)
-	 do (pprint p* o)
-	 (print coefs o))
-   ))
+	 do 
+	 (loop for (a . b) in coefs
+	       do 
+	       (loop for (ps . pn) in *param-reporting-order*
+		     unless (eq pn 'EXPERIMENT_LABEL)
+		     do 
+		     (format o ",~a" (cdr (assoc ps p* :test #'string-equal))))
+	       (format o ",~a,~a~%" a b)))
+   )
+  )
 
 (untrace)
 ;(trace compare)
