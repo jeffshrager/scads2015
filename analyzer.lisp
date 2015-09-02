@@ -467,7 +467,7 @@
 
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
 
-(defun analyze-summarize-coefs (ts)
+(defun analyze-summarize-coefs (ts &aux file->coefs)
   ;; Dump summaries.
 
   ;; As we go along we carry forward the data required to make a pivot
@@ -499,6 +499,7 @@
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
 	 do (format o "	_~a_	_~a_" nn nn)) ;; _ so that excel doesn't turn large numbers to E-notation
+   (format o "~%")
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
 		     with max = 0
@@ -522,23 +523,27 @@
 		 (format o "	~a	~a" CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
 		 ;; Store the final value for pivot reporting later. 
 		 (when (= i maxi)
-		   (push (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
-			 (gethash params *params->final-coefs*))))
+		   (let ((coefs (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)))
+		     (push coefs (gethash params *params->final-coefs*))
+		     (push (cons coefs file) file->coefs) ;; This is so ugly it makes me cry!
+		     )))
 	   (format o "~%"))))
   ;; Finally, dump the R-ready csv file.
   (with-open-file 
    (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
    (format o "file")
-   (loop for pn in *param-reporting-order*
+   (loop for (nil . pn) in *param-reporting-order*
 	 unless (eq pn 'EXPERIMENT_LABEL)
-	 do (format o ",~a" (cdr pn)))
+	 do (format o ",~a" pn))
    (format o ",adult,sns84")
    (format o "~%")
    (loop for p* being the hash-keys of *params->final-coefs*
 	 using (hash-value coefs)
 	 do 
-	 (loop for (a . b) in coefs
+	 (loop for coef in coefs
+	       as (a . b) = coef
 	       do 
+	       (format o "_~a_" (substitute #\_ #\space (pathname-name (cdr (assoc coef file->coefs)))))
 	       (loop for (ps . pn) in *param-reporting-order*
 		     unless (eq pn 'EXPERIMENT_LABEL)
 		     do 
