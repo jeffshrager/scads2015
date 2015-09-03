@@ -1,7 +1,6 @@
 ;(load (compile-file "analyzer.lisp"))
 
 ;;; === ToDo ===
-;;; Finish incorporating the adult comparison set.
 ;;; Analyze the strategy logs.
 
 (unless (find-package 'STATISTICS)
@@ -17,39 +16,76 @@
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
 ;;; overt strategy supression instruction!
 
-(defparameter *sns84-data*
-  ;; All these are hundreths:
-  ;; 0 1 2 3 4 5 6 7 8 9 10 11 other
+(defparameter *comparator-datasets* 
   '(
-    ((1 . 1) (0 5 86 0 2 0 2 0 0 0 0 2 4))
-    ((1 . 2) (0 0 9 70 2 0 4 0 0 7 2 2 5))
-    ((1 . 3) (0 2 0 11 71 5 2 2 0 0 0 0 7))
-    ((1 . 4) (0 0 0 0 11 61 9 7 0 0 0 2 11))
-    ((1 . 5) (0 0 0 0 13 16 50 11 0 2 2 0 5))
-    ((2 . 1) (0 7 5 79 5 0 0 0 0 0 0 0 4))
-    ((2 . 2) (2 0 4 5 80 4 0 5 0 0 0 0 0))
-    ((2 . 3) (0 0 4 7 38 34 9 2 2 2 0 0 4))
-    ((2 . 4) (0 2 0 7 2 43 29 7 7 0 0 0 4))
-    ((2 . 5) (0 2 0 5 2 16 43 13 0 0 2 0 18))
-    ((3 . 1) (0 2 0 9 79 4 0 4 0 0 0 0 4))
-    ((3 . 2) (0 0 9 11 11 55 7 0 0 0 0 0 7))
-    ((3 . 3) (4 0 0 5 21 9 48 0 2 2 2 0 7))
-    ((3 . 4) (0 0 0 5 11 23 14 29 2 0 0 0 16))
-    ((3 . 5) (0 0 0 7 0 13 23 14 18 0 5 0 20))
-    ((4 . 1) (0 0 4 2 9 68 2 2 7 0 0 0 7))
-    ((4 . 2) (0 0 7 9 0 20 36 13 7 0 2 0 7))
-    ((4 . 3) (0 0 0 5 18 9 9 38 9 0 2 0 11))
-    ((4 . 4) (4 0 0 2 2 29 7 7 34 0 4 0 13))
-    ((4 . 5) (0 0 0 0 4 9 16 9 11 18 11 4 20))
-    ((5 . 1) (0 0 4 0 4 7 71 4 4 0 4 0 4))
-    ((5 . 2) (0 0 5 20 2 18 27 25 2 0 2 0 0))
-    ((5 . 3) (0 0 2 11 9 18 5 16 23 0 5 0 11))
-    ((5 . 4) (0 0 0 0 11 21 16 5 11 16 4 0 16))
-    ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
-    ))
+    (:sns84
+     ;; All these are hundreths:
+     ;; 0 1 2 3 4 5 6 7 8 9 10 11 other
+     (
+      ((1 . 1) (0 5 86 0 2 0 2 0 0 0 0 2 4))
+      ((1 . 2) (0 0 9 70 2 0 4 0 0 7 2 2 5))
+      ((1 . 3) (0 2 0 11 71 5 2 2 0 0 0 0 7))
+      ((1 . 4) (0 0 0 0 11 61 9 7 0 0 0 2 11))
+      ((1 . 5) (0 0 0 0 13 16 50 11 0 2 2 0 5))
+      ((2 . 1) (0 7 5 79 5 0 0 0 0 0 0 0 4))
+      ((2 . 2) (2 0 4 5 80 4 0 5 0 0 0 0 0))
+      ((2 . 3) (0 0 4 7 38 34 9 2 2 2 0 0 4))
+      ((2 . 4) (0 2 0 7 2 43 29 7 7 0 0 0 4))
+      ((2 . 5) (0 2 0 5 2 16 43 13 0 0 2 0 18))
+      ((3 . 1) (0 2 0 9 79 4 0 4 0 0 0 0 4))
+      ((3 . 2) (0 0 9 11 11 55 7 0 0 0 0 0 7))
+      ((3 . 3) (4 0 0 5 21 9 48 0 2 2 2 0 7))
+      ((3 . 4) (0 0 0 5 11 23 14 29 2 0 0 0 16))
+      ((3 . 5) (0 0 0 7 0 13 23 14 18 0 5 0 20))
+      ((4 . 1) (0 0 4 2 9 68 2 2 7 0 0 0 7))
+      ((4 . 2) (0 0 7 9 0 20 36 13 7 0 2 0 7))
+      ((4 . 3) (0 0 0 5 18 9 9 38 9 0 2 0 11))
+      ((4 . 4) (4 0 0 2 2 29 7 7 34 0 4 0 13))
+      ((4 . 5) (0 0 0 0 4 9 16 9 11 18 11 4 20))
+      ((5 . 1) (0 0 4 0 4 7 71 4 4 0 4 0 4))
+      ((5 . 2) (0 0 5 20 2 18 27 25 2 0 2 0 0))
+      ((5 . 3) (0 0 2 11 9 18 5 16 23 0 5 0 11))
+      ((5 . 4) (0 0 0 0 11 21 16 5 11 16 4 0 16))
+      ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
+      ))
 
-(defparameter *correct-sums-matrix*
-  '(
+;; This represents primacy, recency, and next biases. We assign 33%
+;; to each addend, then 16% to the next of each. (You might think
+;; that by recency, the latter addend should get a little more, but
+;; this is counter-balanced by primacy, where the first one
+;; should...so we just call it even.)
+
+    (:base-p/r/c
+     (
+      ((1 . 1) (0 66 33 0 0 0 0 0 0 0 0 0 0))
+      ((1 . 2) (0 33 33 33 0 0 0 0 0 0 0 0))
+      ((1 . 3) (0 33 0 33 33 0 0 0 0 0 0 0 0))
+      ((1 . 4) (0 33 16 0 33 16 0 0 0 0 0 0 0))
+      ((1 . 5) (0 33 16 0 0 33 16 0 0 0 0 0 0))
+      ((2 . 1) (0 33 49 16 0 0 0 0 0 0 0 0 0))
+      ((2 . 2) (0 0 66 33 0 0 0 0 0 0 0 0 0))
+      ((2 . 3) (0 0 33 33 33 0 0 0 0 0 0 0 0))
+      ((2 . 4) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((2 . 5) (0 0 33 16 0 33 16 0 0 0 0 0 0))
+      ((3 . 1) (0 33 16 33 16 0 0 0 0 0 0 0 0))
+      ((3 . 2) (0 0 0 0 0 0 0 0 0 0 0 0 0))
+      ((3 . 3) (0 0 0 66 33 0 0 0 0 0 0 0 0))
+      ((3 . 4) (0 0 0 33 33 33 0 0 0 0 0 0 0))
+      ((3 . 5) (0 0 0 33 16 33 16 0 0 0 0 0 0))
+      ((4 . 1) (0 33 16 0 33 16 0 0 0 0 0 0 0))
+      ((4 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((4 . 3) (0 0 0 16 49 16 0 0 0 0 0 0 0))
+      ((4 . 4) (0 0 0 0 66 33 0 0 0 0 0 0 0))
+      ((4 . 5) (0 0 0 0 33 33 33 0 0 0 0 0 0))
+      ((5 . 1) (0 33 16 0 0 33 16 0 0 0 0 0 0))
+      ((5 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((5 . 3) (0 0 0 33 16 33 16 0 0 0 0 0 0))
+      ((5 . 4) (0 0 0 0 33 49 16 0 0 0 0 0 0))
+      ((5 . 5) (0 0 0 0 0 66 33 0 0 0 0 0 0))
+      ))
+
+  (:adult 
+   (
     ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
     ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
     ((1 . 3) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
@@ -76,6 +112,7 @@
     ((5 . 4) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
     ((5 . 5) (0 0 0 0 0 0 0 0 0 0 100 0 0 ))
     ))
+  ))
 
 ;;; =============================================================
 ;;; Globals
@@ -382,7 +419,7 @@
 	do 
 	(with-open-file 
 	 (o (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file)))
-		      :direction :output :if-exists :supersede) 
+	    :direction :output :if-exists :supersede) 
 	 (format o "i	corrcoef w/correct	corrcoef w/sns84	n")
 	 (loop for s in *strat-keys*
 	       do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
@@ -402,14 +439,12 @@
 	       as log = (second (assoc :log entry))
 	       as nlog = (length log)
 	       as rnnpt = (second (assoc :rnnpt entry))
-	       as corrcoef-*correct-sums-matrix* = (compare rnnpt *correct-sums-matrix*)
-	       as corrcoef-*sns84-data* = (compare rnnpt *sns84-data*)
+	       as ccs = (loop for (key data) in *comparator-datasets* 
+			      collect `(,key ,(compare rnnpt data)))
 	       do 
-	       (push `((:i ,i)
-		       (:corrcoef-*correct-sums-matrix* ,corrcoef-*correct-sums-matrix*)
-		       (:corrcoef-*sns84-data* ,corrcoef-*sns84-data*))
-		     (gethash file *file->summary*))
-	       (format o "~a	~a	~a	~a" i corrcoef-*correct-sums-matrix* corrcoef-*sns84-data* nlog)
+	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
+	       (format o "~a	~a" i nlog)
+	       (loop for (nil cc) in ccs do (format o "	~a" cc))
 	       ;; Now analyze the strategy distributions:
 	       (clrhash *strat-key->correct+incorrect*)
 	       ;; Init pairs for (correct . incorrect) counts...
@@ -484,24 +519,25 @@
 	 (loop for file being the hash-keys of *file->summary*
 	       as params = (second (assoc :params (gethash file *file->data*)))
 	       as pv = (cdr (assoc ps params :test #'string-equal))
-	       ;; These are repeated twice bcs there are two coefs below UUU
+	       ;; These are repeated once for each dataset bcs there'll be that many coefs
 	       do 
 	       (pushnew pv (gethash pn *params->all-values*) :test #'string-equal)
-	       (format o "	~a	~a" pv pv))
+	       (loop for (nil) in *comparator-datasets*
+		     do (format o "	~a" pv)))
 	 (format o "~%"))
 
    ;; Report coefs -- WWW THIS ALL DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
 
-   ;; Sub Header to distinguish adult from sn84 data
+   ;; Sub Header to distinguish datasets
    (loop for file being the hash-keys of *file->summary*
-	 do (format o "	adult	sns84"))
+	 do (loop for (key) in *comparator-datasets* do (format o "	~a" key)))
    (format o "~%")
    ;; (FFF %%% This is sooooooooooo inefficient -- scanning these
    ;; tables over and over and over again, but there's no a whole lot
    ;; of data here, so what the hey!)
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
-	 do (format o "	_~a_	_~a_" nn nn)) ;; _ so that excel doesn't turn large numbers to E-notation
+	 do (loop for (nil) in *comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
    (format o "~%")
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
@@ -520,13 +556,13 @@
 		 using (hash-value data)
 		 as params = (second (assoc :params (gethash file *file->data*)))
 		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
-		 as CORRCOEF-*CORRECT-SUMS-MATRIX* = (second (assoc :CORRCOEF-*CORRECT-SUMS-MATRIX* idata))
-		 as CORRCOEF-*SNS84-DATA* = (second (assoc :CORRCOEF-*SNS84-DATA* idata))
+		 as ccs = (second (assoc :ccs idata))
 		 do 
-		 (format o "	~a	~a" CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)
+		 (loop for (nil cc) in ccs
+		       do (format o "	~a" cc))
 		 ;; Store the final value for pivot reporting later. 
 		 (when (= i maxi)
-		   (let ((coefs (cons CORRCOEF-*CORRECT-SUMS-MATRIX* CORRCOEF-*SNS84-DATA*)))
+		   (let ((coefs (mapcar #'second ccs)))
 		     (push coefs (gethash params *params->final-coefs*))
 		     (push (cons coefs file) file->coefs) ;; This is so ugly it makes me cry!
 		     )))
@@ -538,27 +574,26 @@
 	       using (hash-value pvs)
 	       when (cdr pvs)
 	       collect pn)))
-    (print pns-that-change)
     (with-open-file 
      (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
      (format o "file")
      (loop for (nil . pn) in *param-reporting-order*
 	   when (member pn pns-that-change)
 	   do (format o ",~a" pn))
-     (format o ",adult,sns84")
+     (loop for (key) in *comparator-datasets* do (format o ",~a" key))
      (format o "~%")
      (loop for p* being the hash-keys of *params->final-coefs*
 	   using (hash-value coefs)
 	   do 
 	   (loop for coef in coefs
-		 as (a . b) = coef
 		 do 
 		 (format o "_~a_" (substitute #\_ #\space (pathname-name (cdr (assoc coef file->coefs)))))
 		 (loop for (ps . pn) in *param-reporting-order*
 		       when (member pn pns-that-change)
 		       do 
 		       (format o ",~a" (cdr (assoc ps p* :test #'string-equal))))
-		 (format o ",~a,~a~%" a b)))
+		 (loop for c in coef do (format o ",~a" c))
+		 (format o "~%")))
      ))
   )
 
