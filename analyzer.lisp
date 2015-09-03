@@ -12,6 +12,8 @@
 (defparameter *low* nil) ;; Filename (no .ext) of the FIRST file to analyze -- nil to start with lowest filenumber.
 (defparameter *high* nil) ;; Filename (no .ext) of the LAST file to analyze -- nil to do all from *low*
 
+(defvar *heuristicated-experiment-label* nil)
+
 ;;; ================================================================
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
 ;;; overt strategy supression instruction!
@@ -166,7 +168,10 @@
 		       (format t "WARNING: In parse-20150807-data, rnnpt seems to be followed by log entries incorrectly. These will be lost!"))
 		   (return-from 
 		    parse-20150807-data 
-		    `((:params ,(parse-params i))
+		    `((:params ,(let ((params (parse-params i)))
+				  (setq *heuristicated-experiment-label* 
+					(cdr (assoc "settings.experiment_label" params :test #'string-equal)))
+				  params))
 		      (:logs ,(reverse logs))
 		      (:rd-table ,(parse-rd-table i)))))
 	       (push (interpret-log-entry (string-split (subseq line 0 (1- (length line))))) local)))))
@@ -376,9 +381,10 @@
   (analyze-summarize-coefs ts)
   )
 
-(defun analyze-load-data (low high &aux first-fno last-fno label)
+(defun analyze-load-data (low high &aux first-fno last-fno label temp)
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
+  (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
   (loop for file in (if (zerop low)
@@ -420,7 +426,9 @@
 	(with-open-file 
 	 (o (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file)))
 	    :direction :output :if-exists :supersede) 
-	 (format o "i	corrcoef w/correct	corrcoef w/sns84	n")
+	 (format o "# ~a~%" *heuristicated-experiment-label*) 
+	 (format o "i	n")
+	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
 	 (loop for s in *strat-keys*
 	       do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
 	 (format o "~%")
@@ -513,6 +521,7 @@
   (with-open-file 
    (o (format nil "sumstats/~a-mastersummary.xls" ts) :direction :output :if-exists :supersede) 
    ;; Report params
+   (format o "# ~a~%" *heuristicated-experiment-label*) 
    (loop for (ps . pn) in *param-reporting-order*
 	 do 
 	 (format o "~a" pn)
@@ -576,6 +585,7 @@
 	       collect pn)))
     (with-open-file 
      (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
+     (format o "# ~a~%" *heuristicated-experiment-label*) 
      (format o "file")
      (loop for (nil . pn) in *param-reporting-order*
 	   when (member pn pns-that-change)

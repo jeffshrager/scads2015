@@ -132,6 +132,11 @@ class Distribution(object):
 # update_y this is the main driver within driver that does the testing
 
 class subNeuralNetwork:
+    # This is where these are accessed:
+    #  "settings.RETRIEVAL_LOW_CC"
+    #  "settings.RETRIEVAL_HIGH_CC"
+    #  "settings.STRATEGY_LOW_CC"
+    #  "settings.STRATEGY_HIGH_CC"
     def __init__(self, type):
         # initializing member variables
         self.low_cc, self.high_cc, self.beg, self.end = -1, -1, -1, -1

@@ -22,20 +22,20 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # results file because we set these by exec(), this has to have an
 # extra set of "\"quotes\"" around it.
 
-scan_spec = {"settings.experiment_label": ["\"201509010902: scanning initial network params\""],
+scan_spec = {"settings.experiment_label": ["\"201509031445: Long run with high prob. err and tight ret thresh to expose strategy usage sparations\""],
              # Setting up the initial counting network
-             "settings.initial_counting_network_burn_in_epochs": [100,1000,2500,5000],
-             "settings.initial_counting_network_learning_rate": [0.25,0.5,0.75],
+             "settings.initial_counting_network_burn_in_epochs": [1000], # Chosen based on 201509010902
+             "settings.initial_counting_network_learning_rate": [0.25], # Chosen based on 201509010902
              # Problem presentation and execution
-             "settings.n_problems": [5000],
+             "settings.n_problems": [50000],
              "settings.DR_threshold": [1.0], # WWW!!! Only used if dynamical_retrieval_on = True
-             "settings.PERR": [0.1], # Confirmed 201509010826
+             "settings.PERR": [0.5], # Confirmed 201509010826
              "settings.addend_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
              # Choosing to use retrieval v. a strategy
-             "settings.RETRIEVAL_LOW_CC": [0.6],
-             "settings.RETRIEVAL_HIGH_CC": [1.0],
-             "settings.STRATEGY_LOW_CC": [1.0], 
-             "settings.STRATEGY_HIGH_CC": [1.0], 
+             "settings.RETRIEVAL_LOW_CC": [0.95], # Should be 0.6 usually
+             "settings.RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
+             "settings.STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
+             "settings.STRATEGY_HIGH_CC": [1.0],
              # Learning target params
              "settings.non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
              "settings.INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
