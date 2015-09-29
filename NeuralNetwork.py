@@ -151,6 +151,10 @@ class NeuralNetwork:
         results_above_cc = [x for x in range(sub_nn.beg, sub_nn.end) if self.predictions[index][x] > sub_nn.cc]
         l = len(results_above_cc)
         if l > 0:
+            # At the moment this chooses randomly from all those
+            # (either strats or results) above the respective cc,
+            # although this could be changed to choose in a weighted
+            # manner. FFF ???
             return int(results_above_cc[randint(0, l - 1)])
         return None
 

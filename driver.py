@@ -238,7 +238,7 @@ def main():
     # Used in the recursive config_and_test fn.
     scan_spec = settings.scan_spec
     param_keys = scan_spec.keys()
-    print "Paremeter spec:"
+    print "Parameter spec:"
     print settings.scan_spec
     print "Strategies in play:"
     print settings.strategies
