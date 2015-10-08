@@ -3,8 +3,12 @@
 ;;; === ToDo ===
 ;;; Analyze the strategy logs.
 
-(unless (find-package 'STATISTICS)
-  (load "lhstats.dx32fsl"))
+(eval-when 
+ (compile load)
+ (unless (probe-file "lhstats.dx32fsl")
+   (compile-file "lhstats.lisp"))
+ (unless (find-package 'STATISTICS)
+   (load "lhstats.dx32fsl")))
 
 ;;; !!! WWW If at least *low* isn't set, the analyzer will try to find
 ;;; the files to analyze by the latest set of matching experiment
@@ -131,7 +135,7 @@
 ;;; number. Break if not!
 
 (defun load-result-file (file)
-  (format t "Loading ~a~%" file)
+  (format t "~%Loading ~a~%" file)
   (with-open-file 
    (i file)
    (let* ((vline (read-line i nil nil))
@@ -424,7 +428,7 @@
 	using (hash-value data)
 	do 
 	(with-open-file 
-	 (o (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file)))
+	 (o (print (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file))))
 	    :direction :output :if-exists :supersede) 
 	 (format o "# ~a~%" *heuristicated-experiment-label*) 
 	 (format o "i	n")
@@ -519,7 +523,7 @@
   (clrhash *params->final-coefs*)
   ;; Dump params:
   (with-open-file 
-   (o (format nil "sumstats/~a-mastersummary.xls" ts) :direction :output :if-exists :supersede) 
+   (o (print (format nil "sumstats/~a-mastersummary.xls" ts)) :direction :output :if-exists :supersede)
    ;; Report params
    (format o "# ~a~%" *heuristicated-experiment-label*) 
    (loop for (ps . pn) in *param-reporting-order*
@@ -584,7 +588,7 @@
 	       when (cdr pvs)
 	       collect pn)))
     (with-open-file 
-     (o (format nil "sumstats/~a-FinalPivotforR.csv" ts) :direction :output :if-exists :supersede) 
+     (o (print (format nil "sumstats/~a-FinalPivotforR.csv" ts)) :direction :output :if-exists :supersede) 
      (format o "# ~a~%" *heuristicated-experiment-label*) 
      (format o "file")
      (loop for (nil . pn) in *param-reporting-order*

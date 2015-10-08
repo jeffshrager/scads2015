@@ -8,18 +8,26 @@ global initial_counting_network_burn_in_epochs, initial_counting_network_learnin
 global hidden_units, addend_matrix_offby1_delta, PERR
 global non_result_y_filler, dynamical_retrieval_on
 
+# PART 1: These usually DON'T change:
+
 hidden_units = 30
-ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 25  # problem bin size, every pbs problems we dump the predictions
 dynamical_retrieval_on = False
 
-# ADD.random_strategy -- Usually left out
+# PART 2: These also usually DON'T change, although they might if you
+# want to explore bringing in and out various strategies:
+
+              # ADD.random_strategy -- Usually left out
 strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
               ADD.count_from_one_twice_strategy, ADD.min_strategy]
 
-# The settings.experiment_label is used by the analyzer to label the
-# results file because we set these by exec(), this has to have an
-# extra set of "\"quotes\"" around it.
+# PART 3: These usually DO change:
+
+# IMPORTANT: REMEMBER TO CHANGE settings.experiment_label, which is
+# used by the analyzer to label the results file. (Because we set
+# these by exec(), this has to have an extra set of "\"quotes\""
+# around it.)
 
 scan_spec = {"settings.experiment_label": 
              ["\"20151008b: Exploring distributed rep of inputs longer\""],
