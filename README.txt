@@ -14,7 +14,7 @@ you want to put the model code (usally a brand new folder). It should
 dump all the model code there, just waiting for you to run it.
 
 ============================================================
-2. RUNNING THE MODEL 
+2. SETTING UP TO RUN THE MODEL 
 ============================================================
 
 The model is written in Python, and the analyzer is written in Common
@@ -49,7 +49,7 @@ That will run that latest settings. You'll want to change the settings
 to run your own experiments. More below on how to do this.
 
 ============================================================
-3. ANALYZING THE RESULTS
+3. SETTING UP TO RUN THE ANALYZER
 ============================================================
 
 This is the hairiest part! 
@@ -136,7 +136,7 @@ because I can just go back and forth, trying different parameters, and
 then analyzing them.
 
 ============================================================
-4. Changing the experimental parameters.
+4. SETTING EXPERIMENTAL PARAMETERS AND RUNNING EXPERIMENTS
 ============================================================
 
 The model parameters are in the file 'settings.py'. There are lots of
@@ -153,8 +153,106 @@ which gets set in the second line of PART 3 (commonly changing
 
 scan_spec = {"settings.experiment_label": 
              ["\"20151008b: Exploring distributed rep of inputs longer\""],
-             ...
+             ...etc...
 
-YOU MUST CHANGE THIS ON EVERY NEW EXPERIMENT OR ELSE THE ANALYZER WILL
-THINK THAT YOU'RE STILL RUNNING THE LAST EXPERIMENT!
+WARNING: YOU MUST CHANGE THIS ON EVERY NEW EXPERIMENT OR ELSE THE
+ANALYZER WILL THINK THAT YOU'RE STILL RUNNING THE LAST EXPERIMENT!
 
+You can see that I usually use a date followed by some reminder of
+what the experiment is about.
+
+WARNING: ONLY CHANGE THE DATE AND TEXT PARTS OF THIS ENTRY. IF YOU
+MONKEY WITH THE QUOTES AND BACKSLASHES, QUOTES, BRACKETS, OR ANY OTHER
+PUNCTUATION, YOU ARE QUOTE LIKELY TO MESS UP EVERYTHING!
+
+Okay, so now you can setup the parameters that you'd like to
+explore. These are the rest of the entries after the experiment label.
+
+Suppose, for example, you want to explore different learning rates in
+the main learning part of the model. Here's the relevant parameter:
+
+               "settings.learning_rate": [0.1], # Explored 201509010826
+
+The part after the # is just a comment. Please leave these in
+place. Right now it's only trying one learning rate, but if you wanted
+to try a range, you change that entry to something like:
+
+               "settings.learning_rate": [0.1,0.25,0.5,0.75,1.0], # Explored 201509010826
+
+When you run this (AND REMEMEBR TO CHANGE "settings.experiment_label"
+AS WELL!!) it will do a series of runs with five different learning
+rates. It's actually a bit subtle to understand how many runs it's
+actually going to do. For example, suppose that we change the learning
+rate, as above, and also do this:
+
+                "settings.PERR": [0.0,0.1,0.2], # 0.1 confirmed 201509010826
+
+What you'll actually get is 5x3=15 runs with each combination of
+parameters, as:
+
+    lr=0.1, perr=0.0
+    lr=0.1, perr=0.1
+    lr=0.1, perr=0.2
+    lr=0.25, perr=0.0
+    lr=0.25, perr=0.1
+    lr=0.25, perr=0.2
+    ...etc...
+
+And, actually, you're probably going to get 15x3=45 separate runs. Why
+the last 3x? Beacuse there's a parameter in the PART 1 (mostly don't
+change) called:
+
+    ndups = 3
+
+This says: For every combination of parameters (15 in the above
+example), do this number (3 here) copies in order to get explore the
+variance. Although you can change this number, you usually don't want
+to. Unless you're doing something that has a lot more variance than
+this model usually has, 3 copies is usually enough.
+
+If you haven't made any mistakes, when you run the model it'll look sometihng like this:
+
+  python settings.py
+  Parameter spec:
+  {'settings.DECR_on_WRONG': [-1.0], 'settings.non_result_y_filler': [0.0], 'settings.initial_counting_network_burn_in_epochs': [1000], 'settings.DR_threshold': [1.0], 'settings.initial_counting_network_learning_rate': [0.25], 'settings.experiment_label': ['"20151008b: Exploring distributed rep of inputs longer"'], 'settings.RETRIEVAL_HIGH_CC': [1.0], 'settings.INCR_the_right_answer_on_WRONG': [0.0], 'settings.STRATEGY_LOW_CC': [0.6], 'settings.STRATEGY_HIGH_CC': [1.0], 'settings.addend_matrix_offby1_delta': [0.0, 1.0], 'settings.RETRIEVAL_LOW_CC': [0.6], 'settings.PERR': [0.0], 'settings.learning_rate': [0.1], 'settings.in_process_training_epochs': [10], 'settings.INCR_on_RIGHT': [1.0], 'settings.n_problems': [10000]}
+  Strategies in play:
+  [<function count_from_either_strategy at 0x1066678c0>, <function count_from_one_once_strategy at 0x106667848>, <function count_from_one_twice_strategy at 0x1066677d0>, <function min_strategy at 0x106667938>]
+  -----
+  >>>>> Rep #1 <<<<<
+  settings.DECR_on_WRONG=-1.0
+  settings.non_result_y_filler=0.0
+  settings.initial_counting_network_burn_in_epochs=1000
+  settings.DR_threshold=1.0
+  settings.initial_counting_network_learning_rate=0.25
+  settings.experiment_label="20151008b: Exploring distributed rep of inputs longer"
+  settings.RETRIEVAL_HIGH_CC=1.0
+  settings.INCR_the_right_answer_on_WRONG=0.0
+  settings.STRATEGY_LOW_CC=0.6
+  settings.STRATEGY_HIGH_CC=1.0
+  settings.addend_matrix_offby1_delta=0.0
+  settings.RETRIEVAL_LOW_CC=0.6
+  settings.PERR=0.0
+  settings.learning_rate=0.1
+  settings.in_process_training_epochs=10
+  settings.INCR_on_RIGHT=1.0
+  settings.n_problems=10000
+  ---Running!---
+  settings.addend_matrix_offby1_delta=1.0
+  settings.RETRIEVAL_LOW_CC=0.6
+  settings.PERR=0.0
+  settings.learning_rate=0.1
+  settings.in_process_training_epochs=10
+  settings.INCR_on_RIGHT=1.0
+  settings.n_problems=10000
+  ---Running!---
+  40.8306379318
+  
+The number at the end is how many seconds it took to run (to a stupid
+number of decimal places!) Generally you can ignore the rest of that
+output; it's just telling you what each run is doing.
+
+On to analysis!
+
+============================================================
+5. RUNNING THE ANALYZER AND UNDERSTANDING ITS OUTPUT
+============================================================
