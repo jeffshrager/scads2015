@@ -313,3 +313,190 @@ time. (For the Lisparati among us, it's just the result of a call to
 
 The file that you're most interested in are the mastersummary and
 FinalPivotforR files.
+
+Let's look at the simpler file first, that's the one called
+FinalPivotforR.csv. Well, this isn't really for R; you can perfectly
+well read it into excel, and should!
+
+Here's a typical one such file:
+
+  # 201509291500: Land Demo
+  file,PERR,LEARNING_RATE,SNS84,BASE-P/R/C,ADULT
+  _20150929151252_,0.7,0.01,0.61345357,-0.10777922,0.7677533
+  _20150929151240_,0.7,0.01,0.636468,-0.20298922,0.73214155
+  _20150929151228_,0.7,0.01,0.6376885,-0.17121403,0.7391766
+  _20150929151232_,0.1,0.01,0.64325887,-0.1633499,0.7567975
+  _20150929151219_,0.1,0.01,0.6241043,-0.11607179,0.74748397
+  _20150929151244_,0.1,0.01,0.60327613,-0.1289047,0.74332833
+  _20150929151250_,0.5,0.1,0.5923383,-0.08904867,0.7089487
+  _20150929151238_,0.5,0.1,0.55691904,-0.084908165,0.69327146
+  _20150929151226_,0.5,0.1,0.6732984,-0.11616773,0.76187474
+  _20150929151248_,0.5,0.01,0.6643355,-0.21263774,0.76039356
+  _20150929151223_,0.5,0.01,0.6570383,-0.13826819,0.7375172
+  _20150929151236_,0.5,0.01,0.6068121,-0.13351141,0.7767376
+  _20150929151221_,0.1,0.1,0.63215446,-0.1475436,0.7907015
+  _20150929151246_,0.1,0.1,0.49930704,-0.08986465,0.6836048
+  _20150929151234_,0.1,0.1,0.52008975,-0.12040227,0.66225153
+  _20150929151230_,0.7,0.1,0.65948874,-0.0944529,0.80929816
+  _20150929151242_,0.7,0.1,0.5289335,-0.14196686,0.7204622
+  _20150929151254_,0.7,0.1,0.62405354,-0.13502835,0.7729083
+  
+The top line is your experiment label (which, you so duitifully
+changed, right?!) Then comes the column headings. The first is always
+the file, the next several are the parameters that you scanned. In
+this case these are PERR and Learning Rate, just like the example we
+talked about above, although in the one I happened to grab for this
+example it looks like the perr are 0.7, 0.1, and 0.5, and the learning
+rates look like they're 0.01 and 0.1, and then you'll have the
+replicates (here =3x), so there should be 3x2x3=18 results lines,
+which, by jove, there are!
+
+Okay, so the results are the next three, specifically:
+SNS84, BASE-P/R/C, and ADULT. What are those?!
+
+You're going to need to read this sentence several time, and you still
+won't understand it....here goes: The values in these columns are the
+average FINAL predicted answers for every problem, correlated with one
+of three datasets: the Sigler and Shrager 1984 set (SNS84), the
+sequencing priors set (BASE-...), and the correct answers set (ADULT).
+
+Hunh?!
+
+Okay, so the way this works is that we get a table of the strength of
+association between each problem and the predicted result for every
+result: 0-12 (and "other", but this usaully plays almost no role in
+the stats). And then we correlate that 25x13 table with each of three
+datasets. These datasets are in the analyzer.lisp file, and here they
+are:
+
+adult: (The correct answers)
+    ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
+    ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
+    ((1 . 3) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((1 . 4) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((1 . 5) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((2 . 1) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
+    ((2 . 2) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((2 . 3) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((2 . 4) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((2 . 5) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((3 . 1) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
+    ((3 . 2) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((3 . 3) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((3 . 4) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((3 . 5) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((4 . 1) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
+    ((4 . 2) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((4 . 3) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((4 . 4) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((4 . 5) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
+    ((5 . 1) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
+    ((5 . 2) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
+    ((5 . 3) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
+    ((5 . 4) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
+    ((5 . 5) (0 0 0 0 0 0 0 0 0 0 100 0 0 ))
+
+sns84: (from Sielger and Shrager's 1984 paper)
+      ((1 . 1) (0 5 86 0 2 0 2 0 0 0 0 2 4))
+      ((1 . 2) (0 0 9 70 2 0 4 0 0 7 2 2 5))
+      ((1 . 3) (0 2 0 11 71 5 2 2 0 0 0 0 7))
+      ((1 . 4) (0 0 0 0 11 61 9 7 0 0 0 2 11))
+      ((1 . 5) (0 0 0 0 13 16 50 11 0 2 2 0 5))
+      ((2 . 1) (0 7 5 79 5 0 0 0 0 0 0 0 4))
+      ((2 . 2) (2 0 4 5 80 4 0 5 0 0 0 0 0))
+      ((2 . 3) (0 0 4 7 38 34 9 2 2 2 0 0 4))
+      ((2 . 4) (0 2 0 7 2 43 29 7 7 0 0 0 4))
+      ((2 . 5) (0 2 0 5 2 16 43 13 0 0 2 0 18))
+      ((3 . 1) (0 2 0 9 79 4 0 4 0 0 0 0 4))
+      ((3 . 2) (0 0 9 11 11 55 7 0 0 0 0 0 7))
+      ((3 . 3) (4 0 0 5 21 9 48 0 2 2 2 0 7))
+      ((3 . 4) (0 0 0 5 11 23 14 29 2 0 0 0 16))
+      ((3 . 5) (0 0 0 7 0 13 23 14 18 0 5 0 20))
+      ((4 . 1) (0 0 4 2 9 68 2 2 7 0 0 0 7))
+      ((4 . 2) (0 0 7 9 0 20 36 13 7 0 2 0 7))
+      ((4 . 3) (0 0 0 5 18 9 9 38 9 0 2 0 11))
+      ((4 . 4) (4 0 0 2 2 29 7 7 34 0 4 0 13))
+      ((4 . 5) (0 0 0 0 4 9 16 9 11 18 11 4 20))
+      ((5 . 1) (0 0 4 0 4 7 71 4 4 0 4 0 4))
+      ((5 . 2) (0 0 5 20 2 18 27 25 2 0 2 0 0))
+      ((5 . 3) (0 0 2 11 9 18 5 16 23 0 5 0 11))
+      ((5 . 4) (0 0 0 0 11 21 16 5 11 16 4 0 16))
+      ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
+
+base-p/r/c: (primacy, recency, and next biases. We assign 33% to each
+addend, then 16% to the next of each. (You might think that by
+recency, the latter addend should get a little more, but this is
+counter-balanced by primacy, where the first one should...so we just
+call it even)
+
+      ((1 . 1) (0 66 33 0 0 0 0 0 0 0 0 0 0))
+      ((1 . 2) (0 33 33 33 0 0 0 0 0 0 0 0))
+      ((1 . 3) (0 33 0 33 33 0 0 0 0 0 0 0 0))
+      ((1 . 4) (0 33 16 0 33 16 0 0 0 0 0 0 0))
+      ((1 . 5) (0 33 16 0 0 33 16 0 0 0 0 0 0))
+      ((2 . 1) (0 33 49 16 0 0 0 0 0 0 0 0 0))
+      ((2 . 2) (0 0 66 33 0 0 0 0 0 0 0 0 0))
+      ((2 . 3) (0 0 33 33 33 0 0 0 0 0 0 0 0))
+      ((2 . 4) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((2 . 5) (0 0 33 16 0 33 16 0 0 0 0 0 0))
+      ((3 . 1) (0 33 16 33 16 0 0 0 0 0 0 0 0))
+      ((3 . 2) (0 0 0 0 0 0 0 0 0 0 0 0 0))
+      ((3 . 3) (0 0 0 66 33 0 0 0 0 0 0 0 0))
+      ((3 . 4) (0 0 0 33 33 33 0 0 0 0 0 0 0))
+      ((3 . 5) (0 0 0 33 16 33 16 0 0 0 0 0 0))
+      ((4 . 1) (0 33 16 0 33 16 0 0 0 0 0 0 0))
+      ((4 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((4 . 3) (0 0 0 16 49 16 0 0 0 0 0 0 0))
+      ((4 . 4) (0 0 0 0 66 33 0 0 0 0 0 0 0))
+      ((4 . 5) (0 0 0 0 33 33 33 0 0 0 0 0 0))
+      ((5 . 1) (0 33 16 0 0 33 16 0 0 0 0 0 0))
+      ((5 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
+      ((5 . 3) (0 0 0 33 16 33 16 0 0 0 0 0 0))
+      ((5 . 4) (0 0 0 0 33 49 16 0 0 0 0 0 0))
+      ((5 . 5) (0 0 0 0 0 66 33 0 0 0 0 0 0))
+
+So all we do is correlate the model's predictions AFTER TRAINING IS
+COMPLETE with these three tables, for each run, and that's what the
+numbers in those columns are. A good thing to do is to pull the
+results into excel and use a pivot table to examine which are the best
+parameter settings. 
+
+Here's how you do pivot tables in Excel:
+
+  https://xkcd.com/627/
+
+Okay, now we're gonna look at the other summary file, called
+mastersummary.xls, go ahead and open that one with excel (usually you
+can just double click it).
+
+          !!!THIS IS ACTUALLY THE LEARNING DATA!!!
+
+Okay, I lied. I'll explain that next time I have an hour to write more
+in thie readme. However, you can probably figure it out yourself by
+just noticing these features:
+
+* Each column (except for the first, which is a label, obviously!) is
+one of your runs (as in the pivot for R file, described above).
+
+* The top few rows are the parameters for the run.
+
+* There's an annoying data row between the parameters and the results
+  (which you can delete to make your life slightly simpler).
+
+* Note that there are three cols for each set of parameters (times the
+  number of duplicates); these correspond to the three correlations
+  above (adult, sns84, and base-...)
+
+* In the actual data there's one row for each "bin" of problems
+  (usually for each 25 problems), so if your run had 1000 problem
+  presentations, you should have approx 1000/25=40 results rows
+  (sometimes there's one more or less because of an obiwon error in
+  the code, but don't worry about that.)
+
+* The LAST row is the same as what's in the pivotforR file we looked
+  at above.
+
+The bottom line is that judicious manipulation and plotting of the
+data in this file will give you the LEARNING TRAJECTORIES for each
+run; specifically, how well it's matching each of the target sets
+(Adult, SNS84, and BASE-...) OVER TIME! 
