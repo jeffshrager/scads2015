@@ -5,10 +5,10 @@
 
 (eval-when 
  (compile load)
- (unless (probe-file "lhstats.dx32fsl")
+ (unless (probe-file #+clisp "lhstats.fas" #+ccl "lhstats.dx32fsl")
    (compile-file "lhstats.lisp"))
  (unless (find-package 'STATISTICS)
-   (load "lhstats.dx32fsl")))
+   (load "lhstats")))
 
 ;;; !!! WWW If at least *low* isn't set, the analyzer will try to find
 ;;; the files to analyze by the latest set of matching experiment
@@ -134,13 +134,19 @@
 ;;; FFF Make sure that all the files read have the same version
 ;;; number. Break if not!
 
+;;; Line length differs in different lisps bcs they differntially
+;;; compress the crlf to one char.
+(defun lline (l)
+  #+ccl (1- (length l))
+  #+clisp (length l))
+
 (defun load-result-file (file)
   (format t "~%Loading ~a~%" file)
   (with-open-file 
    (i file)
    (let* ((vline (read-line i nil nil))
 	  ;; 1- bcs of the return on the end
-	  (version (parse-integer (subseq vline  (1+ (position #\, vline)) (1- (length vline))))))
+	  (version (parse-integer (subseq vline  (1+ (position #\, vline)) (lline vline)))))
      (if (null *results-version*)
 	 (setq *results-version* version)
        (unless (equal version *results-version*)
@@ -178,7 +184,7 @@
 				  params))
 		      (:logs ,(reverse logs))
 		      (:rd-table ,(parse-rd-table i)))))
-	       (push (interpret-log-entry (string-split (subseq line 0 (1- (length line))))) local)))))
+	       (push (interpret-log-entry (string-split (subseq line 0 (lline line)))) local)))))
 
 (defun parse-rnnp-table (i)
   (prog1 
@@ -205,8 +211,7 @@
 	collect (let ((p (position #\, line)))
 		  (when p
 		    (cons (subseq line 0 p)
-			  ;; 1- bcs of the return on the end
-			  (subseq line (+ p 1) (1- (length line))))))))
+			  (subseq line (+ p 1) (lline line)))))))
 
 ;;; Special purpose scanner to figure out which files to load.
 
@@ -228,7 +233,7 @@
 		    (format t ".")
 		    (loop for l = (read-line i nil nil)
 			  until (or (null l) (search "settings.experiment_label" l))
-			  finally (return (if l (subseq l 26 (1- (length l)))))))
+			  finally (return (if l (subseq l 26 (lline l))))))
 	when label
 	do 
 	(push filename (gethash label *label->files*))
