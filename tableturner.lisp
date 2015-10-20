@@ -59,6 +59,9 @@
    (let* ((example-data (third (first data))) ;; Uses the first one as the model
 	  (rows (1- (length (cdr example-data))))
 	  (headers (car example-data)))
+     (loop for pathdr in pattern
+	   do (format o "n:~a	mean:~a	sd:~a	" pathdr  pathdr  pathdr ))
+     (format o "~%")
      (loop for row below rows
 	   do (loop for pathdr in pattern
 		    as col = (1+ (loop for dathdr in headers until (string-equal dathdr pathdr) sum 1))
