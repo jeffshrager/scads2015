@@ -30,12 +30,12 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # around it.)
 
 scan_spec = {"settings.experiment_label": 
-             ["\"20151008b: Exploring distributed rep of inputs longer\""],
+             ["\"20151027: No distrubution table -- 2nd test\""],
              # Setting up the initial counting network
              "settings.initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
              "settings.initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
              # Problem presentation and execution
-             "settings.n_problems": [10000],
+             "settings.n_problems": [1000],
              "settings.DR_threshold": [1.0], # WWW!!! Only used if dynamical_retrieval_on = True
              "settings.PERR": [0.0], # 0.1 confirmed 201509010826
              "settings.addend_matrix_offby1_delta": [0.0,1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on

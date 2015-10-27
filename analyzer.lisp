@@ -207,7 +207,7 @@
 
 (defun parse-params (i)
   (loop for line = (read-line i nil nil)
-	until (search  "====" line)
+	until (search  "=== END OF DATA ===" line)
 	collect (let ((p (position #\, line)))
 		  (when p
 		    (cons (subseq line 0 p)

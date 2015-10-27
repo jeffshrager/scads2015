@@ -159,19 +159,18 @@ def end():
     SOLUTION = EB
 
 
-# Raise is an important part of this process.  The question is how
-# to do the test-for-done.  That is, when putting up fingers, how
-# does the child know when he's got the right number up?  In this
-# version, he uses the echoic buffer trace, but that can't be right
-# for shortcut sum because the echoic buffer contains the SUM, not
-# just the single hand's count, so the right hand won't work.
-# Somehow the child can SAY one thing while covertly counting
-# another.  This suggests a dissociation of the echoic number
-# sequence from counting, which can be done covertly.  Instead of
-# relying upon the echoic trace for the count, We uses a new buffer
-# (*cb*) to maintain the count of fingers up on a particular hand.
-# This buffer is cleared by raise2 itself, and is used for the done
-# test.
+# Raise is an important part of this process.  The question is how to
+# do the test-for-done.  That is, when putting up fingers, how does
+# the child know when he's got the right number up?  In this version,
+# he uses the echoic buffer trace, but that can't be right for
+# shortcut sum because the echoic buffer contains the SUM, not just
+# the single hand's count, so the right hand won't work.  Somehow the
+# child can SAY one thing while covertly counting another.  This
+# suggests a dissociation of the echoic number sequence from counting,
+# which can be done covertly.  Instead of relying upon the echoic
+# trace for the count, We uses a new buffer (*cb*) to maintain the
+# count of fingers up on a particular hand.  This buffer is cleared by
+# raise2 itself, and is used for the done test.
 
 def count_from_one_twice_strategy():
     return [
@@ -358,7 +357,7 @@ class Addend(object):
             self.cla = 'larger'
 
 # Initialize hand, echoic buffer and counting buffer,and carry out the
-# strategy.  Update memory and distribution table at the end.
+# strategy.  Update memory and NN at the end.
 
 def exec_strategy(strategy_choice):
     global HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION
@@ -392,7 +391,6 @@ def exec_strategy(strategy_choice):
 def PPA():
     global ADDEND
     ADDEND = Addend(randint(1, 5), randint(1, 5))
-
 
 def main():
     import settings

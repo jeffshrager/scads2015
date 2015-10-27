@@ -54,78 +54,6 @@ def counting_network():
     NN.update_predictions()
     return NN
 
-# The Distribution table records every answer given to every problem
-# as they are created, and is output into the log at the end of the
-# run. It live in the global DSTR. The problem with this as the only
-# record of results is it's historicity; that is, it's covering not
-# only the final results, but also the results at the beginning. As a
-# result (pun!) of this fact, you essentially can't ever reach
-# completely correct results distribution (unless you run WAY over the
-# end of where the answers are all perfect, thereby masking the early
-# mistakes in a swamp of correct answers). The prediction table is
-# much more useful in assessing the state of knowledge of the system
-# at any given moment.
-
-class Distribution(object):
-    # Record answers ranging from 0 to 11; 12 includes all other answers.
-
-    def __init__(self):
-        self.table = [[[0 for x in range(13)] for x in range(6)] for x in range(6)]
-
-    # Update the distribution table when a new answer is generated.
-
-    def update(self, a1, a2, result):
-        if (a1 > 5) or (a2 > 5):
-            return
-
-        # Anything not within range(12) [i.e., 0-11] gets scored as [12]
-        if result not in range(12):
-            self.table[a1][a2][12] += 1
-        else:
-            self.table[a1][a2][result] += 1
-
-    # Calculate relative frequency, return blank string when frequency
-    # is zero so that the table looks clean when printed.
-
-    def relative_frequency(self, a1, a2, result):
-        s = sum(self.table[a1][a2])
-        if (s == 0) or (self.table[a1][a2][result] == 0):
-            return ''
-        else:
-            return round(float(self.table[a1][a2][result]) / s, 2)
-
-    # Same function but return zero when frequency is zero so that it
-    # can be plotted into graphs.
-
-    def relative_frequency1(self, a1, a2, result):
-        s = sum(self.table[a1][a2])
-        if s == 0:
-            return 0
-        else:
-            return float(self.table[a1][a2][result]) / s
-
-    # Convert the whole frequency table to relative frequency.
-
-    def relative_table(self, relative):
-        if relative:
-            return [[[self.relative_frequency1(x, y, z) for z in range(13)] for y in range(6)] for x in range(6)]
-        else:
-            return [[[self.table[x][y][z] for z in range(13)] for y in range(6)] for x in range(6)]
-
-    # Export to csv file.
-
-    def print_csv(self, relative=True):
-        global writer, scan_spec
-        table = self.relative_table(relative)
-        writer.writerow([' ======= Run Parameters ======='])
-        for key in scan_spec:
-            exec ("foo = " + key)
-            writer.writerow([key, foo])
-        writer.writerow(['===== Results Distribution Table ======='])
-        for i in range(1, 6):
-            for j in range(1, 6):
-                writer.writerow(["%s + %s = " % (i, j)] + [table[i][j][k] for k in range(13)])
-
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
 # a random strategy. Then we update the nn accordingly, and fit and
@@ -156,7 +84,7 @@ class subNeuralNetwork:
         return self.low_cc + (self.high_cc - self.low_cc) * random()
 
 def exec_strategy():
-    global writer, DSTR, nn
+    global writer, nn
     nn.reset_target()
     ADD.PPA()  # Create a random problem: sets the global ADDEND to an Addend object
     # create the sub nn, which are used as parameters into the main nn for easier updating/retrieval
@@ -193,26 +121,26 @@ def exec_strategy():
     nn.fit(nn.X, nn.target, settings.learning_rate, settings.in_process_training_epochs)
     # update predictions in case we want to print
     nn.update_predictions()
-    DSTR.update(ADD.ADDEND.ad1, ADD.ADDEND.ad2, SOLUTION)
-
-
 
 def init_nn_test_n_times(n_times):
-    global nn, DSTR, writer
+    global nn, writer, scan_spec
     print "---Running!---"
     with open(gen_file_name(), 'wb') as csvfile:
-        # initialize the writer, DSTR, neural network for each config we want to test
+        # initialize the writer and neural network for each config we want to test
         writer = csv.writer(csvfile)
         writer.writerow(['Output Format Version', '20150813'])
-        DSTR = Distribution()
         nn = counting_network()
         ADD.main()
         for i in range(n_times):
             if is_dump_time(i):
                 dump_nn_results_predictions()
             exec_strategy()
-        # Output tables for analysis
-        DSTR.print_csv()
+        # Output params
+        writer.writerow([' ======= Run Parameters ======='])
+        for key in scan_spec:
+            exec ("foo = " + key)
+            writer.writerow([key, foo])
+        writer.writerow(['=== END OF DATA ==='])
 
 # Execute with all the possible values of each parameter, scanned
 # recursively.
@@ -229,7 +157,6 @@ def config_and_test(index=0):
             config_and_test(index + 1)  # Next param (recursive!)
     else:  # Finally we have a set of choices, do it!
         init_nn_test_n_times(settings.n_problems)
-
 
 def main():
     global TL, param_keys, scan_spec
