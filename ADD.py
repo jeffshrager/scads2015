@@ -392,7 +392,7 @@ def PPA():
     global ADDEND
     ADDEND = Addend(randint(1, 5), randint(1, 5))
 
-def main():
+def init_for_addition():
     import settings
     global PERR, TL
     TL = 0  # trace level, 0 means off

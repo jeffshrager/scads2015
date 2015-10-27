@@ -3,13 +3,14 @@ import numpy as np
 import os
 import csv
 import matplotlib.pyplot as plt
-import NeuralNetwork as nn1
+import NeuralNetwork
 import ADD
 import datetime
 import timeit
 import settings
 
 def dump_nn_results_predictions():
+    global writer
     writer.writerow(['===== Results NN Prediction table ======'])
     for i in range(1, 6):
         for j in range(1, 6):
@@ -30,29 +31,30 @@ def is_dump_time(i):
 # I/O relationships that have this tendency.
 
 def counting_network():
+    global writer
     writer.writerow(['Network created', 'hidden_units', settings.hidden_units, 'learning_rate',
                      settings.initial_counting_network_learning_rate])
     input_units = 14  # Addends + 1 on either side of each for
     # distributed representation -- see code in
     # NeuralNetwork.py for more detail.
     output_units = 13 + len(settings.strategies)
-    NN = nn1.NeuralNetwork([input_units, settings.hidden_units, output_units])
+    nn = NeuralNetwork.NeuralNetwork([input_units, settings.hidden_units, output_units])
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
     X_count = []
     y_count = []
     for i in range(1, 5):
-        X_count.append(nn1.addends_matrix(i, i + 1))
-        y_count.append(nn1.sum_matrix(i + 2))
+        X_count.append(NeuralNetwork.addends_matrix(i, i + 1))
+        y_count.append(NeuralNetwork.sum_matrix(i + 2))
     X_count = np.array(X_count)
     y_count = np.array(y_count)
     # Now burn it in:
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.initial_counting_network_burn_in_epochs])
-    NN.fit(X_count, y_count, settings.initial_counting_network_learning_rate,
+    nn.fit(X_count, y_count, settings.initial_counting_network_learning_rate,
            settings.initial_counting_network_burn_in_epochs)
-    NN.update_predictions()
-    return NN
+    nn.update_predictions()
+    return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
@@ -84,7 +86,8 @@ class subNeuralNetwork:
         return self.low_cc + (self.high_cc - self.low_cc) * random()
 
 def exec_strategy():
-    global writer, nn
+    global nn
+    global writer
     nn.reset_target()
     ADD.PPA()  # Create a random problem: sets the global ADDEND to an Addend object
     # create the sub nn, which are used as parameters into the main nn for easier updating/retrieval
@@ -122,29 +125,20 @@ def exec_strategy():
     # update predictions in case we want to print
     nn.update_predictions()
 
-def init_nn_test_n_times(n_times):
-    global nn, writer, scan_spec
-    print "---Running!---"
-    with open(gen_file_name(), 'wb') as csvfile:
-        # initialize the writer and neural network for each config we want to test
-        writer = csv.writer(csvfile)
-        writer.writerow(['Output Format Version', '20150813'])
-        nn = counting_network()
-        ADD.main()
-        for i in range(n_times):
-            if is_dump_time(i):
-                dump_nn_results_predictions()
-            exec_strategy()
-        # Output params
-        writer.writerow([' ======= Run Parameters ======='])
-        for key in scan_spec:
-            exec ("foo = " + key)
-            writer.writerow([key, foo])
-        writer.writerow(['=== END OF DATA ==='])
+def init_neturalnets():
+    global nn
+    nn = counting_network()
+
+def present_problems():
+    for i in range(settings.n_problems):
+        exec_strategy()
+        if is_dump_time(i):
+            dump_nn_results_predictions()
 
 # Execute with all the possible values of each parameter, scanned
 # recursively.
 def config_and_test(index=0):
+    global writer
     global scan_spec, param_keys
     if index < len(param_keys):  # Any more param_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
@@ -155,10 +149,24 @@ def config_and_test(index=0):
             exec (param_keys[index] + '=' + str(param_value))
             print (param_keys[index] + '=' + str(param_value))
             config_and_test(index + 1)  # Next param (recursive!)
-    else:  # Finally we have a set of choices, do it!
-        init_nn_test_n_times(settings.n_problems)
+    else:  
+        # Finally we have a set of choices, do it:
+        fn=gen_file_name()
+        print("----------------- "+ fn + " -----------------")
+        with open(fn, 'wb') as csvfile:
+            # initialize the writer and neural network for each config we want to test
+            writer = csv.writer(csvfile)
+            writer.writerow(['Output Format Version', '20150813'])
+            init_neturalnets()
+            ADD.init_for_addition()
+            present_problems()
+            # Output params
+            writer.writerow([' ======= Run Parameters ======='])
+            for key in scan_spec:
+                exec ("foo = " + key)
+                writer.writerow([key, foo])
 
-def main():
+def top_level_run():
     global TL, param_keys, scan_spec
     start = timeit.default_timer()
     TL = 0  # trace level, 0 means off

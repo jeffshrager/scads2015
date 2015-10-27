@@ -30,7 +30,7 @@ strategies = [ADD.count_from_either_strategy, ADD.count_from_one_once_strategy,
 # around it.)
 
 scan_spec = {"settings.experiment_label": 
-             ["\"20151027: No distrubution table -- 2nd test\""],
+             ["\"20151027: 33333333333333\""],
              # Setting up the initial counting network
              "settings.initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
              "settings.initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
@@ -54,4 +54,4 @@ scan_spec = {"settings.experiment_label":
              }
 
 if __name__ == '__main__':
-    driver.main()
+    driver.top_level_run()
