@@ -135,7 +135,7 @@ def say_next():
     global EB
     if EB == 0:
         say(1)
-    elif settings.PERR > random():
+    elif settings.param("PERR") > random():
         say(EB)  #forgot to count but flipped finger
     else:
         say(EB + 1)
@@ -385,7 +385,6 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    hidden_units = 30
     ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 25  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
@@ -404,23 +403,16 @@ class Settings:
     # screws up, and one or more of these don't get set, I'll get an obvious 
     # error.]
     
-    experiment_label = False
-    n_problems = False
-    DR_threshold = False
-    PERR = False
-    addend_matrix_offby1_delta = False
-    RETRIEVAL_LOW_CC = False
-    RETRIEVAL_HIGH_CC = False
-    STRATEGY_LOW_CC = False
-    STRATEGY_HIGH_CC = False
-    non_result_y_filler = False
-    INCR_on_RIGHT = False
-    DECR_on_WRONG = False
-    INCR_the_right_answer_on_WRONG = False
-    learning_rate = False
-    in_process_training_epochs = False
+    def param(self, key):
+        #print (str(self))
+        #print (str(self.params))
+        #print (key)
+        #print (str(self.params[key]))
+        return self.params[key]
 
-    scan_spec = {"experiment_label": 
+    params = {}
+
+    param_specs = {"experiment_label": 
                  ["\"20151029: test\""],
                  # Setting up the initial counting network
                  "initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
@@ -436,6 +428,7 @@ class Settings:
                  "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                  "STRATEGY_HIGH_CC": [1.0],
                  # Learning target params
+                 "hidden_units": [30],
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [-1.0], # Substrated from non_result_y_filler at the response value when you get it right.
@@ -471,13 +464,13 @@ class Settings:
 def addends_matrix(a1, a2):
     lis = [0] * 14
     # First addend
-    lis[a1 - 1] = 1 - settings.addend_matrix_offby1_delta
+    lis[a1 - 1] = 1 - settings.param("addend_matrix_offby1_delta")
     lis[a1] = 1
-    lis[a1 + 1] = 1 - settings.addend_matrix_offby1_delta
+    lis[a1 + 1] = 1 - settings.param("addend_matrix_offby1_delta")
     # Second addend
-    lis[a2 + 6] = 1 - settings.addend_matrix_offby1_delta
+    lis[a2 + 6] = 1 - settings.param("addend_matrix_offby1_delta")
     lis[a2 + 7] = 1
-    lis[a2 + 8] = 1 - settings.addend_matrix_offby1_delta
+    lis[a2 + 8] = 1 - settings.param("addend_matrix_offby1_delta")
     return lis
 
 def sum_matrix(s):
@@ -627,7 +620,7 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append([settings.non_result_y_filler] * (13 + len(settings.strategies)))
+        self.target.append([settings.param("non_result_y_filler")] * (13 + len(settings.strategies)))
         self.target = numpy.array(self.target)
 
     def update_target(self, sub_nn, our_ans, ans, a1,a2):
@@ -637,11 +630,11 @@ class NeuralNetwork:
 
         if a1 + a2 == our_ans:
             # RIGHT
-            self.target[0][ans] += settings.INCR_on_RIGHT
+            self.target[0][ans] += settings.param("INCR_on_RIGHT")
         else:
             # WRONG
-            self.target[0][ans] -= settings.DECR_on_WRONG
-            self.target[0][a1+a2] += settings.INCR_the_right_answer_on_WRONG
+            self.target[0][ans] -= settings.param("DECR_on_WRONG")
+            self.target[0][a1+a2] += settings.param("INCR_the_right_answer_on_WRONG")
 
 ##################### DRIVER #####################
 
@@ -658,7 +651,7 @@ def gen_file_name():
     return full_file__name
 
 def is_dump_time(i):
-    return i % settings.pbs == 0 or i == settings.n_problems - 1
+    return i % settings.pbs == 0 or i == settings.param("n_problems") - 1
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
@@ -666,13 +659,11 @@ def is_dump_time(i):
 # I/O relationships that have this tendency.
 
 def counting_network():
-    writer.writerow(['Network created', 'hidden_units', settings.hidden_units, 'learning_rate',
-                     settings.initial_counting_network_learning_rate])
+    writer.writerow(['Network created', 'hidden_units', settings.param("hidden_units"), 'learning_rate',
+                     settings.param("initial_counting_network_learning_rate")])
     input_units = 14  # Addends + 1 on either side of each for
-    # distributed representation -- see code in
-    # NeuralNetwork.py for more detail.
     output_units = 13 + len(settings.strategies)
-    lnn = NeuralNetwork([input_units, settings.hidden_units, output_units])
+    lnn = NeuralNetwork([input_units, settings.param("hidden_units"), output_units])
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -684,9 +675,9 @@ def counting_network():
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
     # Now burn it in:
-    writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.initial_counting_network_burn_in_epochs])
-    lnn.fit(X_count, y_count, settings.initial_counting_network_learning_rate,
-           settings.initial_counting_network_burn_in_epochs)
+    writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
+    lnn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
+           settings.param("initial_counting_network_burn_in_epochs"))
     lnn.update_predictions()
     return lnn
 
@@ -699,8 +690,8 @@ class subNeuralNetwork:
     def __init__(self, type):
         # initializing member variables
         self.low_cc, self.high_cc, self.beg, self.end = -1, -1, -1, -1
-        exec ("self.low_cc = settings." + type + "_LOW_CC")
-        exec ("self.high_cc = settings." + type + "_HIGH_CC")
+        self.low_cc = settings.param(type + "_LOW_CC")
+        self.high_cc = settings.param(type + "_HIGH_CC")
         if type == "RETRIEVAL":
             self.beg = 0
             self.end = 13
@@ -749,7 +740,7 @@ def exec_strategy():
         nn.update_target(strat_nn, SOLUTION, strat_num + 13,ADDEND.ad1,ADDEND.ad2)
     # update the target based on if the sum is correct or not
     nn.update_target(add_nn, SOLUTION, ADDEND.ad1 + ADDEND.ad2,ADDEND.ad1,ADDEND.ad2)
-    nn.fit(nn.X, nn.target, settings.learning_rate, settings.in_process_training_epochs)
+    nn.fit(nn.X, nn.target, settings.param("learning_rate"), settings.param("in_process_training_epochs"))
     # update predictions in case we want to print
     nn.update_predictions()
 
@@ -758,7 +749,7 @@ def init_neturalnets():
     nn = counting_network()
 
 def present_problems():
-    for i in range(settings.n_problems):
+    for i in range(settings.param("n_problems")):
         exec_strategy()
         if is_dump_time(i):
             dump_nn_results_predictions()
@@ -766,15 +757,13 @@ def present_problems():
 # Execute with all the possible values of each parameter, scanned
 # recursively.
 def config_and_test(index=0):
-    global scan_spec_keys, writer
-    if index < len(scan_spec_keys):  # Any more scan_spec_keys to scan?
+    global param_specs_keys, writer
+    if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
-        for param_value in settings.scan_spec[scan_spec_keys[index]]:
-            # Jeff's Ugly lisp-like metaprogramming: Set the param
-            # value, e.g., epoch = 100, then recurse to the next index
-            print ("settings." + scan_spec_keys[index] + '=' + str(param_value))
-            exec ("settings." + scan_spec_keys[index] + '=' + str(param_value))
+        for param_value in settings.param_specs[param_specs_keys[index]]:
+            settings.params[param_specs_keys[index]] = param_value
+            print ("Setting param: " + param_specs_keys[index] + " = " + str(settings.params[param_specs_keys[index]]))
             config_and_test(index + 1)  # Next param (recursive!)
     else:
         # Finally we have a set of choices, do it:
@@ -788,19 +777,18 @@ def config_and_test(index=0):
             present_problems()
             # Output params
             writer.writerow(['======= Run Parameters ======='])
-            for key in settings.scan_spec:
-                exec ("foo = settings." + key)
-                writer.writerow([key, foo])
+            for key in settings.param_specs:
+                writer.writerow([key, settings.param(key)])
             writer.writerow(['=== END OF DATA ==='])
 
 def top_level_run():
-    global scan_spec_keys, settings, hidden_units
+    global param_specs_keys, settings, hidden_units
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
     settings = Settings()
-    scan_spec_keys = settings.scan_spec.keys()
+    param_specs_keys = settings.param_specs.keys()
     print "Parameter spec:"
-    print scan_spec_keys
+    print (str(settings.param_specs))
     print "Strategies in play:"
     print settings.strategies
     print "-----"
