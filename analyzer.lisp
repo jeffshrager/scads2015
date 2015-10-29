@@ -207,7 +207,7 @@
 
 (defun parse-params (i)
   (loop for line = (read-line i nil nil)
-	until (search  "=== END OF DATA ===" line)
+	until (search "=== END OF DATA ===" line)
 	collect (let ((p (position #\, line)))
 		  (when p
 		    (cons (subseq line 0 p)
@@ -232,7 +232,7 @@
 		    (i pathname)
 		    (format t ".")
 		    (loop for l = (read-line i nil nil)
-			  until (or (null l) (search "settings.experiment_label" l))
+			  until (or (null l) (search "experiment_label" l))
 			  finally (return (if l (subseq l 26 (lline l))))))
 	when label
 	do 
@@ -243,7 +243,10 @@
 	)
   ;; Now find out which label has the "highest" filename and get all
   ;; the filenames assocated with that label.
-  (loop for filename in (sort (copy-list (gethash (gethash (car (sort (copy-list *all-filenames*) #'string>)) *filename->label*) *label->files*)) #'string<)
+  (loop for filename in (sort (copy-list 
+			       (gethash (gethash 
+					 (car (sort (copy-list *all-filenames*) #'string>)) 
+					 *filename->label*) *label->files*)) #'string<)
 	collect (gethash filename *filename->pathname*)))
 
 ;;; =============================================================
@@ -410,7 +413,7 @@
 		(push r *d*)
 		(let* ((p (second (assoc :params r))))
 		  ;; Extract and check label
-		  (let ((new-label (cdr (assoc "settings.experiment_label" p :test #'string-equal))))
+		  (let ((new-label (cdr (assoc "experiment_label" p :test #'string-equal))))
 		    (if (null label)
 			(setq label new-label)
 		      (if (string-equal label new-label)
@@ -498,23 +501,23 @@
 
 (defparameter *param-reporting-order* 
   '(
-    ("settings.DECR_on_WRONG" . DECR_on_WRONG)
-    ("settings.non_result_y_filler" . non_result_y_filler)
-    ("settings.initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
-    ("settings.DR_threshold " . DR_threshold )
-    ("settings.initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
-    ("settings.experiment_label" . experiment_label)
-    ("settings.RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
-    ("settings.INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
-    ("settings.STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
-    ("settings.STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("settings.addend_matrix_offby1_delta" . addend_matrix_offby1_delta)
-    ("settings.RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
-    ("settings.PERR" . PERR)
-    ("settings.learning_rate" . learning_rate)
-    ("settings.in_process_training_epochs" . in_process_training_epochs)
-    ("settings.INCR_on_RIGHT" . INCR_on_RIGHT)
-    ("settings.n_problems" . n_problems)
+    ("DECR_on_WRONG" . DECR_on_WRONG)
+    ("non_result_y_filler" . non_result_y_filler)
+    ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
+    ("DR_threshold " . DR_threshold )
+    ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
+    ("experiment_label" . experiment_label)
+    ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
+    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
+    ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
+    ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
+    ("addend_matrix_offby1_delta" . addend_matrix_offby1_delta)
+    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
+    ("PERR" . PERR)
+    ("learning_rate" . learning_rate)
+    ("in_process_training_epochs" . in_process_training_epochs)
+    ("INCR_on_RIGHT" . INCR_on_RIGHT)
+    ("n_problems" . n_problems)
     ))
 
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
@@ -617,5 +620,5 @@
   )
 
 (untrace)
-;(trace compare)
+(trace parse-params most-recent-set-of-results-pathnames-by-label-mathcing) 
 (analyze)
