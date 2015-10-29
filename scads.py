@@ -70,10 +70,8 @@ class Hand(object):
     def swap(self):
         if self.hand == 'left':
             self.hand = 'right'
-            # mempush(swap-hands, from left to right)
         else:
             self.hand = 'left'
-            # mempush(swap-hands, from right to left)
         self.foa['hand'] = self.hand
         self.foa['finger'] = 0
 
@@ -119,7 +117,6 @@ def try_dynamic_retrieval():
         return None
     return None
 
-
 # Manipulation in the echoic buffer where number facts live.  We
 # assume perfect knowledge of the number sequence.  That way incr
 # and decr can be used.  This is where all possible errors come into
@@ -133,8 +130,6 @@ def try_dynamic_retrieval():
 def say(n):
     global EB
     EB = n
-    # mempush(say, list n)
-
 
 def say_next():
     global EB
@@ -145,7 +140,6 @@ def say_next():
     else:
         say(EB + 1)
 
-
 # Clear EB each time you're about to start a count off.  If you
 # don't do this, the last number counted will be left in the echoic
 # buffer and you'll count on from it, which is actually right, of
@@ -155,14 +149,12 @@ def clear_eb():
     global EB
     EB = 0
 
-
 # This tells the driver.py to stop.
 
 def end():
     global SOLUTION, SOLUTION_COMPLETED
     SOLUTION_COMPLETED = True
     SOLUTION = EB
-
 
 # Raise is an important part of this process.  The question is how to
 # do the test-for-done.  That is, when putting up fingers, how does
@@ -408,26 +400,28 @@ class Settings:
     # IMPORTANT: REMEMBER TO CHANGE experiment_label, which is
     # used by the analyzer to label the results file. (Because we set
     # these by exec(), this has to have an extra set of "\"quotes\""
-    # around it.)
+    # around it.) [These are all False initially just so that if something
+    # screws up, and one or more of these don't get set, I'll get an obvious 
+    # error.]
     
-    experiment_label = 0
-    n_problems = 0
-    DR_threshold = 0
-    PERR = 0
-    addend_matrix_offby1_delta = 0
-    RETRIEVAL_LOW_CC = 0
-    RETRIEVAL_HIGH_CC = 0
-    STRATEGY_LOW_CC = 0
-    STRATEGY_HIGH_CC = 0
-    non_result_y_filler = 0
-    INCR_on_RIGHT = 0
-    DECR_on_WRONG = 0
-    INCR_the_right_answer_on_WRONG = 0
-    learning_rate = 0
-    in_process_training_epochs = 0
+    experiment_label = False
+    n_problems = False
+    DR_threshold = False
+    PERR = False
+    addend_matrix_offby1_delta = False
+    RETRIEVAL_LOW_CC = False
+    RETRIEVAL_HIGH_CC = False
+    STRATEGY_LOW_CC = False
+    STRATEGY_HIGH_CC = False
+    non_result_y_filler = False
+    INCR_on_RIGHT = False
+    DECR_on_WRONG = False
+    INCR_the_right_answer_on_WRONG = False
+    learning_rate = False
+    in_process_training_epochs = False
 
     scan_spec = {"experiment_label": 
-                 ["\"20151027: 33333333333333\""],
+                 ["\"20151029: test\""],
                  # Setting up the initial counting network
                  "initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
@@ -449,6 +443,8 @@ class Settings:
                  "learning_rate": [0.1], # Explored 201509010826
                  "in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
+
+##################### NN #####################
 
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
@@ -647,6 +643,8 @@ class NeuralNetwork:
             self.target[0][ans] -= settings.DECR_on_WRONG
             self.target[0][a1+a2] += settings.INCR_the_right_answer_on_WRONG
 
+##################### DRIVER #####################
+
 def dump_nn_results_predictions():
     writer.writerow(['===== Results NN Prediction table ======'])
     for i in range(1, 6):
@@ -789,10 +787,11 @@ def config_and_test(index=0):
             init_neturalnets()
             present_problems()
             # Output params
-            writer.writerow([' ======= Run Parameters ======='])
+            writer.writerow(['======= Run Parameters ======='])
             for key in settings.scan_spec:
                 exec ("foo = settings." + key)
                 writer.writerow([key, foo])
+            writer.writerow(['=== END OF DATA ==='])
 
 def top_level_run():
     global scan_spec_keys, settings, hidden_units
