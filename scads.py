@@ -5,7 +5,7 @@ import os
 import numpy
 from random import randint, shuffle, random
 
-global settings, writer, nn
+global settings, writer, rn
 
 ##################### ADD #####################
 
@@ -81,7 +81,7 @@ class Hand(object):
 # complexities with this, some theoretical and some pratical. The
 # practical problem is that we have to transform the fingers-on-a-hand
 # representation into the input layer representation, and then do the
-# nn probe. That's what most of this does. A more interesting problem
+# rnet probe. That's what most of this does. A more interesting problem
 # is that theoretical problem of what precisely is being primed by
 # having one's fingers raised. For example, suppose the problem is
 # 3+4, the child raises 3 fingers on one hand, but if we were to do a
@@ -89,7 +89,7 @@ class Hand(object):
 # that prime 7? It should prime 3, right? Do we want 3 or 7? That is,
 # does this prime CORRECT or INCORRECT solutions? And if it's supposed
 # to prime 7, then you'd need some other representational machinery to
-# make that happen...maybe, or maybe the nn will have a slight 3->7
+# make that happen...maybe, or maybe the rnet will have a slight 3->7
 # (and 4->7) links already burned in, as well as the "correct" 3+4->7
 # links. 
 
@@ -105,7 +105,7 @@ def try_dynamic_retrieval():
         index += 1
     add_matrix[index + 5 + 1] = 1
     # Make a prediction
-    prediction = driver.nn.predict(add_matrix)
+    prediction = rnet.predict(add_matrix)
     results_above_DRR = []
     for i in range(0, 13):
         if prediction[i] > DR_threshold:
@@ -171,104 +171,45 @@ def end():
 
 def count_from_one_twice_strategy():
     return [
-
         # First addend on first hand.
-
-        HAND.clear,
-        HAND.choose,
-        ADDEND.choose,
-        ADDEND.say,
-        clear_eb,
-        raise_hand,
-
+        HAND.clear, HAND.choose, ADDEND.choose, ADDEND.say, clear_eb, raise_hand,
         # Second addend on the other hand.
-
-        HAND.swap,
-        ADDEND.swap,
-        ADDEND.say,
-        clear_eb,
-        raise_hand,
-
+        HAND.swap, ADDEND.swap, ADDEND.say, clear_eb, raise_hand,
         # Final count out.
-
-        HAND.choose,
-        clear_eb,
-        count_fingers,
-        HAND.swap,
-        count_fingers,
+        HAND.choose, clear_eb, count_fingers, HAND.swap, count_fingers,
         end]
-
 
 def count_from_one_once_strategy():
     return [
-
         # First addend on first hand.
-
-        HAND.clear,
-        HAND.choose,
-        ADDEND.choose,
-        ADDEND.say,
-        clear_eb,
-        raise_hand,
-
+        HAND.clear, HAND.choose, ADDEND.choose, ADDEND.say, clear_eb, raise_hand,
         # Second addend on the other hand.
-
-        HAND.swap,
-        ADDEND.swap,
-        raise_hand,
+        HAND.swap, ADDEND.swap, raise_hand,
         end]
-
 
 def count_from_either_strategy():
     return [
-
         # Count from the first addend.
-
-        ADDEND.choose,
-        ADDEND.say,
-
+        ADDEND.choose, ADDEND.say,
         # Second addend on a hand.
-
-        HAND.clear,
-        HAND.choose,
-        ADDEND.swap,
-        raise_hand,
+        HAND.clear, HAND.choose, ADDEND.swap, raise_hand,
         end]
-
 
 def min_strategy():
     return [
-
         # Count from the larger addend.
-
-        ADDEND.choose_larger,
-        ADDEND.say,
-
+        ADDEND.choose_larger, ADDEND.say,
         # Second addend on a hand.
-
-        HAND.clear,
-        HAND.choose,
-        ADDEND.swap,
-        raise_hand,
+        HAND.clear, HAND.choose, ADDEND.swap, raise_hand,
         end]
-
 
 def random_strategy():
     list_of_operations = [
-        HAND.clear, HAND.clear,
-        HAND.choose, HAND.choose,
-        ADDEND.choose, ADDEND.choose,
-        ADDEND.say, ADDEND.say,
-        clear_eb, clear_eb,
-        raise_hand, raise_hand,
-        HAND.swap, HAND.swap,
-        ADDEND.swap, ADDEND.swap,
-        count_fingers, count_fingers,
-        end]
-
-    shuffle(list_of_operations)
+        HAND.clear, HAND.clear, HAND.choose, HAND.choose, ADDEND.choose, ADDEND.choose,
+        ADDEND.say, ADDEND.say, clear_eb, clear_eb, raise_hand, raise_hand, HAND.swap, HAND.swap,
+        ADDEND.swap, ADDEND.swap, count_fingers, count_fingers, end]
+    shuffle(list_of_operations) # WWW This puts the end someplace randomly in the middle of the strategy WWW???
     return list_of_operations
-
 
 # This version of raise assumes that hand control is done by the
 # caller.
@@ -352,7 +293,7 @@ class Addend(object):
             self.cla = 'larger'
 
 # Initialize hand, echoic buffer and counting buffer,and carry out the
-# strategy.  Update memory and NN at the end.
+# strategy.  Update memory and RNET at the end.
 
 def exec_explicit_strategy(strategy_choice):
     global SOLUTION, SOLUTION_COMPLETED
@@ -493,16 +434,20 @@ def y_index(a1, a2):
     return 5 * (a1 - 1) + (a2 - 1)
 
 class NeuralNetwork:
-    def __init__(self, layers):
+    def __init__(self, layers, type):
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
         self.activation_prime = lambda x: 1.0 - x**2
 
+        # Generate a cc in the range for this network type
+        self.low_cc = settings.param(type + "_LOW_CC")
+        self.high_cc = settings.param(type + "_HIGH_CC")
+        self.cc = self.low_cc + (self.high_cc - self.low_cc) * random()
+
         # Set weights
-
         self.weights = []
-
         self.target = []
+
         # range of weight values (-1,1)
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
@@ -522,8 +467,7 @@ class NeuralNetwork:
         self.X = numpy.array(self.X)
         self.predictions = []
 
-    # Main forward feeding/backpropagation part
-
+    # Main forward feeding/backpropagation
     def fit(self, X, y, learning_rate, epochs):
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
@@ -636,34 +580,31 @@ class NeuralNetwork:
             self.target[0][ans] -= settings.param("DECR_on_WRONG")
             self.target[0][a1+a2] += settings.param("INCR_the_right_answer_on_WRONG")
 
+    def dump_predictions(self):
+        writer.writerow(['===== Results Prediction table ======'])
+        for i in range(1, 6):
+            for j in range(1, 6):
+                writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, 13))
+                writer.writerow(['========================================'])
+
 ##################### DRIVER #####################
-
-def dump_nn_results_predictions():
-    writer.writerow(['===== Results NN Prediction table ======'])
-    for i in range(1, 6):
-        for j in range(1, 6):
-            writer.writerow(["%s + %s = " % (i, j)] + nn.guess_vector(i, j, 0, 13))
-    writer.writerow(['========================================'])
-
-def gen_file_name():
-    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
-    return full_file__name
-
-def is_dump_time(i):
-    return i % settings.pbs == 0 or i == settings.param("n_problems") - 1
 
 # Set up the neural network fitted to kids' having learned how to
 # count before we got here, so there is a tendency for problems what
 # look like 3+4 to result in saying 5. To do this we burn in a set of
 # I/O relationships that have this tendency.
 
-def counting_network():
-    writer.writerow(['Network created', 'hidden_units', settings.param("hidden_units"), 'learning_rate',
-                     settings.param("initial_counting_network_learning_rate")])
+def init_neturalnets():
+    global rrnet, srnet
+    rnet = results_network()
+    snet = strategy_network()
+
+def results_network():
+    writer.writerow(['Creating results network', 'rn_hidden_units', settings.param("rn_hidden_units"),
+                     'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
     input_units = 14  # Addends + 1 on either side of each for
-    output_units = 13 + len(settings.strategies)
-    lnn = NeuralNetwork([input_units, settings.param("hidden_units"), output_units])
+    output_units = 13
+    local_nn = NeuralNetwork([input_units, settings.param("rn_hidden_units"), output_units],"RETRIEVAL")
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -676,44 +617,31 @@ def counting_network():
     y_count = numpy.array(y_count)
     # Now burn it in:
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
-    lnn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
+    local_nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
            settings.param("initial_counting_network_burn_in_epochs"))
-    lnn.update_predictions()
-    return lnn
+    local_nn.update_predictions()
+    return local_nn
+
+def strategy_network():
+    writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
+                     'strategy_learning_rate', settings.param("strategy_learning_rate")])
+    input_units = 14  # Same inputs as the results network
+    output_units = len(settings.strategies)
+    return NeuralNetwork([input_units, settings.param("strategy_hidden_units"), output_units],"STRATEGY")
 
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
-# a random strategy. Then we update the nn accordingly, and fit and
+# a random strategy. Then we update the rnet accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
-
-class subNeuralNetwork:
-    def __init__(self, type):
-        # initializing member variables
-        self.low_cc, self.high_cc, self.beg, self.end = -1, -1, -1, -1
-        self.low_cc = settings.param(type + "_LOW_CC")
-        self.high_cc = settings.param(type + "_HIGH_CC")
-        if type == "RETRIEVAL":
-            self.beg = 0
-            self.end = 13
-        elif type == "STRATEGY":
-            self.beg = 13
-            self.end = 13 + len(settings.strategies)
-        else:
-            print 'ERROR'
-        self.cc = self.gen_cc()
-
-    def gen_cc(self):
-        return self.low_cc + (self.high_cc - self.low_cc) * random()
 
 def exec_strategy():
     global SOLUTION
-    nn.reset_target()
+    rnet.reset_target()
+    snet.reset_target()
     PPA()  # Create a random problem: sets the global ADDEND to an Addend object
-    # create the sub nn, which are used as parameters into the main nn for easier updating/retrieval
-    add_nn = subNeuralNetwork("RETRIEVAL")
-    strat_nn = subNeuralNetwork("STRATEGY")
+    # create the sub rnet, which are used as parameters into the main rnet for easier updating/retrieval
     # try getting a random number from a list above the confidence criterion
-    retrieval = nn.try_memory_retrieval(add_nn,ADDEND.ad1,ADDEND.ad2)
+    retrieval = rnet.try_memory_retrieval(rnet,ADDEND.ad1,ADDEND.ad2)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
@@ -725,11 +653,11 @@ def exec_strategy():
         writer.writerow(["used", "retrieval", ADDEND.ad1, ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_num = nn.try_memory_retrieval(strat_nn,ADDEND.ad1,ADDEND.ad2)
+        strat_num = snet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         else:
-            strat_num = strat_num - 13  # Remove the offset from the nn
+            strat_num = strat_num - 13  # Remove the offset from the rnet
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
@@ -737,25 +665,29 @@ def exec_strategy():
         # message appeared!
         writer.writerow(["used", settings.strategies[strat_num], ADDEND.ad1, ADDEND.ad2, SOLUTION])
         # update the target based on if the strategy worked or not
-        nn.update_target(strat_nn, SOLUTION, strat_num + 13,ADDEND.ad1,ADDEND.ad2)
+        snet.update_target(SOLUTION, strat_num, ADDEND.ad1, ADDEND.ad2)
     # update the target based on if the sum is correct or not
-    nn.update_target(add_nn, SOLUTION, ADDEND.ad1 + ADDEND.ad2,ADDEND.ad1,ADDEND.ad2)
-    nn.fit(nn.X, nn.target, settings.param("learning_rate"), settings.param("in_process_training_epochs"))
+    rnet.update_target(SOLUTION, ADDEND.ad1 + ADDEND.ad2, ADDEND.ad1, ADDEND.ad2)
+    rnet.fit(rnet.X, rnet.target, settings.param("learning_rate"), settings.param("in_process_training_epochs"))
     # update predictions in case we want to print
-    nn.update_predictions()
-
-def init_neturalnets():
-    global nn
-    nn = counting_network()
+    rnet.update_predictions()
+    snet.update_predictions()
 
 def present_problems():
     for i in range(settings.param("n_problems")):
         exec_strategy()
-        if is_dump_time(i):
-            dump_nn_results_predictions()
+        if i % settings.pbs == 0 or i == settings.param("n_problems") - 1:
+            rnet.dump_predictions()
+            snet.dump_predictions()
 
-# Execute with all the possible values of each parameter, scanned
-# recursively.
+# Execute with all the possible values of each parameter. This is a
+# weird recursive function. The top half that calls itself repeatedly
+# until it has chosen and set the next value for each paramter. Then
+# it drops into the second half, which actually runs with whatever the
+# latest set of parameters is. The state of the recursion holds the
+# state of the parameter scan. (For slight efficiency this uses a
+# quasi-global called param_specs_keys and gets set in the caller.)
+
 def config_and_test(index=0):
     global param_specs_keys, writer
     if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
@@ -781,12 +713,17 @@ def config_and_test(index=0):
                 writer.writerow([key, settings.param(key)])
             writer.writerow(['=== END OF DATA ==='])
 
+def gen_file_name():
+    file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
+    return full_file__name
+
 def top_level_run():
     global param_specs_keys, settings, hidden_units
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
-    settings = Settings()
-    param_specs_keys = settings.param_specs.keys()
+    settings = Settings()  
+    param_specs_keys=settings.param_specs.keys()
     print "Parameter spec:"
     print (str(settings.param_specs))
     print "Strategies in play:"
