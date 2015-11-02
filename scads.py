@@ -610,9 +610,8 @@ def init_neturalnets():
 def results_network():
     writer.writerow(['Creating results network', 'results_hidden_units', settings.param("results_hidden_units"),
                      'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
-    input_units = 14  # Addends + 1 on either side of each for
-    output_units = 13
-    local_nn = NeuralNetwork([input_units, settings.param("results_hidden_units"), output_units],"RETRIEVAL")
+    # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
+    nn = NeuralNetwork([14, settings.param("results_hidden_units"), 13],"RETRIEVAL")
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -625,17 +624,15 @@ def results_network():
     y_count = numpy.array(y_count)
     # Now burn it in:
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
-    local_nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
+    nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
            settings.param("initial_counting_network_burn_in_epochs"))
-    local_nn.update_predictions()
-    return local_nn
+    nn.update_predictions()
+    return nn
 
 def strategy_network():
     writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
                      'strategy_learning_rate', settings.param("strategy_learning_rate")])
-    input_units = 14  # Same inputs as the results network
-    output_units = len(settings.strategies)
-    return NeuralNetwork([input_units, settings.param("strategy_hidden_units"), output_units],"STRATEGY")
+    return NeuralNetwork([14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
 
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
@@ -662,7 +659,9 @@ def exec_strategy():
         writer.writerow(["used", "retrieval", ADDEND.ad1, ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
+        print("snet.try_memory_retrieval("+str(ADDEND.ad1)+"+"+str(ADDEND.ad2)+")")
         strat_num = snet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
+        print("  Result: " + str(strat_num))
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
