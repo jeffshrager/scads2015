@@ -345,10 +345,6 @@ class Settings:
     # error.]
     
     def param(self, key):
-        #print (str(self))
-        #print (str(self.params))
-        #print (key)
-        #print (str(self.params[key]))
         return self.params[key]
 
     params = {}
@@ -525,12 +521,9 @@ class NeuralNetwork:
     # Returns a function that picks a random result from a list of
     # results above the confidence criterion this is used for the
     # retrieval. when we want to try to retrieve a sum, for example 3
-    # + 4 = 7, we pass in a1 = 3, a2 = 4, beg = 0, and end = 13 guess
-    # loops through [beg,end) to see the values that are above the cc,
-    # and chooses a random number from those values. if there are
-    # none, it returns none.  it does the same thing for when we want
-    # to retrieve a strategy, except beg = 13, and end = 13 +
-    # len(strategies) ******************* NO LONGER CORRECT ***************************
+    # + 4 = 7, we pass in a1 = 3, a2 = 4. It looks to see the values
+    # that are above the cc, and chooses a random number from those
+    # values. if there are none, it returns None. 
 
     def try_memory_retrieval(self, a1, a2):
         index = self.y_index(a1, a2)
@@ -593,7 +586,7 @@ class NeuralNetwork:
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, self.layers[-1]))
-                writer.writerow(['========================================'])
+        writer.writerow(['========================================'])
 
 ##################### DRIVER #####################
 
@@ -632,7 +625,9 @@ def results_network():
 def strategy_network():
     writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
                      'strategy_learning_rate', settings.param("strategy_learning_rate")])
-    return NeuralNetwork([14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
+    nn = NeuralNetwork([14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
+    nn.update_predictions()
+    return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
@@ -659,9 +654,7 @@ def exec_strategy():
         writer.writerow(["used", "retrieval", ADDEND.ad1, ADDEND.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        print("snet.try_memory_retrieval("+str(ADDEND.ad1)+"+"+str(ADDEND.ad2)+")")
         strat_num = snet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
-        print("  Result: " + str(strat_num))
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
