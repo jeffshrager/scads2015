@@ -5,7 +5,7 @@ import os
 import numpy
 from random import randint, shuffle, random
 
-global settings, writer, rn
+global settings, writer, rnet, snet
 
 ##################### ADD #####################
 
@@ -369,12 +369,14 @@ class Settings:
                  "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                  "STRATEGY_HIGH_CC": [1.0],
                  # Learning target params
-                 "hidden_units": [30],
+                 "strategy_hidden_units": [10],
+                 "results_hidden_units": [30],
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [-1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [0.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-                 "learning_rate": [0.1], # Explored 201509010826
+                 "strategy_learning_rate": [0.1],
+                 "results_learning_rate": [0.1], # Explored 201509010826
                  "in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
@@ -415,29 +417,20 @@ def addends_matrix(a1, a2):
     return lis
 
 def sum_matrix(s):
-    lis = [0] * (13 + len(settings.strategies))
+    lis = [0] * 13
     lis[s] = 1
     return lis
-
-# The output array from the NN is created by .append(ing) a bunch of
-# probe results, something like this: 
-#
-#    for i in range(1,6):
-#        for j in range (1,6):
-#          ...generate the i+j output array and append to the growing vector...
-#
-# What results is a long array where the index of the problem we're looking for 
-# is position: 5 * (i - 1) + (j - 1). For example, for 3+4 you end up with 
-# 5 * 2 * 3 = position 30 in the output units array. 
-
-def y_index(a1, a2):
-    return 5 * (a1 - 1) + (a2 - 1)
 
 class NeuralNetwork:
     def __init__(self, layers, type):
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
         self.activation_prime = lambda x: 1.0 - x**2
+
+        # The layers is a vector giving the number of nodes in each
+        # layer. The first (0th) is assumed to be the input and the
+        # last the output layer.
+        self.layers=layers
 
         # Generate a cc in the range for this network type
         self.low_cc = settings.param(type + "_LOW_CC")
@@ -466,6 +459,21 @@ class NeuralNetwork:
                 self.X.append(addends_matrix(i, j))
         self.X = numpy.array(self.X)
         self.predictions = []
+
+    # The output array from the NN is created by .append(ing) a bunch of
+    # probe results, something like this: 
+    #
+    #    for i in range(1,6):
+    #        for j in range (1,6):
+    #          ...generate the i+j output array and append to the growing vector...
+    #
+    # What results is a long array where the index of the problem we're looking for 
+    # is position: 5 * (i - 1) + (j - 1). For example, for 3+4 you end up with 
+    # 5 * 2 * 3 = position 30 in the output units array. 
+        
+    @staticmethod
+    def y_index(a1, a2):
+        return 5 * (a1 - 1) + (a2 - 1)
 
     # Main forward feeding/backpropagation
     def fit(self, X, y, learning_rate, epochs):
@@ -522,14 +530,14 @@ class NeuralNetwork:
     # and chooses a random number from those values. if there are
     # none, it returns none.  it does the same thing for when we want
     # to retrieve a strategy, except beg = 13, and end = 13 +
-    # len(strategies)
+    # len(strategies) ******************* NO LONGER CORRECT ***************************
 
-    def try_memory_retrieval(self, sub_nn, a1, a2):
-        index = y_index(a1, a2)
+    def try_memory_retrieval(self, a1, a2):
+        index = self.y_index(a1, a2)
         if (a1 > 5) or (a2 > 5):
             return None
         # Collect the values that come above cc.
-        results_above_cc = [x for x in range(sub_nn.beg, sub_nn.end) if self.predictions[index][x] > sub_nn.cc]
+        results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
         l = len(results_above_cc)
         if l > 0:
             # At the moment this chooses randomly from all those
@@ -548,7 +556,7 @@ class NeuralNetwork:
         vec = []
         self.predict(addends_matrix(a1, a2))
         for i in range(beg, end):
-            vec.append(round(self.predictions[y_index(a1, a2)][i], 5))
+            vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
         return (vec)
 
     def update_predictions(self):
@@ -564,10 +572,10 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append([settings.param("non_result_y_filler")] * (13 + len(settings.strategies)))
+        self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
-    def update_target(self, sub_nn, our_ans, ans, a1,a2):
+    def update_target(self, our_ans, ans, a1,a2):
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
@@ -584,7 +592,7 @@ class NeuralNetwork:
         writer.writerow(['===== Results Prediction table ======'])
         for i in range(1, 6):
             for j in range(1, 6):
-                writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, 13))
+                writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, self.layers[-1]))
                 writer.writerow(['========================================'])
 
 ##################### DRIVER #####################
@@ -595,16 +603,16 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def init_neturalnets():
-    global rrnet, srnet
+    global rnet, snet
     rnet = results_network()
     snet = strategy_network()
 
 def results_network():
-    writer.writerow(['Creating results network', 'rn_hidden_units', settings.param("rn_hidden_units"),
+    writer.writerow(['Creating results network', 'results_hidden_units', settings.param("results_hidden_units"),
                      'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
     input_units = 14  # Addends + 1 on either side of each for
     output_units = 13
-    local_nn = NeuralNetwork([input_units, settings.param("rn_hidden_units"), output_units],"RETRIEVAL")
+    local_nn = NeuralNetwork([input_units, settings.param("results_hidden_units"), output_units],"RETRIEVAL")
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -635,13 +643,14 @@ def strategy_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
+    global rnet, snet
     global SOLUTION
     rnet.reset_target()
     snet.reset_target()
     PPA()  # Create a random problem: sets the global ADDEND to an Addend object
     # create the sub rnet, which are used as parameters into the main rnet for easier updating/retrieval
     # try getting a random number from a list above the confidence criterion
-    retrieval = rnet.try_memory_retrieval(rnet,ADDEND.ad1,ADDEND.ad2)
+    retrieval = rnet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
@@ -656,8 +665,6 @@ def exec_strategy():
         strat_num = snet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
-        else:
-            strat_num = strat_num - 13  # Remove the offset from the rnet
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
@@ -668,7 +675,7 @@ def exec_strategy():
         snet.update_target(SOLUTION, strat_num, ADDEND.ad1, ADDEND.ad2)
     # update the target based on if the sum is correct or not
     rnet.update_target(SOLUTION, ADDEND.ad1 + ADDEND.ad2, ADDEND.ad1, ADDEND.ad2)
-    rnet.fit(rnet.X, rnet.target, settings.param("learning_rate"), settings.param("in_process_training_epochs"))
+    rnet.fit(rnet.X, rnet.target, settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     # update predictions in case we want to print
     rnet.update_predictions()
     snet.update_predictions()
