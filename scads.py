@@ -664,7 +664,8 @@ def exec_strategy():
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_name = snet.try_memory_retrieval(ad1,ad2)
         if strat_name is None:
-            strat_name = randint(0, len(settings.strategies.keys()) - 1)
+            # Pick a random one!
+            strat_name = settings.strategies.keys()[randint(0, len(settings.strategies) - 1)]
         writer.writerow(["trying", strat_name, ad1, ad2])
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_name])
         # !!! WWW WARNING (for analysis): This gets displayed even if
