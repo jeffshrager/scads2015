@@ -300,11 +300,10 @@ def exec_explicit_strategy(strategy_choice):
     SOLUTION_COMPLETED = False
     global HAND
     global EB
-    writer.writerow(["trying", strategy_choice, ADDENDS.ad1, ADDENDS.ad2])  # This might report twice
     EB = 0
     CB = 0
     HAND = Hand()
-    # Get the list of operations from the strategy.
+    # Funcall the named to get the list of operations from the strategy.
     list_of_operations = strategy_choice()
     # This part is really confusing. Python is using it's own functions and arguments
     # but it's functions and arguments are all exported out and back in. ???!!!
@@ -333,8 +332,12 @@ class Settings:
     # PART 2: These also usually DON'T change, although they might if you
     # want to explore bringing in and out various strategies:
     # We usually leave out random_strategy
-    strategies = [count_from_either_strategy, count_from_one_once_strategy,
-                  count_from_one_twice_strategy,  min_strategy]
+    strategies = {"count_from_one_twice": count_from_one_twice_strategy,
+                  "count_from_one_once": count_from_one_once_strategy,
+                  "count_from_either": count_from_either_strategy,
+                  #"random_strategy": random_strategy,
+                  "min": min_strategy
+                  }
     
     # PART 3: These usually DO change:
     # IMPORTANT: REMEMBER TO CHANGE experiment_label, which is
@@ -418,7 +421,8 @@ def sum_matrix(s):
     return lis
 
 class NeuralNetwork:
-    def __init__(self, name, layers, type):
+    def __init__(self, name, layers, type, outputs):
+        self.outputs = outputs
         self.name=name
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
@@ -497,7 +501,6 @@ class NeuralNetwork:
                 deltas.append(deltas[-1].dot(self.weights[l].T) * self.activation_prime(a[l]))
 
             # [level3(output)->level2(hidden)]  => [level2(hidden)->level3(output)]
-
             deltas.reverse()
 
             # backpropagation
@@ -538,7 +541,7 @@ class NeuralNetwork:
             # (either strats or results) above the respective cc,
             # although this could be changed to choose in a weighted
             # manner. FFF ???
-            return int(results_above_cc[randint(0, l - 1)])
+            return self.outputs[int(results_above_cc[randint(0, l - 1)])]
         return None
 
     # Used for analysis output, this just gets the prediction values
@@ -569,18 +572,21 @@ class NeuralNetwork:
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
-    def update_target(self, our_ans, ans, a1,a2):
+    # This gets very ugly because in order to be generalizable
+    # across different sorts of NN outputs.
+    def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
+
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
 
-        if a1 + a2 == our_ans:
-            # RIGHT
-            self.target[0][ans] += settings.param("INCR_on_RIGHT")
+        targeted_output_position = self.outputs.index(targeted_output)
+        if correct:
+            self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
         else:
-            # WRONG
-            self.target[0][ans] -= settings.param("DECR_on_WRONG")
-            self.target[0][a1+a2] += settings.param("INCR_the_right_answer_on_WRONG")
+            self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
+            if correct_output_on_incorrect is not None: 
+                self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
 
     def dump_predictions(self):
         writer.writerow(['===== ' + self.name + ' Prediction table ======'])
@@ -605,7 +611,7 @@ def results_network():
     writer.writerow(['Creating results network', 'results_hidden_units', settings.param("results_hidden_units"),
                      'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
-    nn = NeuralNetwork(["Results", 14, settings.param("results_hidden_units"), 13],"RETRIEVAL")
+    nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -618,15 +624,14 @@ def results_network():
     y_count = numpy.array(y_count)
     # Now burn it in:
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
-    nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"),
-           settings.param("initial_counting_network_burn_in_epochs"))
+    nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"))
     nn.update_predictions()
     return nn
 
 def strategy_network():
     writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
                      'strategy_learning_rate', settings.param("strategy_learning_rate")])
-    nn = NeuralNetwork(["Strategy", 14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
+    nn = NeuralNetwork("Strategy", [14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY",settings.strategies.keys())
     nn.update_predictions()
     return nn
 
@@ -641,9 +646,11 @@ def exec_strategy():
     rnet.reset_target()
     snet.reset_target()
     PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
-    # create the sub rnet, which are used as parameters into the main rnet for easier updating/retrieval
-    # try getting a random number from a list above the confidence criterion
-    retrieval = rnet.try_memory_retrieval(ADDENDS.ad1,ADDENDS.ad2)
+    ad1=ADDENDS.ad1
+    ad2=ADDENDS.ad2
+    # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
+    strat_name = None
+    retrieval = rnet.try_memory_retrieval(ad1,ad2)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
@@ -652,26 +659,30 @@ def exec_strategy():
     # or else it uses the target from the last problem
     if retrieval is not None:
         SOLUTION = retrieval
-        writer.writerow(["used", "retrieval", ADDENDS.ad1, ADDENDS.ad2, SOLUTION])
+        writer.writerow(["used", "retrieval", ad1, ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_num = snet.try_memory_retrieval(ADDENDS.ad1,ADDENDS.ad2)
-        if strat_num is None:
-            strat_num = randint(0, len(settings.strategies) - 1)
-        SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
+        strat_name = snet.try_memory_retrieval(ad1,ad2)
+        if strat_name is None:
+            strat_name = randint(0, len(settings.strategies.keys()) - 1)
+        writer.writerow(["trying", strat_name, ad1, ad2])
+        SOLUTION = exec_explicit_strategy(settings.strategies[strat_name])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
         # distinction out of the log at the end by seeing that a DR
         # message appeared!
-        writer.writerow(["used", settings.strategies[strat_num], ADDENDS.ad1, ADDENDS.ad2, SOLUTION])
+        writer.writerow(["used", strat_name, ad1, ad2, SOLUTION])
         # update the target based on if the strategy worked or not
-        snet.update_target(SOLUTION, strat_num, ADDENDS.ad1, ADDENDS.ad2)
-    # update the target based on if the sum is correct or not
-    rnet.update_target(SOLUTION, ADDENDS.ad1 + ADDENDS.ad2, ADDENDS.ad1, ADDENDS.ad2)
+        snet.update_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
+    correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
+    # update the nns:
+    rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(rnet.X, rnet.target, settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
-    # update predictions in case we want to print
     rnet.update_predictions()
-    snet.update_predictions()
+    if strat_name is not None:
+        snet.update_target(ad1, ad2, strat_name, correct)
+        snet.fit(rnet.X, snet.target, settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
+        snet.update_predictions()
 
 def present_problems():
     for i in range(settings.param("n_problems")):
