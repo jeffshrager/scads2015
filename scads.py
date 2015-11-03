@@ -592,7 +592,8 @@ class NeuralNetwork:
         writer.writerow(['===== ' + self.name + ' Prediction table ======'])
         for i in range(1, 6):
             for j in range(1, 6):
-                writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, self.layers[-1]))
+                gv = self.guess_vector(i, j, 0, self.layers[-1])
+                writer.writerow(["%s + %s = " % (i, j), self.outputs[numpy.argmax(gv)], gv])
         writer.writerow(['========================================'])
 
 ##################### DRIVER #####################
@@ -681,6 +682,7 @@ def exec_strategy():
     rnet.fit(rnet.X, rnet.target, settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
     if strat_name is not None:
+        writer.writerow(["updating strategy nn; ad1, ad2, strat_name, correct=", ad1, ad2, strat_name, correct])
         snet.update_target(ad1, ad2, strat_name, correct)
         snet.fit(rnet.X, snet.target, settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
         snet.update_predictions()
@@ -716,7 +718,8 @@ def config_and_test(index=0):
         with open(fn, 'wb') as csvfile:
             # initialize the writer and neural network for each config we want to test
             writer = csv.writer(csvfile)
-            writer.writerow(['Output Format Version', '20150813'])
+            writer.writerow(['Output Format Version', '20151103'])
+            writer.writerow(['Strategies:', settings.strategies.keys()])
             init_neturalnets()
             present_problems()
             # Output params
