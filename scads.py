@@ -488,7 +488,9 @@ class NeuralNetwork:
         return 5 * (a1 - 1) + (a2 - 1)
 
     # Main forward feeding/backpropagation
-    def fit(self, X, y, learning_rate, epochs):
+    def fit(self, learning_rate, epochs, X=None, y=None):
+        if X is None: X = self.X
+        if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
@@ -639,7 +641,7 @@ def results_network():
     y_count = numpy.array(y_count)
     # Now burn it in:
     writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
-    nn.fit(X_count, y_count, settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"))
+    nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
     return nn
 
@@ -693,12 +695,12 @@ def exec_strategy():
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
     # update the nns:
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
-    rnet.fit(rnet.X, rnet.target, settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
+    rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
     if strat_name is not None:
         writer.writerow(["updating strategy nn; ad1, ad2, strat_name, correct=", ad1, ad2, strat_name, correct])
         snet.update_target(ad1, ad2, strat_name, correct)
-        snet.fit(rnet.X, snet.target, settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
+        snet.fit(settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
         snet.update_predictions()
 
 def present_problems():
