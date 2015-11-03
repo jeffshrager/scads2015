@@ -9,7 +9,7 @@ global settings, writer, rnet, snet
 
 ##################### ADD #####################
 
-global EB, ADDEND, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
+global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -113,7 +113,7 @@ def try_dynamic_retrieval():
     if len(results_above_DRR) > 0:
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
-        writer.writerow(["!", "dynamic_retrival", ADDEND.ad1, ADDEND.ad2, SOLUTION])  # This might report twice
+        writer.writerow(["!", "dynamic_retrival", ADDENDS.ad1, ADDENDS.ad2, SOLUTION])  # This might report twice
         return None
     return None
 
@@ -172,9 +172,9 @@ def end():
 def count_from_one_twice_strategy():
     return [
         # First addend on first hand.
-        HAND.clear, HAND.choose, ADDEND.choose, ADDEND.say, clear_eb, raise_hand,
+        HAND.clear, HAND.choose, ADDENDS.choose, ADDENDS.say, clear_eb, raise_hand,
         # Second addend on the other hand.
-        HAND.swap, ADDEND.swap, ADDEND.say, clear_eb, raise_hand,
+        HAND.swap, ADDENDS.swap, ADDENDS.say, clear_eb, raise_hand,
         # Final count out.
         HAND.choose, clear_eb, count_fingers, HAND.swap, count_fingers,
         end]
@@ -182,32 +182,32 @@ def count_from_one_twice_strategy():
 def count_from_one_once_strategy():
     return [
         # First addend on first hand.
-        HAND.clear, HAND.choose, ADDEND.choose, ADDEND.say, clear_eb, raise_hand,
+        HAND.clear, HAND.choose, ADDENDS.choose, ADDENDS.say, clear_eb, raise_hand,
         # Second addend on the other hand.
-        HAND.swap, ADDEND.swap, raise_hand,
+        HAND.swap, ADDENDS.swap, raise_hand,
         end]
 
 def count_from_either_strategy():
     return [
         # Count from the first addend.
-        ADDEND.choose, ADDEND.say,
+        ADDENDS.choose, ADDENDS.say,
         # Second addend on a hand.
-        HAND.clear, HAND.choose, ADDEND.swap, raise_hand,
+        HAND.clear, HAND.choose, ADDENDS.swap, raise_hand,
         end]
 
 def min_strategy():
     return [
         # Count from the larger addend.
-        ADDEND.choose_larger, ADDEND.say,
+        ADDENDS.choose_larger, ADDENDS.say,
         # Second addend on a hand.
-        HAND.clear, HAND.choose, ADDEND.swap, raise_hand,
+        HAND.clear, HAND.choose, ADDENDS.swap, raise_hand,
         end]
 
 def random_strategy():
     list_of_operations = [
-        HAND.clear, HAND.clear, HAND.choose, HAND.choose, ADDEND.choose, ADDEND.choose,
-        ADDEND.say, ADDEND.say, clear_eb, clear_eb, raise_hand, raise_hand, HAND.swap, HAND.swap,
-        ADDEND.swap, ADDEND.swap, count_fingers, count_fingers, end]
+        HAND.clear, HAND.clear, HAND.choose, HAND.choose, ADDENDS.choose, ADDENDS.choose,
+        ADDENDS.say, ADDENDS.say, clear_eb, clear_eb, raise_hand, raise_hand, HAND.swap, HAND.swap,
+        ADDENDS.swap, ADDENDS.swap, count_fingers, count_fingers, end]
     shuffle(list_of_operations) # WWW This puts the end someplace randomly in the middle of the strategy WWW???
     return list_of_operations
 
@@ -221,7 +221,7 @@ def raise_hand():
         HAND.put_up()
         HAND.increment_focus()
         CB += 1
-        if CB >= ADDEND.addend:
+        if CB >= ADDENDS.addend:
             break
     if settings.dynamic_retrieval_on:
         # DR (if on) will set global SOLUTION and SOLUTION_COMPLETED
@@ -300,7 +300,7 @@ def exec_explicit_strategy(strategy_choice):
     SOLUTION_COMPLETED = False
     global HAND
     global EB
-    writer.writerow(["trying", strategy_choice, ADDEND.ad1, ADDEND.ad2])  # This might report twice
+    writer.writerow(["trying", strategy_choice, ADDENDS.ad1, ADDENDS.ad2])  # This might report twice
     EB = 0
     CB = 0
     HAND = Hand()
@@ -318,8 +318,8 @@ def exec_explicit_strategy(strategy_choice):
 # Problem Presentation Algorithm (PPA).  Just random for now.
 
 def PPA():
-    global ADDEND
-    ADDEND = Addend(randint(1, 5), randint(1, 5))
+    global ADDENDS
+    ADDENDS = Addend(randint(1, 5), randint(1, 5))
 
 ##################### SETTINGS #####################
 
@@ -418,7 +418,8 @@ def sum_matrix(s):
     return lis
 
 class NeuralNetwork:
-    def __init__(self, layers, type):
+    def __init__(self, name, layers, type):
+        self.name=name
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
         self.activation_prime = lambda x: 1.0 - x**2
@@ -582,7 +583,7 @@ class NeuralNetwork:
             self.target[0][a1+a2] += settings.param("INCR_the_right_answer_on_WRONG")
 
     def dump_predictions(self):
-        writer.writerow(['===== Results Prediction table ======'])
+        writer.writerow(['===== ' + self.name + ' Prediction table ======'])
         for i in range(1, 6):
             for j in range(1, 6):
                 writer.writerow(["%s + %s = " % (i, j)] + self.guess_vector(i, j, 0, self.layers[-1]))
@@ -604,7 +605,7 @@ def results_network():
     writer.writerow(['Creating results network', 'results_hidden_units', settings.param("results_hidden_units"),
                      'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
-    nn = NeuralNetwork([14, settings.param("results_hidden_units"), 13],"RETRIEVAL")
+    nn = NeuralNetwork(["Results", 14, settings.param("results_hidden_units"), 13],"RETRIEVAL")
     # Create the counting examples matrix k, the inputs are the
     # addends matrix for (1+2) , (2+3), etc and the outputs are
     # (1+2)=3 (2+3)=4.
@@ -625,7 +626,7 @@ def results_network():
 def strategy_network():
     writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
                      'strategy_learning_rate', settings.param("strategy_learning_rate")])
-    nn = NeuralNetwork([14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
+    nn = NeuralNetwork(["Strategy", 14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY")
     nn.update_predictions()
     return nn
 
@@ -639,10 +640,10 @@ def exec_strategy():
     global SOLUTION
     rnet.reset_target()
     snet.reset_target()
-    PPA()  # Create a random problem: sets the global ADDEND to an Addend object
+    PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
     # create the sub rnet, which are used as parameters into the main rnet for easier updating/retrieval
     # try getting a random number from a list above the confidence criterion
-    retrieval = rnet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
+    retrieval = rnet.try_memory_retrieval(ADDENDS.ad1,ADDENDS.ad2)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
@@ -651,10 +652,10 @@ def exec_strategy():
     # or else it uses the target from the last problem
     if retrieval is not None:
         SOLUTION = retrieval
-        writer.writerow(["used", "retrieval", ADDEND.ad1, ADDEND.ad2, SOLUTION])
+        writer.writerow(["used", "retrieval", ADDENDS.ad1, ADDENDS.ad2, SOLUTION])
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
-        strat_num = snet.try_memory_retrieval(ADDEND.ad1,ADDEND.ad2)
+        strat_num = snet.try_memory_retrieval(ADDENDS.ad1,ADDENDS.ad2)
         if strat_num is None:
             strat_num = randint(0, len(settings.strategies) - 1)
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_num])
@@ -662,11 +663,11 @@ def exec_strategy():
         # Dynamic Retrieval was used. You have to Analyze this
         # distinction out of the log at the end by seeing that a DR
         # message appeared!
-        writer.writerow(["used", settings.strategies[strat_num], ADDEND.ad1, ADDEND.ad2, SOLUTION])
+        writer.writerow(["used", settings.strategies[strat_num], ADDENDS.ad1, ADDENDS.ad2, SOLUTION])
         # update the target based on if the strategy worked or not
-        snet.update_target(SOLUTION, strat_num, ADDEND.ad1, ADDEND.ad2)
+        snet.update_target(SOLUTION, strat_num, ADDENDS.ad1, ADDENDS.ad2)
     # update the target based on if the sum is correct or not
-    rnet.update_target(SOLUTION, ADDEND.ad1 + ADDEND.ad2, ADDEND.ad1, ADDEND.ad2)
+    rnet.update_target(SOLUTION, ADDENDS.ad1 + ADDENDS.ad2, ADDENDS.ad1, ADDENDS.ad2)
     rnet.fit(rnet.X, rnet.target, settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     # update predictions in case we want to print
     rnet.update_predictions()
@@ -699,7 +700,7 @@ def config_and_test(index=0):
     else:
         # Finally we have a set of choices, do it:
         fn=gen_file_name()
-        print("----------------- "+ fn + " -----------------")
+        print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
         with open(fn, 'wb') as csvfile:
             # initialize the writer and neural network for each config we want to test
             writer = csv.writer(csvfile)
