@@ -355,13 +355,13 @@ class Settings:
     param_specs = {"experiment_label": 
                  ["\"20151029: test\""],
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [1], # 1000 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
                  # Problem presentation and execution
                  "n_problems": [1000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
                  "PERR": [0.0], # 0.1 confirmed 201509010826
-                 "addend_matrix_offby1_delta": [0.0,1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
+                 "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
                  # Choosing to use retrieval v. a strategy
                  "RETRIEVAL_LOW_CC": [0.6], # Should be 0.6 usually; at 1.0 no retrieval will occur
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
@@ -389,32 +389,43 @@ class Settings:
 # e.g., for a representation of 3 + 4, the input array created by
 # addends_matrix) is:
 #
-# Index:         0 , 1 , 2 ,   3 ,   4 , 5 , 6 , 7 , 8 , 9 , 10 ,   11 , 12 ,   13 , 14 
-# Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0.5 ,  1 ,  0.5 ,  0 ]
+# Index:         0 , 1 ,   2 , 3 , 4   , 5 , 6 | 7 , 8 , 9 , 10  , 11 , 12 , 13]
+# Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 | 0 , 0 , 0 ,  0.5,  1 ,  0.5, 0]
+#                              ^=3                                  ^=4
+#                                (0 is NOT a possible input!)
 #
 # The surrounding 0.5s are supposed to represent children's confusion
 # about the number actually stated. (Or about how to xform the stated
-# number into the exact internal representation).
+# number into the exact internal representation). Note that there are
+# 7 elements per input bcs the 1 and 5 both need to allow for a left
+# and right surround respectively. The exact value of the surrounding
+# inputs is controlled by addends_matrix_offby1_delta.
 #
 # And the output array (created by sum_matrix) is:
 #
-# Index:         0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 
-# Output array:[ 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 ,  0 ,  0 ,  1 ,  0 ,  0 ]
+# Index:         0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12
+# Output array:[ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 ,  0 ,  0 ,  0 ]
+#                                            ^=7 
+#                ^ 0 IS a possible answer!
 #
-# WWW WARNING !!! Don't confuse these with the fingers on the hands!
+# WWW WARNING !!! Don't confuse either of these with the fingers on
+# the hands!
 
 def addends_matrix(a1, a2):
+    cv = 1.0 # central value
+    delta = settings.param("addends_matrix_offby1_delta")
     lis = [0] * 14
     # First addend
-    lis[a1 - 1] = 1 - settings.param("addend_matrix_offby1_delta")
-    lis[a1] = 1
-    lis[a1 + 1] = 1 - settings.param("addend_matrix_offby1_delta")
+    lis[a1 - 1] = cv - delta
+    lis[a1] = cv
+    lis[a1 + 1] = cv - delta
     # Second addend
-    lis[a2 + 6] = 1 - settings.param("addend_matrix_offby1_delta")
-    lis[a2 + 7] = 1
-    lis[a2 + 8] = 1 - settings.param("addend_matrix_offby1_delta")
+    lis[a2 + 6] = cv - delta
+    lis[a2 + 7] = cv
+    lis[a2 + 8] = cv - delta
     return lis
 
+# This is used for counting exposure
 def sum_matrix(s):
     lis = [0] * 13
     lis[s] = 1
@@ -581,6 +592,9 @@ class NeuralNetwork:
         self.X = numpy.array(self.X)
 
         targeted_output_position = self.outputs.index(targeted_output)
+
+        #print("In update_target: a1=%s, a2=%s, targeted_output = %s, correct = %s, correct_output_on_incorrect = %s, targeted_output_position = %s" % (a1, a2, targeted_output, correct, correct_output_on_incorrect,targeted_output_position))
+
         if correct:
             self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
         else:
