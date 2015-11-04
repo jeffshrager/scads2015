@@ -1,15 +1,17 @@
 import timeit
-import csv
 import datetime
 import os
 import numpy
 from random import randint, shuffle, random
 
-global settings, writer, rnet, snet
+global settings, logstream, rnet, snet
 
 ##################### ADD #####################
 
 global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
+
+def lispify(s):
+    return ((str(s).replace(","," ")).replace("[","(")).replace("]",")")
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -113,7 +115,7 @@ def try_dynamic_retrieval():
     if len(results_above_DRR) > 0:
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
-        writer.writerow(["!", "dynamic_retrival", ADDENDS.ad1, ADDENDS.ad2, SOLUTION])  # This might report twice
+        logstream.write("(! "+ ":dynamicretrival" + str(ADDENDS.ad1) + " + " + str(ADDENDS.ad2) + " = " + str(SOLUTION) + ")\n") 
         return None
     return None
 
@@ -353,17 +355,17 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20151029: test\""],
+                 ["\"20151103: varying PERR 0.0->0.6 to test strategy choice\""],
                  # Setting up the initial counting network
                  "initial_counting_network_burn_in_epochs": [1], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
                  # Problem presentation and execution
-                 "n_problems": [5000],
+                 "n_problems": [2000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.0], # 0.1 confirmed 201509010826
+                 "PERR": [0.0,0.2,0.4,0.6], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
                  # Choosing to use retrieval v. a strategy
-                 "RETRIEVAL_LOW_CC": [0.6], # Should be 0.6 usually; at 1.0 no retrieval will occur
+                 "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
                  "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                  "STRATEGY_HIGH_CC": [1.0],
@@ -377,7 +379,7 @@ class Settings:
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                  "strategy_learning_rate": [0.1],
-                 "results_learning_rate": [0.1], # Explored 201509010826
+                 "results_learning_rate": [0.1], # default: 0.1 Explored 201509010826
                  "in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
@@ -597,25 +599,20 @@ class NeuralNetwork:
 
         targeted_output_position = self.outputs.index(targeted_output)
 
-#        print("In update_target (self=%s):" + str(self))
-#        print("  a1=%s, a2=%s, targeted_output = %s, correct = %s, correct_output_on_incorrect = %s, targeted_output_position = %s" % (a1, a2, targeted_output, correct, correct_output_on_incorrect,targeted_output_position))
-#        print("  X="+str(self.X))
-
         if correct:
             self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
         else:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-#        print(" target=" + str(self.target))
 
     def dump_predictions(self):
-        writer.writerow(['===== ' + self.name + ' Prediction table ======'])
+        logstream.write('(:predictiontable ' + self.name + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
-                writer.writerow(["%s + %s = " % (i, j), self.outputs[numpy.argmax(gv)], gv])
-        writer.writerow(['========================================'])
+                logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
+        logstream.write(')\n')
 
 ##################### DRIVER #####################
 
@@ -630,8 +627,6 @@ def init_neturalnets():
     snet = strategy_network()
 
 def results_network():
-    writer.writerow(['Creating results network', 'results_hidden_units', settings.param("results_hidden_units"),
-                     'initial_counting_network_learning_rate', settings.param("initial_counting_network_learning_rate")])
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
     nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
     # Create the counting examples matrix k, the inputs are the
@@ -645,14 +640,11 @@ def results_network():
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
     # Now burn it in:
-    writer.writerow(['Burning in counting results', 'burn_in_epochs', settings.param("initial_counting_network_burn_in_epochs")])
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
     return nn
 
 def strategy_network():
-    writer.writerow(['Creating strategy network', 'strategy_hidden_units', settings.param("strategy_hidden_units"), 
-                     'strategy_learning_rate', settings.param("strategy_learning_rate")])
     nn = NeuralNetwork("Strategy", [14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY",settings.strategies.keys())
     nn.update_predictions()
     return nn
@@ -681,20 +673,20 @@ def exec_strategy():
     # or else it uses the target from the last problem
     if retrieval is not None:
         SOLUTION = retrieval
-        writer.writerow(["used", "retrieval", ad1, ad2, SOLUTION])
+        logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ")\n")
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_name = snet.try_memory_retrieval(ad1,ad2)
         if strat_name is None:
             # Pick a random one!
             strat_name = settings.strategies.keys()[randint(0, len(settings.strategies) - 1)]
-        writer.writerow(["trying", strat_name, ad1, ad2])
+        logstream.write("(:trying " +  strat_name +  str(ad1) + " + " + str(ad2) + ")\n")
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_name])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
         # distinction out of the log at the end by seeing that a DR
         # message appeared!
-        writer.writerow(["used", strat_name, ad1, ad2, SOLUTION])
+        logstream.write("(:used " +  strat_name +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ")\n")
         # update the target based on if the strategy worked or not
         snet.update_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
@@ -703,17 +695,20 @@ def exec_strategy():
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
     if strat_name is not None:
-        writer.writerow(["updating strategy nn; ad1, ad2, strat_name, correct=", ad1, ad2, strat_name, correct])
         snet.update_target(ad1, ad2, strat_name, correct)
         snet.fit(settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
         snet.update_predictions()
 
 def present_problems():
+    logstream.write('(:problemblock\n')
     for i in range(settings.param("n_problems")):
         exec_strategy()
         if i % settings.pbs == 0 or i == settings.param("n_problems") - 1:
+            logstream.write(') ; end :problemblock\n')            
             rnet.dump_predictions()
             snet.dump_predictions()
+            logstream.write('(:problemblock\n')
+    logstream.write(') ; end :problemblock\n') # Warning! We may get an extra one of these!           
 
 # Execute with all the possible values of each parameter. This is a
 # weird recursive function. The top half that calls itself repeatedly
@@ -724,7 +719,7 @@ def present_problems():
 # quasi-global called param_specs_keys and gets set in the caller.)
 
 def config_and_test(index=0):
-    global param_specs_keys, writer
+    global param_specs_keys, logstream
     if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
@@ -736,18 +731,19 @@ def config_and_test(index=0):
         # Finally we have a set of choices, do it:
         fn=gen_file_name()
         print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
-        with open(fn, 'wb') as csvfile:
-            # initialize the writer and neural network for each config we want to test
-            writer = csv.writer(csvfile)
-            writer.writerow(['Output Format Version', '20151103'])
-            writer.writerow(['Strategies:', settings.strategies.keys()])
+        with open(fn, 'wb') as logstream:
+            # initialize the logstream and neural network for each config we want to test
+            logstream.write('(:log\n')
+            logstream.write(' (:OutputFormatVersion 20151103)\n')
+            logstream.write(' (:Strategies' + str(settings.strategies.keys()) + ")\n")
             init_neturalnets()
             present_problems()
             # Output params
-            writer.writerow(['======= Run Parameters ======='])
+            logstream.write(' (:RunParameters\n')
             for key in settings.param_specs:
-                writer.writerow([key, settings.param(key)])
-            writer.writerow(['=== END OF DATA ==='])
+                logstream.write("  (:"+str(key)+" "+str(settings.param(key))+")\n")
+            logstream.write(' )\n')
+            logstream.write(')\n')
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
