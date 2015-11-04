@@ -183,7 +183,7 @@
   (clrhash *params->ccs*)
   (load-data low high)
   (summarize-logs ts)
-; (summarize-coefs ts)
+  (summarize-coefs ts)
   )
 
 (defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
@@ -358,19 +358,17 @@
    (format o "# ~a~%" *heuristicated-experiment-label*) 
    (loop for (ps . pn) in *param-reporting-order*
 	 do 
-	 (format o "~a" pn)
+	 (format o "~a" (print pn))
 	 (loop for file being the hash-keys of *file->summary*
-	       as params = (second (assoc :params (gethash file *file->log*)))
-	       as pv = (cdr (assoc ps params :test #'string-equal))
+	       as params = (cdr (assoc :params (gethash file *file->log*)))
+	       as pv = (second (assoc ps params :test #'string-equal))
 	       ;; These are repeated once for each dataset bcs there'll be that many coefs
 	       do 
-	       (pushnew pv (gethash pn *params->all-values*) :test #'string-equal)
+	       (pushnew pv (gethash pn *params->all-values*) :test (if (stringp pv) #'string-equal #'equal))
 	       (loop for (nil) in *comparator-datasets*
 		     do (format o "	~a" pv)))
 	 (format o "~%"))
-
-   ;; Report coefs -- WWW THIS ALL DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
-
+   ;; Report coefs -- WWW THIS DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
    ;; Sub Header to distinguish datasets
    (loop for file being the hash-keys of *file->summary*
 	 do (loop for (key) in *comparator-datasets* do (format o "	~a" key)))
@@ -397,7 +395,7 @@
 	   ;; recovery later.
 	   (loop for file being the hash-keys of *file->summary*
 		 using (hash-value data)
-		 as params = (second (assoc :params (gethash file *file->log*)))
+		 as params = (cdr (assoc :params (gethash file *file->log*)))
 		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
 		 as ccs = (second (assoc :ccs idata))
 		 do 
@@ -435,7 +433,7 @@
 		 (loop for (ps . pn) in *param-reporting-order*
 		       when (member pn pns-that-change)
 		       do 
-		       (format o ",~a" (cdr (assoc ps p* :test #'string-equal))))
+		       (format o ",~a" (second (assoc ps p* :test #'string-equal))))
 		 (loop for c in coef do (format o ",~a" c))
 		 (format o "~%")))
      ))
