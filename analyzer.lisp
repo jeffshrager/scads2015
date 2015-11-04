@@ -205,7 +205,7 @@
   (loop for file in (directory "runlogs/*.lisp")
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
-	as log = (with-open-file (i file) (read i))
+	as log = (with-open-file (i file) (cdr (read i)))
 	do
 	(let* ((params (cdr (assoc :params log)))
 	       (this-label (second (assoc :experiment_label params)))
@@ -215,8 +215,9 @@
 			(if (string-equal this-label target-label) log)
 		      (progn (setf target-label this-label) log))
 		  (if (and (>= fno low) (<= fno high)) log))))
-	  (setq log (clean-up log))
-	  (when log (setf (gethash *file->log* file) log)))))
+	  (when store-log 
+	    (clean-up store-log) ;; This smashes the :run entry
+	    (setf (gethash file *file->log*) store-log)))))
 	
 ;; Turns out that for various Obiwon reasons there are problem blocks
 ;; with the wrong number of problems, and missing table dumps, usually
@@ -227,7 +228,7 @@
 (defun clean-up (log)
   (let ((pbs (second (assoc :problem-bin-size (cdr (assoc :head log))))))
     (setf (cdr (assoc :run log))
-	  (loop for pb in (cdr (assoc :run log))
+	  (loop for (nil . pb) in (cdr (assoc :run log))
 		as ps = (cdr (assoc :problems pb))
 		as np = (length ps)
 		when (and (= np pbs) ;; Right number of problems?
