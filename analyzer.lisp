@@ -147,20 +147,12 @@
 ;;; =============================================================
 ;;; Math
 
-(defun compare (result-set target)
-  (let* ((pairs (loop for a in (loop for (nil obs) in target
-				     append obs)
-		      ;; Slightly confusingly uses the same lables as
-		      ;; the above, but there are never actually used.
-		      for b in (loop for (problem) in target 
-				     as sim = (report-sim-results-as-100ths problem result-set)
-				     append sim)
-		     collect (list a b))))
+(defun compare (prediction-set data-set)
+  ;; WWW assumes that the problems are in the same order !!!
+  (let* ((pairs (loop for a in (loop for prediction in prediction-set append (mapcar #'(lambda (v) (* v 100)) (sixth prediction)))
+		      for b in (loop for data in data-set append (second data))
+		      collect (list a b))))
     (stats::correlation-coefficient pairs)))
-
-(defun report-sim-results-as-100ths (problem result-set)
-  (loop for r in (cdr (assoc problem result-set :test #'equal))
-	collect (* 100.0 r)))
 
 ;;; =============================================================
 ;;; Utils
@@ -288,7 +280,7 @@
 	       as np = (length ps)
 	       as rnnpt = (cdr (assoc :Results-prediction-table pb))
 	       as ccs = (loop for (key data) in *comparator-datasets* 
-			      collect `(,key 999)) ;; `(,key ,(compare rnnpt data)))
+			      collect `(,key ,(compare rnnpt data)))
 	       do 
 	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
 	       (format o "~a	~a" i np)
@@ -450,5 +442,5 @@
   )
 
 (untrace)
-;(trace parse-params most-recent-set-of-results-pathnames-by-label-mathcing) 
+;(trace compare stats::correlation-coefficient)
 (analyze)
