@@ -350,7 +350,7 @@ class Settings:
     def param(self, key):
         return self.params[key]
 
-    params = {}
+    params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
                  ["\"20151029: test\""],
@@ -371,6 +371,8 @@ class Settings:
                  "strategy_hidden_units": [10],
                  "results_hidden_units": [30],
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
+                 # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
+                 # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
