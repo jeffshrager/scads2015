@@ -115,7 +115,7 @@ def try_dynamic_retrieval():
     if len(results_above_DRR) > 0:
         SOLUTION = results_above_DRR[randint(0, len(results_above_DRR) - 1)]
         SOLUTION_COMPLETED = True  # Tell the strategy executor to break
-        logstream.write("(! "+ ":dynamicretrival" + str(ADDENDS.ad1) + " + " + str(ADDENDS.ad2) + " = " + str(SOLUTION) + ")\n") 
+        logstream.write("(:dynamic-retrival " + str(ADDENDS.ad1) + " + " + str(ADDENDS.ad2) + " = " + str(SOLUTION) + ") ") 
         return None
     return None
 
@@ -607,7 +607,7 @@ class NeuralNetwork:
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
 
     def dump_predictions(self):
-        logstream.write('(:predictiontable ' + self.name + '\n')
+        logstream.write('(:prediction-table\n   ' + self.name + '\n')
         for i in range(1, 6):
             for j in range(1, 6):
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
@@ -673,20 +673,20 @@ def exec_strategy():
     # or else it uses the target from the last problem
     if retrieval is not None:
         SOLUTION = retrieval
-        logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ")\n")
+        logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
         # retrieval failed, so we get try to get a strategy from above the confidence criterion and use hands to add
         strat_name = snet.try_memory_retrieval(ad1,ad2)
         if strat_name is None:
             # Pick a random one!
             strat_name = settings.strategies.keys()[randint(0, len(settings.strategies) - 1)]
-        logstream.write("(:trying " +  strat_name +  str(ad1) + " + " + str(ad2) + ")\n")
+        logstream.write("(:trying " +  strat_name +  " " + str(ad1) + " + " + str(ad2) + ") ")
         SOLUTION = exec_explicit_strategy(settings.strategies[strat_name])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
         # distinction out of the log at the end by seeing that a DR
         # message appeared!
-        logstream.write("(:used " +  strat_name +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ")\n")
+        logstream.write("(:used " +  strat_name + " " + str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
         # update the target based on if the strategy worked or not
         snet.update_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
@@ -702,7 +702,9 @@ def exec_strategy():
 def present_problems():
     logstream.write('(:problemblock\n')
     for i in range(settings.param("n_problems")):
+        logstream.write('(:p ')
         exec_strategy()
+        logstream.write(')\n')
         if i % settings.pbs == 0 or i == settings.param("n_problems") - 1:
             logstream.write(') ; end :problemblock\n')            
             rnet.dump_predictions()
@@ -747,7 +749,7 @@ def config_and_test(index=0):
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'test_csv'), file_name + '.csv')
+    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'runlogs'), file_name + '.lisp')
     return full_file__name
 
 def top_level_run():
