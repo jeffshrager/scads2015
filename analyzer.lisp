@@ -217,7 +217,9 @@
 		  (if (and (>= fno low) (<= fno high)) log))))
 	  (when store-log 
 	    (clean-up store-log) ;; This smashes the :run entry
-	    (setf (gethash file *file->log*) store-log)))))
+	    (setf (gethash file *file->log*) store-log)))
+	finally (setf *heuristicated-experiment-label* target-label)
+	))
 	
 ;; Turns out that for various Obiwon reasons there are problem blocks
 ;; with the wrong number of problems, and missing table dumps, usually
@@ -285,12 +287,12 @@
 	       as ps = (cdr (assoc :problems pb))
 	       as np = (length ps)
 	       as rnnpt = (cdr (assoc :Results-prediction-table pb))
-;;	       as ccs = (loop for (key data) in *comparator-datasets* 
-;;			      collect `(,key ,(compare rnnpt data)))
+	       as ccs = (loop for (key data) in *comparator-datasets* 
+			      collect `(,key 999)) ;; `(,key ,(compare rnnpt data)))
 	       do 
-;;	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
+	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
 	       (format o "~a	~a" i np)
-;;	       (loop for (nil cc) in ccs do (format o "	~a" cc))
+	       (loop for (nil cc) in ccs do (format o "	~a" cc))
 	       ;; Init pairs for (correct . incorrect) counts...
 	       (clrhash *strat-key->correct+incorrect*)
 	       (loop for s in *strat-keys* do (setf (gethash s *strat-key->correct+incorrect*) (cons 0 0)))
