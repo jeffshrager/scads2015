@@ -11,7 +11,7 @@ global settings, logstream, rnet, snet
 global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
 
 def lispify(s):
-    return ((str(s).replace(","," ")).replace("[","(")).replace("]",")")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -607,7 +607,7 @@ class NeuralNetwork:
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
 
     def dump_predictions(self):
-        logstream.write('(:prediction-table\n   ' + self.name + '\n')
+        logstream.write('(:'+self.name+"-prediction-table\n")
         for i in range(1, 6):
             for j in range(1, 6):
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
@@ -699,18 +699,26 @@ def exec_strategy():
         snet.fit(settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
         snet.update_predictions()
 
+# UUU The open and close structure here is a mess bcs of the
+# occassional dumping of tables, which I'm trying to embed at the end
+# of the relevant preceeding problem block for analytical conveneince.
+
 def present_problems():
-    logstream.write('(:problemblock\n')
+    logstream.write('(:problem-block\n')
+    logstream.write('   (:problems\n')
     for i in range(settings.param("n_problems")):
-        logstream.write('(:p ')
+        logstream.write('(')
         exec_strategy()
         logstream.write(')\n')
-        if i % settings.pbs == 0 or i == settings.param("n_problems") - 1:
-            logstream.write(') ; end :problemblock\n')            
+        if i % settings.pbs == 0 or i == settings.param("n_problems"):
+            logstream.write('   ) ;; close :problems\n')
             rnet.dump_predictions()
             snet.dump_predictions()
-            logstream.write('(:problemblock\n')
-    logstream.write(') ; end :problemblock\n') # Warning! We may get an extra one of these!           
+            logstream.write('    ) ;; close :problem-block\n')
+            logstream.write('  (:problem-block\n')
+            logstream.write('   (:problems\n')
+    logstream.write('   ) ;; close :problems\n')
+    logstream.write('    ) ;; close :problem-block\n') # Warning! We may get an extra one of these!           
 
 # Execute with all the possible values of each parameter. This is a
 # weird recursive function. The top half that calls itself repeatedly
@@ -736,12 +744,18 @@ def config_and_test(index=0):
         with open(fn, 'wb') as logstream:
             # initialize the logstream and neural network for each config we want to test
             logstream.write('(:log\n')
-            logstream.write(' (:OutputFormatVersion 20151103)\n')
-            logstream.write(' (:Strategies' + str(settings.strategies.keys()) + ")\n")
+            logstream.write(' (:head\n')
+            logstream.write(" (:file " + fn + ")\n")
+            logstream.write(' (:output-format-version 20151103)\n')
+            logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
+            logstream.write(' (:strategies' + lispify(settings.strategies.keys()) + ")\n")
             init_neturalnets()
+            logstream.write(' )\n')
+            logstream.write('(:run\n')
             present_problems()
+            logstream.write(' ) ;; Close :run\n')
             # Output params
-            logstream.write(' (:RunParameters\n')
+            logstream.write(' (:params\n')
             for key in settings.param_specs:
                 logstream.write("  (:"+str(key)+" "+str(settings.param(key))+")\n")
             logstream.write(' )\n')

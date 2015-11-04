@@ -126,193 +126,23 @@
 (defvar *resultsum* nil)
 (defvar *results-version* nil)
 (defvar *params->ccs* (make-hash-table :test #'equal))
-(defvar *file->data* (make-hash-table :test #'equal))
-
-;;; =============================================================
-;;; File Reader and Parser
-
-;;; FFF Make sure that all the files read have the same version
-;;; number. Break if not!
-
-;;; Line length differs in different lisps bcs they differntially
-;;; compress the crlf to one char.
-(defun lline (l)
-  #+ccl (1- (length l))
-  #+clisp (length l))
-
-(defun load-result-file (file)
-  (format t "~%Loading ~a~%" file)
-  (with-open-file 
-   (i file)
-   (let* ((vline (read-line i nil nil))
-	  ;; 1- bcs of the return on the end
-	  (version (parse-integer (subseq vline  (1+ (position #\, vline)) (lline vline)))))
-     (if (null *results-version*)
-	 (setq *results-version* version)
-       (unless (equal version *results-version*)
-	 (break "Uh oh. Some of the data is from version ~a, and some is from version ~a of the results format. I don't know how to handle this situation!"
-		*results-version* version)))
-     (case version
-	   (20150813 (parse-20150807-data i))
-	   (t (break "Unknown results version, vline=~s" vline))))))
-
-(defun parse-20150807-data (i)
-  (loop for line = (read-line i nil nil)
-	with n = 0 
-	with logs = nil
-	with local = nil
-	with rnnpt = nil
-	until (null line)
-	finally (break "parse-20150807-data hit the end of the stream: ~s" i)
-       	do (if (search "Results NN Prediction table" line)
-	       (progn 
-		 (setq rnnpt (parse-rnnp-table i))
-		 (push `((:n ,(incf n))
-			 (:log ,(reduce-log (reverse local)))
-			 (:rnnpt ,rnnpt))
-		       logs)
-		 (setq local nil rnnpt nil))
-	     (if (search "Run Parameters" line) ;; should follow an rnnpt, so don't have to push held log entries
-		 (progn 
-		   (if (or local rnnpt)
-		       (format t "WARNING: In parse-20150807-data, rnnpt seems to be followed by log entries incorrectly. These will be lost!"))
-		   (return-from 
-		    parse-20150807-data 
-		    `((:params ,(let ((params (parse-params i)))
-				  (setq *heuristicated-experiment-label* 
-					(cdr (assoc "settings.experiment_label" params :test #'string-equal)))
-				  params))
-		      (:logs ,(reverse logs))
-		      (:rd-table ,(parse-rd-table i)))))
-	       (push (interpret-log-entry (string-split (subseq line 0 (lline line)))) local)))))
-
-(defun parse-rnnp-table (i)
-  (prog1 
-  (loop for a from 1 to 5
-	    append (loop for b from 1 to 5
-			 collect (cons (cons a b)
-				       (mapcar #'read-from-string 
-					       ;; Drop the first thing, which is just the problem statement
-					       (cdr (string-split (read-line i nil nil)))))))
-  (read-line i nil nil) ;; Skip the tail line
-  ))
-
-(defun parse-rd-table (i)
-  (loop for a from 1 to 5
-	    append (loop for b from 1 to 5
-			 collect (cons (cons a b)
-				       (mapcar #'read-from-string 
-					       ;; Drop the first thing, which is just the problem statement
-					       (cdr (string-split (read-line i nil nil))))))))
-
-(defun parse-params (i)
-  (loop for line = (read-line i nil nil)
-	until (search "=== END OF DATA ===" line)
-	collect (let ((p (position #\, line)))
-		  (when p
-		    (cons (subseq line 0 p)
-			  (subseq line (+ p 1) (lline line)))))))
-
-;;; Special purpose scanner to figure out which files to load.
-
-(defvar *label->files* (make-hash-table :test #'equal))
-(defvar *filename->label* (make-hash-table :test #'equal))
-(defvar *filename->pathname* (make-hash-table :test #'equal))
-(defvar *all-filenames* nil)
-
-(defun most-recent-set-of-results-pathnames-by-label-mathcing ()
-  ;; Collect all the labels and assocated filenames (numbers)
-  (setq *all-filenames* nil)
-  (clrhash *label->files*)
-  (clrhash *filename->label*)
-  (clrhash *filename->pathname*)
-  (loop for pathname in (directory "test_csv/*.csv")
-	as filename = (pathname-name pathname)
-	as label = (with-open-file
-		    (i pathname)
-		    (format t ".")
-		    (loop for l = (read-line i nil nil)
-			  until (or (null l) (search "experiment_label" l))
-			  finally (return (if l (subseq l 26 (lline l))))))
-	when label
-	do 
-	(push filename (gethash label *label->files*))
-	(setf (gethash filename *filename->label*) label)
-	(push filename *all-filenames*)
-	(setf (gethash filename *filename->pathname*) pathname)
-	)
-  ;; Now find out which label has the "highest" filename and get all
-  ;; the filenames assocated with that label.
-  (loop for filename in (sort (copy-list 
-			       (gethash (gethash 
-					 (car (sort (copy-list *all-filenames*) #'string>)) 
-					 *filename->label*) *label->files*)) #'string<)
-	collect (gethash filename *filename->pathname*)))
+(defvar *file->log* (make-hash-table :test #'equal))
 
 ;;; =============================================================
 ;;; Log Analysis
 
 (defparameter *function-name-substitutions*
-  '(("count_from_either_strategy" . :cfe)
-    ("min_strategy" . :min)
-    ("count_from_one_once_strategy" . :cf1x1)
-    ("count_from_one_twice_strategy" . :cf1x2)
-    ("random_strategy" . :rand)
+  '(("count_from_either" . :cfe)
+    ("min" . :min)
+    ("count_from_one_once" . :cf1x1)
+    ("count_from_one_twice" . :cf1x2)
+    ("random" . :rand)
     ("retrieval" . :ret)
     ("dynamic_retrival" . :dynaret)
     ("used" . :used)
     ("trying" . :trying)
     ("!" . :!)
     ))
-
-(defun simplify-strategy-string (s)
-  ;; They come in like this: "<function count_from_either_strategy at 0x10ebcb848>"
-  ;; and go out like this: :cfe
-  (or 
-   (cdr (assoc (if (char-equal #\< (aref s 0))
-		   (subseq s 10 (search " at " s :test #'char-equal))
-		 s)
-	       *function-name-substitutions* :test #'string-equal))
-   s))
-
-(defun interpret-log-entry (entry)
-  ;; Understand anything in the log entry that we can.
-  (mapcar #'(lambda (i) 
-	      (or (let ((n (ignore-errors (parse-integer i))))
-		    (when (numberp n) n))
-		  (simplify-strategy-string i)
-		  i))
-	  entry))
-
-;;; The log either contains singltons: (:USED :RET 4 3 6) 
-;;; or pairs: (:TRYING :CFE 5 2) (:USED :CFE 5 2 7) 
-;;; or triples: (:TRYING :CFE 5 2) (:! :DYNARET 5 2 7) (:USED :CFE 5 2 7) 
-;;; This combines them into singlton entries that all look like: (:RET 4 3 6), or (:CFE 5 2 7), or: ((:CFE :DYNARET) 5 2 7)
-
-;;; FFF This should have some checks in it for potential problems
-;;; 'cause it can make a real mess if it gets out of synch! FFF
-
-(defun reduce-log (log)
-  (loop for entry+ on log 
-	as k from 1 by 1
-	as entry = (car entry+)
-	with r = nil
-	do (if (eq :used (car entry))
-	       (if (eq :ret (second entry))
-		   (push (cdr entry) r)
-		 :skip)
-	     (if (eq :trying (car entry))
-		 (if (eq :used (car (second entry+)))
-		     (push `(,(second entry) ,@(cddr (second entry+))) r)
-		   (if (eq :! (car (second entry+)))
-		       (push `((,(second entry) :DYNARET) ,@(cddr (second entry+))) r)
-		     (break "Something's wrong (A) with the log at ~a: ~s" k entry)))
-	       :skip))
-	finally (return 
-		 (reverse 
-		  (loop for e in r
-			when (not (member (car e) '(:! :trying :used)))
-			collect e)))))
 
 ;;; =============================================================
 ;;; Math
@@ -335,35 +165,6 @@
 ;;; =============================================================
 ;;; Utils
 
-(defun string-split (string &key (delimiter #\,) (copy t))
-  (let ((substrings '())
-        (length (length string))
-        (last 0))
-    (flet ((add-substring (i)
-			  (push (if copy
-				    (subseq string last i)
-				  (make-array (- i last)
-					      :element-type 'character
-					      :displaced-to string
-					      :displaced-index-offset last))
-				substrings)))
-	  (dotimes (i length)
-	    (when (eq (char string i) delimiter)
-	      (add-substring i)
-	      (setq last (1+ i))))
-	  (add-substring length)
-	  (nreverse substrings))))
-
-(defun string-substitute (in from to)
-  (loop with start2 = 0 
-        with lfrom = (length from)
-        with lto = (length to)
-        as p = (search from in :start2 start2)
-        if p
-        do (setq in (format nil "~a~a~a" (subseq in 0 p) to (subseq in (+ p lfrom)))
-                 start2 (+ p lto))
-        else do (return in)))
-
 (defun dht (table &optional (n 10000))
   (maphash #'(lambda (key value)
 	       (when (zerop (decf n)) (return-from dht))
@@ -374,7 +175,7 @@
 ;;; =============================================================
 ;;; Main
 
-(defvar *d* nil) ;; This is just a drop so that we can look at an
+(defvar *logs* nil) ;; This is just a drop so that we can look at an
 		 ;; example of the data after the fact.
 
 (defvar *file->summary* (make-hash-table :test #'equal))
@@ -385,55 +186,62 @@
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
 (defun analyze (&key (low *low*) (high *high*) &aux  (ts (get-universal-time)))
-  (setq *results-version* nil *d* nil)
-  (clrhash *file->data*)
+  (setq *results-version* nil)
+  (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (analyze-load-data low high)
-  (analyze-summarize-logs ts)
-  (analyze-summarize-coefs ts)
+  (load-data low high)
+  (summarize-logs ts)
+; (summarize-coefs ts)
   )
 
-(defun analyze-load-data (low high &aux first-fno last-fno label temp)
+(defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
+  (setq *logs* nil)
+  (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
-  (loop for file in (if (zerop low)
-			(most-recent-set-of-results-pathnames-by-label-mathcing)
-			(directory "test_csv/*.csv"))
+  (loop for file in (directory "runlogs/*.lisp")
+        with target-label = nil
 	as fno = (parse-integer (pathname-name file))
-	when (and (>= fno low) (<= fno high))
+	as log = (with-open-file (i file) (read i))
 	do
-	(let* ((r (ignore-errors (load-result-file file))))
-	  (if r
-	      (progn
-		;; Save data for later
-		(setf (gethash file *file->data*) r)
-		(push r *d*)
-		(let* ((p (second (assoc :params r))))
-		  ;; Extract and check label
-		  (let ((new-label (cdr (assoc "experiment_label" p :test #'string-equal))))
-		    (if (null label)
-			(setq label new-label)
-		      (if (string-equal label new-label)
-			  :ok
-			(progn 
-			  (format t "!!! WARNING: New label: ~s doesn't match old label: ~s.~%!!! You are probably incorrectly data from different runs!~%!!! Did you forget to set *low* in the analyzer to the number of the just-above csv file?~%" 
-				  new-label label)
-			  (setq label new-label)))))
-		  (setq last-fno fno)
-		  (if (null first-fno) (setq first-fno fno))
-		  )) ;; If r
-	    (format t "~a seems to be broken -- ignoring it!~%" file)
-	    ))))
+	(let* ((params (cdr (assoc :params log)))
+	       (this-label (second (assoc :experiment_label params)))
+	       (store-log
+		(if constrain-by-label
+		    (if target-label
+			(if (string-equal this-label target-label) log)
+		      (progn (setf target-label this-label) log))
+		  (if (and (>= fno low) (<= fno high)) log))))
+	  (setq log (clean-up log))
+	  (when log (setf (gethash *file->log* file) log)))))
+	
+;; Turns out that for various Obiwon reasons there are problem blocks
+;; with the wrong number of problems, and missing table dumps, usually
+;; at the beginning and end. This removes these just so that the rest
+;; of the code can run generically. UUU FFF This should be fixed up in
+;; the sim, not here! FFF
 
-(defun analyze-summarize-logs (ts)
+(defun clean-up (log)
+  (let ((pbs (second (assoc :problem-bin-size (cdr (assoc :head log))))))
+    (setf (cdr (assoc :run log))
+	  (loop for pb in (cdr (assoc :run log))
+		as ps = (cdr (assoc :problems pb))
+		as np = (length ps)
+		when (and (= np pbs) ;; Right number of problems?
+			  ;; And has all the right content?
+			  (assoc :results-prediction-table pb)
+			  (assoc :strategy-prediction-table pb))
+		collect pb))))
+
+(defun summarize-logs (ts)
   ;; Report the retrieval fractions and % correct mean and serr for each dataset seprately
   ;; meanwhile storing the overall stats for summarization
   (clrhash *file->summary*)
-  (loop for file being the hash-keys of *file->data*
-	using (hash-value data)
+  (loop for file being the hash-keys of *file->log*
+	using (hash-value log)
 	do 
 	(with-open-file 
 	 (o (print (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file))))
@@ -441,49 +249,68 @@
 	 (format o "# ~a~%" *heuristicated-experiment-label*) 
 	 (format o "i	n")
 	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
-	 (loop for s in *strat-keys*
-	       do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
+	 (loop for s in *strat-keys* do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
 	 (format o "~%")
-
-	 ;; The :log entry looks like this:
-	 ;; (:LOG
-	 ;;  (((:CF1X1 :DYNARET) 3 2 3) (:RET 1 3 2) (:RET 2 3 4) (:RET 2 4 6)
-	 ;;   (:RET 4 5 6) (:RET 2 4 4) ((:CF1X1 :DYNARET) 3 5 4) (:RET 3 5 10)
-	 ;;   (:RET 3 2 3) (:RET 5 4 4) (:RET 5 1 4) (:RET 1 3 2) (:RET 4 5 6)
-	 ;;   (:RET 2 3 4) ((:CF1X1 :DYNARET) 5 3 3) (:RET 2 2 11) (:RET 3 4 5)
-	 ;;   (:RET 4 4 6) (:RET 1 1 4) ((:MIN :DYNARET) 5 3 3) ((:CF1X1 :DYNARET) 5 5 5)
-	 ;;   (:RET 3 5 8) (:RET 1 4 4) (:RET 4 3 7) (:RET 3 4 5)))
-
-	 (loop for entry in (second (assoc :logs data))
-	       as i = (second (assoc :n entry))
-	       as log = (second (assoc :log entry))
-	       as nlog = (length log)
-	       as rnnpt = (second (assoc :rnnpt entry))
-	       as ccs = (loop for (key data) in *comparator-datasets* 
-			      collect `(,key ,(compare rnnpt data)))
+	 ;; A problem-block entry looks like this:
+	 ;; (:problem-block
+	 ;;  (:problems
+	 ;;   ((:used retrieval 3 + 3 = 6) )
+	 ;;   ((:trying count_from_one_once 2 + 3) (:used count_from_one_once 2 + 3 = 4) )
+	 ;;   ((:trying count_from_one_once 3 + 2) (:used count_from_one_once 3 + 2 = 5) )
+	 ;;   ((:used retrieval 5 + 3 = 5) )
+	 ;;   ((:trying min 1 + 3) (:used min 1 + 3 = 4) )
+	 ;;   ((:used retrieval 3 + 5 = 8) )
+	 ;;   ((:trying count_from_one_once 1 + 4) (:used count_from_one_once 1 + 4 = 4) )
+	 ;;   ((:trying min 3 + 1) (:used min 3 + 1 = 3) )
+	 ;;   ((:trying count_from_one_once 3 + 4) (:used count_from_one_once 3 + 4 = 6) )
+	 ;;   ((:trying min 4 + 1) (:used min 4 + 1 = 5) )
+	 ;;   ...
+	 ;;   ) ; close problems
+         ;;  (:results-prediction-table
+	 ;;    (1 + 1 = 9 (0.66801  0.43552  0.95849  -0.91478  -0.14068  0.99803  -0.87101  0.95384  0.89992  1.0  -0.54585  0.99997  -0.84957))
+	 ;;    (1 + 2 = 9 (-0.5814  -0.7126  -0.4912  -0.95835  -0.91221  0.99846  -0.91654  0.98572  -0.04236  0.99999  -0.90574  0.99792  -0.959))
+	 ;;    (1 + 3 = 9 (0.69823  0.11624  0.81191  -0.95802  -0.39655  0.99689  -0.98875  0.98272  0.95301  0.99994  -0.96618  0.99949  -0.92495))
+	 ;;    ...
+         ;;    )
+         ;;  (:strategy-prediction-table
+	 ;;    (1 + 1 = min (0.40504  -0.95853  -0.08923  0.65204))
+	 ;;    (1 + 2 = count_from_either (-0.02833  -0.61649  0.61381  -0.91041))
+	 ;;    (1 + 3 = count_from_one_twice (0.71503  -0.85172  0.08936  -0.81898))
+	 ;;    ...
+         ;;    )
+         ;;  ) ;; close :problem-block
+	 (loop for pb in (cdr (assoc :run log))
+	       as i from 1 by 1
+	       as ps = (cdr (assoc :problems pb))
+	       as np = (length ps)
+	       as rnnpt = (cdr (assoc :Results-prediction-table entry))
+;;	       as ccs = (loop for (key data) in *comparator-datasets* 
+;;			      collect `(,key ,(compare rnnpt data)))
 	       do 
 	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
 	       (format o "~a	~a" i nlog)
 	       (loop for (nil cc) in ccs do (format o "	~a" cc))
-	       ;; Now analyze the strategy distributions:
-	       (clrhash *strat-key->correct+incorrect*)
 	       ;; Init pairs for (correct . incorrect) counts...
+	       (clrhash *strat-key->correct+incorrect*)
 	       (loop for s in *strat-keys* do (setf (gethash s *strat-key->correct+incorrect*) (cons 0 0)))
 	       ;; ...and count 'em up!
-	       (loop for (s a b r) in log
+	       (loop for p in ps
+		     as (nil strat-name a1 nil a2 nil r) = (assoc :used p) ;; ((:used count_from_one_twice 5 + 3 = 8) )
+		     as strat-key = (cdr (assoc strat-name *function-name-substitutions* :test #'string-equal))
 		     do 
-		     (if (listp s) (setf s (second s))) ;; recode (:CF1X1 :DYNARET) -> :DYNARET
 		     (let ((c/ic-pair (gethash s *strat-key->correct+incorrect*))
-			   (real-r (+ a b)))
+			   (real-r (+ a1 a2)))
 		       (if (= r real-r)
 			   (incf (car c/ic-pair))
 			 (incf (cdr c/ic-pair)))))
 	       ;; Special computation for :allret (+ :ret :dynaret)
+	       #| WILL HAVE TO REPAIR 
 	       (let ((r (gethash :ret *strat-key->correct+incorrect*))
 		     (d (gethash :dynaret *strat-key->correct+incorrect*))
 		     (a (gethash :allret *strat-key->correct+incorrect*)))
 		 (setf (car a) (+ (car r) (car d)))		 
 		 (setf (cdr a) (+ (cdr r) (cdr d))))
+	       |# 
 	       ;; Reporting
 	       (loop for s in *strat-keys*
 		     as pair = (gethash s *strat-key->correct+incorrect*)
@@ -523,7 +350,7 @@
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
 (defvar *params->all-values* (make-hash-table :test #'equal)) ;; Let's us tell which ones actually changed.
 
-(defun analyze-summarize-coefs (ts &aux file->coefs)
+(defun summarize-coefs (ts &aux file->coefs)
   ;; Dump summaries.
   (clrhash *params->all-values*)
   ;; As we go along we carry forward the data required to make a pivot
@@ -538,7 +365,7 @@
 	 do 
 	 (format o "~a" pn)
 	 (loop for file being the hash-keys of *file->summary*
-	       as params = (second (assoc :params (gethash file *file->data*)))
+	       as params = (second (assoc :params (gethash file *file->log*)))
 	       as pv = (cdr (assoc ps params :test #'string-equal))
 	       ;; These are repeated once for each dataset bcs there'll be that many coefs
 	       do 
@@ -575,7 +402,7 @@
 	   ;; recovery later.
 	   (loop for file being the hash-keys of *file->summary*
 		 using (hash-value data)
-		 as params = (second (assoc :params (gethash file *file->data*)))
+		 as params = (second (assoc :params (gethash file *file->log*)))
 		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
 		 as ccs = (second (assoc :ccs idata))
 		 do 
@@ -620,5 +447,5 @@
   )
 
 (untrace)
-(trace parse-params most-recent-set-of-results-pathnames-by-label-mathcing) 
+;(trace parse-params most-recent-set-of-results-pathnames-by-label-mathcing) 
 (analyze)
