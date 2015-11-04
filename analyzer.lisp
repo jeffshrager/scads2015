@@ -284,13 +284,13 @@
 	       as i from 1 by 1
 	       as ps = (cdr (assoc :problems pb))
 	       as np = (length ps)
-	       as rnnpt = (cdr (assoc :Results-prediction-table entry))
+	       as rnnpt = (cdr (assoc :Results-prediction-table pb))
 ;;	       as ccs = (loop for (key data) in *comparator-datasets* 
 ;;			      collect `(,key ,(compare rnnpt data)))
 	       do 
-	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
-	       (format o "~a	~a" i nlog)
-	       (loop for (nil cc) in ccs do (format o "	~a" cc))
+;;	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
+	       (format o "~a	~a" i np)
+;;	       (loop for (nil cc) in ccs do (format o "	~a" cc))
 	       ;; Init pairs for (correct . incorrect) counts...
 	       (clrhash *strat-key->correct+incorrect*)
 	       (loop for s in *strat-keys* do (setf (gethash s *strat-key->correct+incorrect*) (cons 0 0)))
@@ -299,7 +299,7 @@
 		     as (nil strat-name a1 nil a2 nil r) = (assoc :used p) ;; ((:used count_from_one_twice 5 + 3 = 8) )
 		     as strat-key = (cdr (assoc strat-name *function-name-substitutions* :test #'string-equal))
 		     do 
-		     (let ((c/ic-pair (gethash s *strat-key->correct+incorrect*))
+		     (let ((c/ic-pair (gethash strat-key *strat-key->correct+incorrect*))
 			   (real-r (+ a1 a2)))
 		       (if (= r real-r)
 			   (incf (car c/ic-pair))
@@ -320,7 +320,7 @@
 		     as ns = (+ nc nw)
 		     do (format o "	~a	~a	~a	~a" 
 				ns 
-				(if (zerop nlog) "x" (/ (float ns) nlog))
+				(if (zerop np) "x" (/ (float ns) np))
 				nc
 				(if (zerop ns) "x" (/ (float nc) ns)))
 		     )
