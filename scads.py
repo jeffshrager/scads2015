@@ -358,7 +358,7 @@ class Settings:
                  "initial_counting_network_burn_in_epochs": [1], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
                  # Problem presentation and execution
-                 "n_problems": [1000],
+                 "n_problems": [5000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
                  "PERR": [0.0], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
@@ -372,8 +372,8 @@ class Settings:
                  "results_hidden_units": [30],
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
-                 "DECR_on_WRONG": [-1.0], # Substrated from non_result_y_filler at the response value when you get it right.
-                 "INCR_the_right_answer_on_WRONG": [0.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
+                 "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
+                 "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                  "strategy_learning_rate": [0.1],
                  "results_learning_rate": [0.1], # Explored 201509010826
                  "in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
@@ -595,7 +595,9 @@ class NeuralNetwork:
 
         targeted_output_position = self.outputs.index(targeted_output)
 
-        #print("In update_target: a1=%s, a2=%s, targeted_output = %s, correct = %s, correct_output_on_incorrect = %s, targeted_output_position = %s" % (a1, a2, targeted_output, correct, correct_output_on_incorrect,targeted_output_position))
+#        print("In update_target (self=%s):" + str(self))
+#        print("  a1=%s, a2=%s, targeted_output = %s, correct = %s, correct_output_on_incorrect = %s, targeted_output_position = %s" % (a1, a2, targeted_output, correct, correct_output_on_incorrect,targeted_output_position))
+#        print("  X="+str(self.X))
 
         if correct:
             self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
@@ -603,6 +605,7 @@ class NeuralNetwork:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
+#        print(" target=" + str(self.target))
 
     def dump_predictions(self):
         writer.writerow(['===== ' + self.name + ' Prediction table ======'])
