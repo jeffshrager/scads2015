@@ -241,50 +241,37 @@
 	(with-open-file 
 	 (o (print (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file))))
 	    :direction :output :if-exists :supersede) 
+	 ;; output headers
 	 (format o "# ~a~%" *heuristicated-experiment-label*) 
 	 (format o "i	n")
 	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
 	 (loop for s in *strat-keys* do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
 	 (format o "~%")
-	 ;; A problem-block entry looks like this:
+	 ;; The problem-block looks like this:
 	 ;; (:problem-block
 	 ;;  (:problems
 	 ;;   ((:used retrieval 3 + 3 = 6) )
 	 ;;   ((:trying count_from_one_once 2 + 3) (:used count_from_one_once 2 + 3 = 4) )
-	 ;;   ((:trying count_from_one_once 3 + 2) (:used count_from_one_once 3 + 2 = 5) )
-	 ;;   ((:used retrieval 5 + 3 = 5) )
-	 ;;   ((:trying min 1 + 3) (:used min 1 + 3 = 4) )
-	 ;;   ((:used retrieval 3 + 5 = 8) )
-	 ;;   ((:trying count_from_one_once 1 + 4) (:used count_from_one_once 1 + 4 = 4) )
-	 ;;   ((:trying min 3 + 1) (:used min 3 + 1 = 3) )
-	 ;;   ((:trying count_from_one_once 3 + 4) (:used count_from_one_once 3 + 4 = 6) )
-	 ;;   ((:trying min 4 + 1) (:used min 4 + 1 = 5) )
-	 ;;   ...
-	 ;;   ) ; close problems
+	 ;;   ...) ;; close problems
          ;;  (:results-prediction-table
 	 ;;    (1 + 1 = 9 (0.66801  0.43552  0.95849  -0.91478  -0.14068  0.99803  -0.87101  0.95384  0.89992  1.0  -0.54585  0.99997  -0.84957))
 	 ;;    (1 + 2 = 9 (-0.5814  -0.7126  -0.4912  -0.95835  -0.91221  0.99846  -0.91654  0.98572  -0.04236  0.99999  -0.90574  0.99792  -0.959))
-	 ;;    (1 + 3 = 9 (0.69823  0.11624  0.81191  -0.95802  -0.39655  0.99689  -0.98875  0.98272  0.95301  0.99994  -0.96618  0.99949  -0.92495))
-	 ;;    ...
-         ;;    )
+	 ;;    ...) ;; close results-prediction-table
          ;;  (:strategy-prediction-table
 	 ;;    (1 + 1 = min (0.40504  -0.95853  -0.08923  0.65204))
 	 ;;    (1 + 2 = count_from_either (-0.02833  -0.61649  0.61381  -0.91041))
-	 ;;    (1 + 3 = count_from_one_twice (0.71503  -0.85172  0.08936  -0.81898))
-	 ;;    ...
-         ;;    )
-         ;;  ) ;; close :problem-block
+	 ;;    ...) ;; close strategy-prediction-table
+	 ;;  ) ;; close :problem-block
 	 (loop for pb in (cdr (assoc :run log))
 	       as i from 1 by 1
 	       as ps = (cdr (assoc :problems pb))
 	       as np = (length ps)
-	       as rnnpt = (cdr (assoc :Results-prediction-table pb))
-	       as ccs = (loop for (key data) in *comparator-datasets* 
-			      collect `(,key ,(compare rnnpt data)))
+	       as corcoefs = (loop for (key data) in *comparator-datasets* 
+			      collect `(,key ,(compare (cdr (assoc :Results-prediction-table pb)) data)))
 	       do 
-	       (push `((:i ,i) (:ccs ,ccs)) (gethash file *file->summary*))
+	       (push `((:i ,i) (:corcoefs ,corcoefs)) (gethash file *file->summary*))
 	       (format o "~a	~a" i np)
-	       (loop for (nil cc) in ccs do (format o "	~a" cc))
+	       (loop for (nil cc) in corcoefs do (format o "	~a" cc))
 	       ;; Init pairs for (correct . incorrect) counts...
 	       (clrhash *strat-key->correct+incorrect*)
 	       (loop for s in *strat-keys* do (setf (gethash s *strat-key->correct+incorrect*) (cons 0 0)))
@@ -397,13 +384,13 @@
 		 using (hash-value data)
 		 as params = (cdr (assoc :params (gethash file *file->log*)))
 		 as idata = (find i data :test #'(lambda (a b) (= a (second (assoc :i b)))))
-		 as ccs = (second (assoc :ccs idata))
+		 as corcoefs = (second (assoc :corcoefs idata))
 		 do 
-		 (loop for (nil cc) in ccs
+		 (loop for (nil cc) in corcoefs
 		       do (format o "	~a" cc))
 		 ;; Store the final value for pivot reporting later. 
 		 (when (= i maxi)
-		   (let ((coefs (mapcar #'second ccs)))
+		   (let ((coefs (mapcar #'second corcoefs)))
 		     (push coefs (gethash params *params->final-coefs*))
 		     (push (cons coefs file) file->coefs) ;; This is so ugly it makes me cry!
 		     )))
