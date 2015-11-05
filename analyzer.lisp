@@ -182,6 +182,7 @@
   (clrhash *file->log*)
   (clrhash *params->ccs*)
   (load-data low high)
+  (compress-logs-for-strategy-analysis ts)
   (summarize-logs ts)
   (summarize-coefs ts)
   )
@@ -307,6 +308,28 @@
 		     )
 	       (format o "~%")
 	       ))))
+
+;;; Here we create an interim results file that gathers all the
+;;; strategy usage data for each log in the whole set, at each
+;;; timepoint, counting the number of times every strategy is used.
+
+(defun compress-logs-for-strategy-analysis (ts)
+  (with-open-file 
+   (o (print (format nil "sumstats/~a-strategyinterimdata.xls" ts)) :direction :output :if-exists :supersede)
+   ;; Report params
+   (format o ";;; ~a~%(~%" *heuristicated-experiment-label*) 
+   (loop for file being the hash-keys of *file->log*
+	 using (hash-value log)
+	 do (pprint `(,file 
+		      ,(assoc :params log)
+		      ,(loop for pb in (cdr (assoc :run log))
+			     as i from 1 by 1
+			     as ps = (cdr (assoc :problems pb))
+			     collect (loop for p in ps
+					   as (nil strat-name a1 nil a2 nil r) = (assoc :used p)
+					   collect `(,a1 ,a2 ,r ,strat-name))))
+		    o))
+   (format o "~%  )~%")))
 
 (defparameter *param-reporting-order* 
   '(
