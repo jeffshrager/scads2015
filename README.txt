@@ -33,6 +33,8 @@ Instruction to install numPy are here:
 
   http://docs.scipy.org/doc/numpy/user/install.html
 
+  pip install -Iv numpy==1.9.2
+
 You're likely to run into version compatibility problems, so make sure
 that you install the numpy that is compatible with your python version.
 
