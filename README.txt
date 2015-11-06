@@ -33,10 +33,13 @@ Instruction to install numPy are here:
 
   http://docs.scipy.org/doc/numpy/user/install.html
 
-  pip install -Iv numpy==1.9.2
-
 You're likely to run into version compatibility problems, so make sure
 that you install the numpy that is compatible with your python version.
+
+Here's how to move to what seems to be the version of numpy that works
+with python 2.7.10:
+
+  pip install -Iv numpy==1.9.2
 
 If any of this doesn't work smoothly, see this flowchart for help in
 trouble-shooting:
@@ -45,7 +48,7 @@ trouble-shooting:
 
 Once you have a compatible python and numpy you should be able to just do:
 
-  python settings.py
+  python scads.py
 
 That will run that latest settings. You'll want to change the settings
 to run your own experiments. More below on how to do this.
@@ -64,6 +67,16 @@ I use Clozure Common Lisp (ccl) which you can download here:
 
 Lisps usually don't have version problems, but in case you want to
 check, I'm using Version 1.5-r13651 (DarwinX8632).
+
+(If you do choose ccl, you need to unzip it in a directory, for
+example, your /Applications/ccl-1.5/... and there will be a file there
+called dx86cl64. That's the one you want to execute. I recommend
+adding a line to you ~/.bashrc like this:
+
+alias lisp='/Applications/ccl-1.5/scripts/ccl'
+
+This will let you just type 'lisp' to the shell to start up
+ccl. Modify above in the obvious way for your local lisp installation.
 
 Usually I do the model runs and the analysis in different separate
 shell windows, but you can do them in the same one; it just requires a
@@ -141,10 +154,10 @@ then analyzing them.
 4. SETTING EXPERIMENTAL PARAMETERS AND RUNNING EXPERIMENTS
 ============================================================
 
-The model parameters are in the file 'settings.py'. There are lots of
-them, and to understand them requires understanding the model, so I'm
-only going to talk about the couple that change most often, just to
-get you going.
+The model parameters are in a class called 'Settings' near the top of
+scads.py. There are lots of them, and to understand them requires
+understanding the model, so I'm only going to talk about the couple
+that change most often, just to get you going.
 
 The most important parameter is:
 
