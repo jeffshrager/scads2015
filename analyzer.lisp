@@ -313,22 +313,24 @@
 ;;; strategy usage data for each log in the whole set, at each
 ;;; timepoint, counting the number of times every strategy is used.
 
+(defvar *params->problem-blocks* (make-hash-table :test #'equal))
 (defun compress-logs-for-strategy-analysis (ts)
-  (with-open-file 
-   (o (print (format nil "sumstats/~a-strategyinterimdata.xls" ts)) :direction :output :if-exists :supersede)
-   ;; Report params
-   (format o ";;; ~a~%(~%" *heuristicated-experiment-label*) 
-   (loop for file being the hash-keys of *file->log*
-	 using (hash-value log)
-	 do (pprint `(,file 
-		      ,(assoc :params log)
-		      ,(loop for pb in (cdr (assoc :run log))
-			     as i from 1 by 1
-			     as ps = (cdr (assoc :problems pb))
-			     collect (loop for p in ps
+  (clrhash *params->problem-blocks*)
+  (loop for file being the hash-keys of *file->log*
+	using (hash-value log)
+	as params = (assoc :params log)
+	do (push (cons file 
+		       (loop for pb in (cdr (assoc :run log))
+			     collect (loop for p in (cdr (assoc :problems pb))
 					   as (nil strat-name a1 nil a2 nil r) = (assoc :used p)
 					   collect `(,a1 ,a2 ,r ,strat-name))))
-		    o))
+		 (gethash params *params->problem-blocks*)))
+  (with-open-file 
+   (o (print (format nil "sumstats/~a-strategyinterimdata.xls" ts)) :direction :output :if-exists :supersede)
+   (format o ";;; ~a~%(~%" *heuristicated-experiment-label*) 
+   (loop for params being the hash-keys of *params->problem-blocks*
+	 using (hash-value pbs)
+	 do (pprint `(,params ,pbs) o))
    (format o "~%  )~%")))
 
 (defparameter *param-reporting-order* 
