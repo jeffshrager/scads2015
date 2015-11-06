@@ -184,6 +184,7 @@
   (load-data low high)
   (compress-logs-for-strategy-analysis ts)
   (summarize-logs ts)
+  (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
   )
 
@@ -309,29 +310,49 @@
 	       (format o "~%")
 	       ))))
 
-;;; Here we create an interim results file that gathers all the
-;;; strategy usage data for each log in the whole set, at each
-;;; timepoint, counting the number of times every strategy is used.
+;;; Analysis on a per-parameter basis of the most used strategy for
+;;; each problem.
 
 (defvar *params->problem-blocks* (make-hash-table :test #'equal))
-(defun compress-logs-for-strategy-analysis (ts)
+(defun summarize-final-strategy-prefs (ts)
   (clrhash *params->problem-blocks*)
   (loop for file being the hash-keys of *file->log*
 	using (hash-value log)
 	as params = (assoc :params log)
-	do (push (cons file 
-		       (loop for pb in (cdr (assoc :run log))
-			     collect (loop for p in (cdr (assoc :problems pb))
-					   as (nil strat-name a1 nil a2 nil r) = (assoc :used p)
-					   collect `(,a1 ,a2 ,r ,strat-name))))
+	do (push (list file (cdr (assoc :Strategy-prediction-table (car (last (cdr (assoc :run log)))))))
 		 (gethash params *params->problem-blocks*)))
   (with-open-file 
-   (o (print (format nil "sumstats/~a-strategyinterimdata.xls" ts)) :direction :output :if-exists :supersede)
+   (o (print (format nil "sumstats/~a-finalstrategyprefs.xls" ts)) :direction :output :if-exists :supersede)
    (format o ";;; ~a~%(~%" *heuristicated-experiment-label*) 
+   ;; Output headers: one col per file in param set order
+   (format o "Param/Problem")
    (loop for params being the hash-keys of *params->problem-blocks*
 	 using (hash-value pbs)
-	 do (pprint `(,params ,pbs) o))
-   (format o "~%  )~%")))
+	 do (loop for pb in pbs
+		  do (format o "	~a" (pathname-name (car pb))))) ;; output the filename
+   (format o "~%")
+   ;; Now the params
+   (loop for params being the hash-keys of *params->problem-blocks*
+	 using (hash-value pbs)
+	 do (loop for (param nil) in (cdr params)
+		  do (format o "~a" param)
+		  (loop for params being the hash-keys of *params->problem-blocks*
+			using (hash-value pbs)
+			do (loop for pb in pbs
+				 do (format o "	~a" (second (assoc param (cdr params))))))
+		  (format o "~%")))
+   ;; And finally the problems
+   (loop for a1 from 1 to 5
+	 do (loop for a2 from 1 to 5
+		  do (format o "~a+~a" a1 a2)
+		  (loop for params being the hash-keys of *params->problem-blocks*
+			using (hash-value pbs)
+			do (loop for pb in pbs
+				 do (format o "	~a" (loop for (b1 nil b2 = result . nil) in (cadr pb)
+							  when (and (= a1 b1) (= a2 b2))
+							  do (return result)))))
+		  (format o "~%")))
+   ))
 
 (defparameter *param-reporting-order* 
   '(
@@ -452,5 +473,5 @@
   )
 
 (untrace)
-;(trace compare stats::correlation-coefficient)
+;(trace find-sum)
 (analyze)
