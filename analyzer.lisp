@@ -182,7 +182,7 @@
   (clrhash *file->log*)
   (clrhash *params->ccs*)
   (load-data low high)
-  (compress-logs-for-strategy-analysis ts)
+;  (compress-logs-for-strategy-analysis ts)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
