@@ -1,3 +1,7 @@
+# Notes:
+# Maybe should change on every, say, pbs round (approx.: age) to
+# simulate improvment in ability to count correctly with age.
+
 import timeit
 import datetime
 import os
@@ -328,7 +332,7 @@ class Settings:
 
     # PART 1: These usually DON'T change:
     ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 25  # problem bin size, every pbs problems we dump the predictions
+    pbs = 100  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     
     # PART 2: These also usually DON'T change, although they might if you
@@ -355,7 +359,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20151201d: testing new dumping to 6k\""],
+                 ["\"20151201e: testing new dumping to and 100 points\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -366,7 +370,7 @@ class Settings:
                  "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [6000],
+                 "n_problems": [3000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
                  "PERR": [0.1], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
@@ -463,6 +467,12 @@ class NeuralNetwork:
         # The layers is a vector giving the number of nodes in each
         # layer. The first (0th) is assumed to be the input and the
         # last the output layer.
+
+        # ?????????????????????????????????????????????????????
+        # ??? WWW It looks like we're getting one extra unit in
+        # the hidden layer. Is there an obiwan error here?? WWW
+        # ?????????????????????????????????????????????????????
+
         self.layers=layers
 
         # Generate a cc in the range for this network type
@@ -561,12 +571,13 @@ class NeuralNetwork:
         return a
 
     def predict_with_dumpage(self, x):
-        logstream.write("(:predict_with_dumpage " +  lispify(x) + "\n")
+        logstream.write("(:predict_with_dumpage\n (:inputs " +  lispify(x) + ")\n")
         a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
         for l in range(0, len(self.weights)):
+            logstream.write(" (:level " + lispify(l))
             a = self.activation(numpy.dot(a, self.weights[l]))
-            logstream.write("  (:level" + lispify(l) + "\n" + lispify(a) + "\n   )\n")
-        logstream.write("\n )\n")
+            logstream.write(" (:products "+ lispify([round(x,5) for x in  a]) + "))\n")
+        logstream.write(")\n")
         return a
 
     # Returns a function that picks a random result from a list of
@@ -651,8 +662,15 @@ class NeuralNetwork:
                 logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
 
+    def dump_weights(self):
+        logstream.write(" (:dump-weights\n")
+        for l in range(0, len(self.weights)):
+            logstream.write(" (:level " + lispify(l))
+            logstream.write(" (:weights "+ lispify([[round(x,5) for x in y] for y in self.weights[l]]) + "))\n")
+        logstream.write("   )\n")
+
     def dump(self):
-        # dump_weights(self)
+        self.dump_weights()
         self.dump_hidden_activations()
         self.dump_predictions()
 

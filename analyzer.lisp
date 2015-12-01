@@ -371,6 +371,7 @@
     ("n_problems" . n_problems)
     ("DR_threshold" . DR_threshold)
     ("PERR" . PERR)
+    ("PERR_delta" . PERR_delta)
     ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
     ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
     ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
