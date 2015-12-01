@@ -332,7 +332,7 @@ class Settings:
 
     # PART 1: These usually DON'T change:
     ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 100  # problem bin size, every pbs problems we dump the predictions
+    pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     
     # PART 2: These also usually DON'T change, although they might if you
