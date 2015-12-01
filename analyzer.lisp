@@ -182,7 +182,6 @@
   (clrhash *file->log*)
   (clrhash *params->ccs*)
   (load-data low high)
-;  (compress-logs-for-strategy-analysis ts)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
@@ -196,7 +195,7 @@
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
-  (loop for file in (directory "runlogs/*.lisp")
+  (loop for file in (downsorted-directory "runlogs/*.lisp")
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
 	as log = (with-open-file (i file) (cdr (read i)))
@@ -212,9 +211,16 @@
 	  (when store-log 
 	    (clean-up store-log) ;; This smashes the :run entry
 	    (setf (gethash file *file->log*) store-log)))
-	finally (setf *heuristicated-experiment-label* target-label)
+	finally (print (setf *heuristicated-experiment-label* target-label))
 	))
 	
+(defun downsorted-directory (p)
+  (mapcar #'cdr
+	  (sort
+	   (loop for f in (directory p)
+		 collect (cons (parse-integer (pathname-name f)) f))
+	   #'> :key #'car)))
+
 ;; Turns out that for various Obiwon reasons there are problem blocks
 ;; with the wrong number of problems, and missing table dumps, usually
 ;; at the beginning and end. This removes these just so that the rest
@@ -244,7 +250,9 @@
 	 (o (print (format nil "sumstats/~a-~a-logsummary.xls" ts (substitute #\_ #\space (pathname-name file))))
 	    :direction :output :if-exists :supersede) 
 	 ;; output headers
-	 (format o "# ~a~%" *heuristicated-experiment-label*) 
+	 (if *heuristicated-experiment-label*
+	     (format o "# ~a~%" *heuristicated-experiment-label*)
+	   (format o "# low=~a, high=~a~%" *low* *high*))
 	 (format o "i	n")
 	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
 	 (loop for s in *strat-keys* do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
@@ -323,7 +331,9 @@
 		 (gethash params *params->problem-blocks*)))
   (with-open-file 
    (o (print (format nil "sumstats/~a-finalstrategyprefs.xls" ts)) :direction :output :if-exists :supersede)
-   (format o ";;; ~a~%(~%" *heuristicated-experiment-label*) 
+   (if *heuristicated-experiment-label*
+       (format o ";;; ~a~%(~%" *heuristicated-experiment-label*)
+	   (format o ";;; low=~a, high=~a~%" *low* *high*))
    ;; Output headers: one col per file in param set order
    (format o "Param/Problem")
    (loop for params being the hash-keys of *params->problem-blocks*
@@ -356,23 +366,25 @@
 
 (defparameter *param-reporting-order* 
   '(
-    ("DECR_on_WRONG" . DECR_on_WRONG)
-    ("non_result_y_filler" . non_result_y_filler)
     ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
-    ("DR_threshold " . DR_threshold )
     ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
-    ("experiment_label" . experiment_label)
+    ("n_problems" . n_problems)
+    ("DR_threshold" . DR_threshold)
+    ("PERR" . PERR)
+    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
+    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
     ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
-    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
     ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
     ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("addend_matrix_offby1_delta" . addend_matrix_offby1_delta)
-    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
-    ("PERR" . PERR)
-    ("learning_rate" . learning_rate)
-    ("in_process_training_epochs" . in_process_training_epochs)
+    ("strategy_hidden_units" . strategy_hidden_units)
+    ("results_hidden_units" . results_hidden_units)
+    ("non_result_y_filler" . non_result_y_filler)
     ("INCR_on_RIGHT" . INCR_on_RIGHT)
-    ("n_problems" . n_problems)
+    ("DECR_on_WRONG" . DECR_on_WRONG)
+    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
+    ("strategy_learning_rate" . strategy_learning_rate)
+    ("results_learning_rate" . results_learning_rate)
+    ("in_process_training_epochs" . in_process_training_epochs)
     ))
 
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
@@ -388,7 +400,9 @@
   (with-open-file 
    (o (print (format nil "sumstats/~a-mastersummary.xls" ts)) :direction :output :if-exists :supersede)
    ;; Report params
-   (format o "# ~a~%" *heuristicated-experiment-label*) 
+   (if *heuristicated-experiment-label*
+       (format o "# ~a~%" *heuristicated-experiment-label*)
+     (format o "# low=~a, high=~a~%" *low* *high*))
    (loop for (ps . pn) in *param-reporting-order*
 	 do 
 	 (format o "~a" (print pn))
@@ -474,4 +488,5 @@
 
 (untrace)
 ;(trace find-sum)
+;(analyze)
 (analyze)

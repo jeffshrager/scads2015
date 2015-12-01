@@ -355,24 +355,41 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20151103: varying PERR 0.0->0.6 to test strategy choice\""],
+                 ["\"20151201d: testing new dumping to 6k\""],
+
+#     ************************************************************************************************************************
+#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#     ************************************************************************************************************************
+
                  # Setting up the initial counting network
                  "initial_counting_network_burn_in_epochs": [1], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
+
                  # Problem presentation and execution
-                 "n_problems": [2000],
+                 "n_problems": [6000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.0,0.2,0.4,0.6], # 0.1 confirmed 201509010826
+                 "PERR": [0.1], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
+
+#     ************************************************************************************************************************
+#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#     ************************************************************************************************************************
+
                  # Choosing to use retrieval v. a strategy
                  "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
                  "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                  "STRATEGY_HIGH_CC": [1.0],
+
                  # Learning target params
                  "strategy_hidden_units": [10],
-                 "results_hidden_units": [30],
+                 "results_hidden_units": [20], # 20 seems to be enough
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
+
+#     ************************************************************************************************************************
+#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#     ************************************************************************************************************************
+
                  # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
                  # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
@@ -469,7 +486,8 @@ class NeuralNetwork:
         self.weights.append(r)
 
         self.X = []
-        # initial input, counting numbers. 
+
+        # Initial input, counting numbers
         for i in range(1, 6):
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
@@ -491,7 +509,8 @@ class NeuralNetwork:
     def y_index(a1, a2):
         return 5 * (a1 - 1) + (a2 - 1)
 
-    # Main forward feeding/backpropagation
+    # Main forward feed and backpropagation
+
     def fit(self, learning_rate, epochs, X=None, y=None):
         if X is None: X = self.X
         if y is None: y = self.target
@@ -502,6 +521,7 @@ class NeuralNetwork:
             # Choose a random training set
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
+
             for l in range(len(self.weights)):
                 dot_value = numpy.dot(a[l], self.weights[l])
                 activation = self.activation(dot_value)
@@ -530,13 +550,23 @@ class NeuralNetwork:
                 delta = numpy.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
 
-    # Outputs a matrix given an input matrix, this is used heavily
-    # when we want to "know" what is in the kid's mind
+    # Outputs a results "probability" (more like "amplitude") matrix
+    # given an input (problem) matrix; used when we want to know "what
+    # is in the kid's mind"
 
     def predict(self, x):
         a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
+        return a
+
+    def predict_with_dumpage(self, x):
+        logstream.write("(:predict_with_dumpage " +  lispify(x) + "\n")
+        a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        for l in range(0, len(self.weights)):
+            a = self.activation(numpy.dot(a, self.weights[l]))
+            logstream.write("  (:level" + lispify(l) + "\n" + lispify(a) + "\n   )\n")
+        logstream.write("\n )\n")
         return a
 
     # Returns a function that picks a random result from a list of
@@ -606,6 +636,13 @@ class NeuralNetwork:
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
 
+    def dump_hidden_activations(self):
+        logstream.write('(:'+self.name+"-hidden-activation-table\n")
+        for a1 in range(1, 6):
+            for a2 in range(1, 6):
+                self.predict_with_dumpage(addends_matrix(a1, a2))
+        logstream.write(')\n')
+
     def dump_predictions(self):
         logstream.write('(:'+self.name+"-prediction-table\n")
         for i in range(1, 6):
@@ -613,6 +650,11 @@ class NeuralNetwork:
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
                 logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
+
+    def dump(self):
+        # dump_weights(self)
+        self.dump_hidden_activations()
+        self.dump_predictions()
 
 ##################### DRIVER #####################
 
@@ -712,8 +754,8 @@ def present_problems():
         logstream.write(')\n')
         if i % settings.pbs == 0 or i == settings.param("n_problems"):
             logstream.write('   ) ;; close :problems\n')
-            rnet.dump_predictions()
-            snet.dump_predictions()
+            rnet.dump()
+            snet.dump()
             logstream.write('    ) ;; close :problem-block\n')
             logstream.write('  (:problem-block\n')
             logstream.write('   (:problems\n')
