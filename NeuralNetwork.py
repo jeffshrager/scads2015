@@ -1,3 +1,5 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!! OUT OF DATE! USE SCADS.PY INSTEAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 import numpy as np
 import settings
 from random import random, randint

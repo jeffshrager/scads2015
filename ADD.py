@@ -1,3 +1,5 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!! OUT OF DATE! USE SCADS.PY INSTEAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from random import randint, shuffle, random
 
 global ADDEND
