@@ -205,13 +205,18 @@
 	       (store-log
 		(if constrain-by-label
 		    (if target-label
-			(if (string-equal this-label target-label) log)
-		      (progn (setf target-label this-label) log))
+			(if (string-equal this-label target-label) 
+			    log ;; Match
+			  ;; As soon as you find one that doesn't match, give up!
+			  (return-from load-data))
+		      (progn (setf target-label this-label)
+			     (format t "Only reading logs with label: ~s~%" target-label)
+			     (setf *heuristicated-experiment-label* target-label)
+			     log))
 		  (if (and (>= fno low) (<= fno high)) log))))
 	  (when store-log 
 	    (clean-up store-log) ;; This smashes the :run entry
 	    (setf (gethash file *file->log*) store-log)))
-	finally (print (setf *heuristicated-experiment-label* target-label))
 	))
 	
 (defun downsorted-directory (p)
@@ -221,7 +226,7 @@
 		 collect (cons (parse-integer (pathname-name f)) f))
 	   #'> :key #'car)))
 
-;; Turns out that for various Obiwon reasons there are problem blocks
+;; Turns out that for various Obiwan reasons there are problem blocks
 ;; with the wrong number of problems, and missing table dumps, usually
 ;; at the beginning and end. This removes these just so that the rest
 ;; of the code can run generically. UUU FFF This should be fixed up in
@@ -371,7 +376,6 @@
     ("n_problems" . n_problems)
     ("DR_threshold" . DR_threshold)
     ("PERR" . PERR)
-    ("PERR_delta" . PERR_delta)
     ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
     ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
     ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
@@ -489,5 +493,4 @@
 
 (untrace)
 ;(trace find-sum)
-;(analyze)
 (analyze)
