@@ -491,6 +491,56 @@
      ))
   )
 
+;;; Combinalyzer takes several files created above, each called, for
+;;; example, "3656687231-FinalPivotforR.csv" and a single variable to
+;;; summarize, and does the stats for them.
+
+(defvar *c->ms* (make-hash-table :test #'equal))
+
+(defun combinalyze (file-numbers cvar mvar)
+  (clrhash *c->ms*)
+  (loop for (c . m) in 
+	(loop for file in (directory "sumstats/*-FinalPivotforR.csv")
+	      as file-name = (pathname-name file)
+	      when (member (parse-integer (subseq file-name 0 (position #\- file-name))) file-numbers)
+	      append (load-FinalPivotforR-csv-file file cvar mvar))
+	do (push m (gethash c *c->ms*)))
+  (with-open-file 
+   (o (format nil "sumstats/~a-combined-analysis.csv" (get-universal-time)) :direction :output)
+   (format o "# Combined anlaysis of ~a on ~a over ~a~%" file-numbers cvar mvar)
+   (format o "~a,mean-~a,stderr-~a~%" cvar mvar mvar)
+   (loop for c being the hash-keys of *c->ms*
+	 using (hash-value ms)
+	 do (format o "~a,~a,~a~%"
+		    c (statistics::mean ms) (statistics::standard-error-of-the-mean ms))))
+  )
+	
+(defun load-FinalPivotforR-csv-file (file cvar mvar)
+  (with-open-file 
+   (i file)
+   (read-line i nil nil) ;; Skip # header
+   (let* ((hline (string-split (read-line i nil nil)))
+	  (ccol (position cvar hline :test #'string-equal))
+	  (mcol (position mvar hline :test #'string-equal)))
+   (loop for line = (read-line i nil nil)
+	 until (null line)
+	 collect (let ((sline (string-split line)))
+		   (cons (read-from-string (nth ccol sline))
+			 (read-from-string (nth mcol sline))))))))
+
+(defun string-split (string &key (delimiter #\,))
+  (let ((substrings '())
+        (length (length string))
+        (last 0))
+    (flet ((add-substring (i)
+             (push (subseq string last i) substrings)))
+      (dotimes (i length)
+        (when (eq (char string i) delimiter)
+          (add-substring i)
+          (setq last (1+ i))))
+      (add-substring length)
+      (nreverse substrings))))
+
 (untrace)
 ;(trace find-sum)
-(analyze)
+(combinalyze '(3658001264 3657998444) 'RESULTS_HIDDEN_UNITS 'ADULT)

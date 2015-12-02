@@ -331,8 +331,8 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 50  # problem bin size, every pbs problems we dump the predictions
+    ndups = 30  # Number of replicates of each combo of params -- usually 3 unless testing.
+    pbs = 500  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     
     # PART 2: These also usually DON'T change, although they might if you
@@ -359,7 +359,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20151201e: testing new dumping to and 100 points\""],
+                 ["\"20151201g: 3000 problems (binning @ 500) with various hidden unit widths\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -387,7 +387,7 @@ class Settings:
 
                  # Learning target params
                  "strategy_hidden_units": [10],
-                 "results_hidden_units": [20], # 20 seems to be enough
+                 "results_hidden_units": [9,11,13,15,17,19], # 20 seems to be enough
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 #     ************************************************************************************************************************
