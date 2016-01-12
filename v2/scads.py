@@ -1,5 +1,6 @@
 # Notes:
-# Maybe should change on every, say, pbs round (approx.: age) to
+
+# Maybe should change PERR on every, say, pbs round (approx.: age) to
 # simulate improvment in ability to count correctly with age.
 
 import timeit
@@ -331,9 +332,10 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 30  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 15  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 500  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
+    dump_hidden_activations = True
     
     # PART 2: These also usually DON'T change, although they might if you
     # want to explore bringing in and out various strategies:
@@ -359,7 +361,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20151201g: 3000 problems (binning @ 500) with various hidden unit widths\""],
+                 ["\"20160112a: Exploring R&S Hidden Units (3000@500, 15x, perr=0.01, burn-in=1)\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -372,7 +374,7 @@ class Settings:
                  # Problem presentation and execution
                  "n_problems": [3000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.1], # 0.1 confirmed 201509010826
+                 "PERR": [0.01], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
 #     ************************************************************************************************************************
@@ -386,8 +388,8 @@ class Settings:
                  "STRATEGY_HIGH_CC": [1.0],
 
                  # Learning target params
-                 "strategy_hidden_units": [10],
-                 "results_hidden_units": [9,11,13,15,17,19], # 20 seems to be enough
+                 "strategy_hidden_units": [3,6,9],
+                 "results_hidden_units": [10,15,20], # 20 seems to be enough
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 #     ************************************************************************************************************************
@@ -671,7 +673,8 @@ class NeuralNetwork:
 
     def dump(self):
         self.dump_weights()
-        self.dump_hidden_activations()
+        if settings.dump_hidden_activations:
+            self.dump_hidden_activations()
         self.dump_predictions()
 
 ##################### DRIVER #####################

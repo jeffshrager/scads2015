@@ -5,10 +5,10 @@
 
 (eval-when 
  (compile load)
- (unless (probe-file #+clisp "lhstats.fas" #+ccl "lhstats.dx32fsl")
-   (compile-file "lhstats.lisp"))
+ (unless (probe-file #+clisp "../lib/lhstats.fas" #+ccl "../lib/lhstats.dx32fsl")
+   (compile-file "../lib/lhstats.lisp"))
  (unless (find-package 'STATISTICS)
-   (load "lhstats")))
+   (load "../lib/lhstats")))
 
 ;;; !!! WWW If at least *low* isn't set, the analyzer will try to find
 ;;; the files to analyze by the latest set of matching experiment
@@ -371,6 +371,8 @@
 
 (defparameter *param-reporting-order* 
   '(
+    ("strategy_hidden_units" . strategy_hidden_units)
+    ("results_hidden_units" . results_hidden_units)
     ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
     ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
     ("n_problems" . n_problems)
@@ -381,8 +383,6 @@
     ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
     ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
     ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("strategy_hidden_units" . strategy_hidden_units)
-    ("results_hidden_units" . results_hidden_units)
     ("non_result_y_filler" . non_result_y_filler)
     ("INCR_on_RIGHT" . INCR_on_RIGHT)
     ("DECR_on_WRONG" . DECR_on_WRONG)
@@ -543,4 +543,5 @@
 
 (untrace)
 ;(trace find-sum)
-(combinalyze '(3658001264 3657998444) 'RESULTS_HIDDEN_UNITS 'ADULT)
+(analyze)
+
