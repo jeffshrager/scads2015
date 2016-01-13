@@ -18,6 +18,7 @@
 > library(reshape)
 
 > e.m <- melt(e, id=c(1:2), measure=c(3))
+OR (1 col): e.m <- melt(e, id=c(1), measure=c(2))
 
 > e.m
 
@@ -29,9 +30,9 @@
 5                       3                   20    ADULT 0.9583699
 ...
 
-> e.m <- cast(e.m,RESULTS_HIDDEN_UNITS ~ variable,mean)
+> e.mean <- cast(e.m,RESULTS_HIDDEN_UNITS ~ variable,mean)
 
-> e.m
+> e.mean
 
   RESULTS_HIDDEN_UNITS     ADULT
 1                   10 0.7990717
@@ -49,7 +50,7 @@
 2                   15 0.002870548
 3                   20 0.003647150
 
-plot(e.m$RESULTS_HIDDEN_UNITS,e.m$ADULT,xlab="N results hidden units",ylab="Mean & s.e. v. adult @ 3000")
+plot(e.mean$RESULTS_HIDDEN_UNITS,e.mean$ADULT,xlab="N results hidden units",ylab="Mean & s.e. v. adult @ 3000")
 
-arrows(e.m$RESULTS_HIDDEN_UNITS, (e.m$ADULT)-(e.err$ADULT), e.m$RESULTS_HIDDEN_UNITS, (e.m$ADULT)+(e.err$ADULT), length=0.05, angle=90, code=3)
+arrows(e.mean$RESULTS_HIDDEN_UNITS, (e.mean$ADULT)-(e.err$ADULT), e.mean$RESULTS_HIDDEN_UNITS, (e.mean$ADULT)+(e.err$ADULT), length=0.05, angle=90, code=3)
 
