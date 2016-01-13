@@ -332,10 +332,10 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 15  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 7  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 500  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
-    dump_hidden_activations = True
+    dump_hidden_activations = False
     
     # PART 2: These also usually DON'T change, although they might if you
     # want to explore bringing in and out various strategies:
@@ -361,7 +361,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
     param_specs = {"experiment_label": 
-                 ["\"20160112a: Exploring R&S Hidden Units (3000@500, 15x, perr=0.01, burn-in=1)\""],
+                 ["\"20160112b: Zooming in on RHU 8-24by2  (3000@500,no dumpage, 7x, perr=0.01, burn-in=1)\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -388,8 +388,8 @@ class Settings:
                  "STRATEGY_HIGH_CC": [1.0],
 
                  # Learning target params
-                 "strategy_hidden_units": [3,6,9],
-                 "results_hidden_units": [10,15,20], # 20 seems to be enough
+                 "strategy_hidden_units": [3],
+                 "results_hidden_units": [8,10,12,14,16,18,20,22,24], # 20 seems to be enough
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 #     ************************************************************************************************************************
