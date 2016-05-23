@@ -332,8 +332,8 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 7  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 500  # problem bin size, every pbs problems we dump the predictions
+    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+    pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     dump_hidden_activations = False
     
@@ -360,21 +360,20 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": 
-                 ["\"20160112b: Zooming in on RHU 8-24by2  (3000@500,no dumpage, 7x, perr=0.01, burn-in=1)\""],
+    param_specs = {"experiment_label": ["\"demo 2 for Myra\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #     ************************************************************************************************************************
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [1], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.01], # 0.25 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [0,2000], # 1000 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [3000],
+                 "n_problems": [200,1000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.01], # 0.1 confirmed 201509010826
+                 "PERR": [0.0,0.33], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
 #     ************************************************************************************************************************
@@ -389,7 +388,7 @@ class Settings:
 
                  # Learning target params
                  "strategy_hidden_units": [3],
-                 "results_hidden_units": [8,10,12,14,16,18,20,22,24], # 20 seems to be enough
+                 "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 #     ************************************************************************************************************************
@@ -402,8 +401,8 @@ class Settings:
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                  "strategy_learning_rate": [0.1],
-                 "results_learning_rate": [0.1], # default: 0.1 Explored 201509010826
-                 "in_process_training_epochs": [10] # Number of training epochs on EACH test problem (explored 201509010826)
+                 "results_learning_rate": [0.05], # default: 0.1 Explored 201509010826
+                 "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
 ##################### NN #####################
@@ -692,14 +691,14 @@ def init_neturalnets():
 def results_network():
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
     nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
-    # Create the counting examples matrix k, the inputs are the
-    # addends matrix for (1+2) , (2+3), etc and the outputs are
-    # (1+2)=3 (2+3)=4.
+    # Burn in counting examples. For the moment we simplify this to
+    # training: ?+B=B+1.
     X_count = []
     y_count = []
-    for i in range(1, 5):
-        X_count.append(addends_matrix(i, i + 1))
-        y_count.append(sum_matrix(i + 2))
+    for a in range(1, 5):
+        for b in range(1,5):
+            X_count.append(addends_matrix(a, b))
+            y_count.append(sum_matrix(b + 1))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
     # Now burn it in:
@@ -768,6 +767,7 @@ def exec_strategy():
 
 def present_problems():
     logstream.write('(:problem-block\n')
+    rnet.dump()
     logstream.write('   (:problems\n')
     for i in range(settings.param("n_problems")):
         logstream.write('(')
