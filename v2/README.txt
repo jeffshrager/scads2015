@@ -46,12 +46,24 @@ trouble-shooting:
 
   https://xkcd.com/627/
 
-Once you have a compatible python and numpy you should be able to just do:
+You must create two directories, if you don't already have them,
+called "runlogs" and "sumstats" in the directory where the .py code
+lives. This is usually a version directory, as "../v2", so you'd be
+creating: 
+
+	  ../v2/runlogs
+and	  ../v2/sumstats
+
+Once you have a compatible python and numpy, and you've created the
+runlog and sumstats directories, you'll want to edit the parameters in
+the model (at least the experiment_label parameter!) More below on how
+to do this.
+
+Once you've done all that, you should be able to just do:
 
   python scads.py
 
-That will run that latest settings. You'll want to change the settings
-to run your own experiments. More below on how to do this.
+That will run that latest parameter settings. 
 
 ============================================================
 3. SETTING UP TO RUN THE ANALYZER
