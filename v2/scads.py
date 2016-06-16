@@ -8,6 +8,7 @@ import datetime
 import os
 import numpy
 from random import randint, shuffle, random
+import sys
 
 global settings, logstream, rnet, snet
 
@@ -607,6 +608,7 @@ class NeuralNetwork:
             # (either strats or results) above the respective cc,
             # although this could be changed to choose in a weighted
             # manner. FFF ???
+            #??? it should pic kthe highest value above cc, not a random one
             return self.outputs[int(results_above_cc[randint(0, l - 1)])]
         return None
 
@@ -627,7 +629,9 @@ class NeuralNetwork:
         for i in range(1, 6):
             for j in range(1, 6):
                 self.predictions.append(self.predict(addends_matrix(i, j)))
-
+        print str(self.predictions)
+        print str(len(self.predictions))
+        sys.exit()
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
     # everything but the correct answer be -= DECR_RIGHT/WRONG and the
