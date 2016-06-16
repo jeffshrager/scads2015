@@ -629,9 +629,13 @@ class NeuralNetwork:
         for i in range(1, 6):
             for j in range(1, 6):
                 self.predictions.append(self.predict(addends_matrix(i, j)))
-        print str(self.predictions)
-        print str(len(self.predictions))
-        sys.exit()
+        #the below is to learn more about how predictions looks like
+        #the predictions is to show the probability of each prediction. the issue was the "position 30"
+        #thing above which was confusing because it was talking about a range (1, 6) although  
+        #we are working in the range 1, 5.
+        #print str(self.predictions)
+        #print str(len(self.predictions))
+       # sys.exit()
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
     # everything but the correct answer be -= DECR_RIGHT/WRONG and the
