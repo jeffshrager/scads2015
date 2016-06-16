@@ -360,7 +360,7 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"testing Jeff change201606atest\""],
+    param_specs = {"experiment_label": ["\"testing 201605221924\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -566,7 +566,14 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        #print str(numpy.ones(1).T)
+        #print str(numpy.ones(1))
+        #print str(numpy.array(x))
+        #print str(numpy.shape(x))
+        # a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        #WWW for an updated numpy version, replace the above line with the line below
+        a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
+        #print str(a)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
         return a
