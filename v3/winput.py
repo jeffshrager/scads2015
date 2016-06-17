@@ -1,6 +1,7 @@
 ### By Myra; testing input creation for Lingustic model.
 
 import numpy
+import decimal
 from random import randint, shuffle, random
 import sys
 import copy
@@ -33,12 +34,15 @@ class lexical_inputs(object): # :-) Made this a class
 	      return [self.noisify(r[x]) for x in range(n_inputs)] # :-) Comprehension again!
       
 		      
+def Rstr(l):
+	return str(['{0:.5f}'.format(v) for v in l])
+
 indict = lexical_inputs() # :-) Init the dictionary array (It's actually not a dictionary!)
 ### Testing
 for i in range(10):
 	a1 = randint(1,5)
 	a2 = randint(1,5)
-	print(str(a1) + ":" + str(indict.addendWithNoise(a1)) + "+" + str(a2) + ":" + str(indict.addendWithNoise(a2)))
+	print(str(a1) + ":" + Rstr(indict.addendWithNoise(a1)) + "+" + str(a2) + ":" + Rstr(indict.addendWithNoise(a2)))
 
 #print init_input_dictionay()
 #print injectNoise()
