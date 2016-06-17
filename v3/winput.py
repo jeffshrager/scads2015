@@ -3,7 +3,6 @@
 import numpy
 from random import randint, shuffle, random
 import sys
-import copy # :-) Needed to copy the list.
 
 ### :-) These params would end up in the setting class in scads, so
 ### they're just global here.
@@ -19,8 +18,9 @@ class lexical_inputs(object):
 	# :-) The dictionary is a local to the lexical_inputs object.
       input_dictionary = {}
 
-      # :-) Init will fill the dictionary with random numbers. We don't
-      # ever want to change these. Instead, copy them before noisifying.
+      # :-) Init will fill the dictionary with random numbers. We
+      # don't ever want to change these. Instead, copy them in the
+      # noisifying process.
       def __init__(self):
 	      for i in range(1,n_inputs+1):
 		self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)] # :-) Used a fancy comprehension here
@@ -37,9 +37,9 @@ class lexical_inputs(object):
 		      return (v - abs(noise))
 
       # :-) This is the main function that a user will call. It just
-      # gets one COPY of the representation, with noise.
+      # creates a COPY of the representation, with noise.
       def addendWithNoise(self,a): 
-	      r = copy.copy(self.input_dictionary[a])
+	      r = self.input_dictionary[a]
 	      return [self.noisify(r[x]) for x in range(n_inputs)] # :-) Comprehension again!
       
 		      
