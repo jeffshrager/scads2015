@@ -40,6 +40,13 @@ def Rstr(l):
 
 indict = lexical_inputs() # :-) Init the dictionary
 
+print("Dictionary:")
+
+for k, v in indict.input_dictionary.items():
+        print(str(k) + " : " + Rstr(v))
+
+print("Expample addition inputs:")
+
 for i in range(10):
 	a1 = randint(1,5)
 	a2 = randint(1,5)
