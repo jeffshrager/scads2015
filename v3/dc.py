@@ -278,6 +278,7 @@ class NeuralNetwork:
     def guess_vector(self, a1, a2, beg, end):
         print a1,a2,beg,end
         vec = []
+        print self.predictions
         self.predict(addends_matrix(a1, a2))
         print self.predictions
         for i in range(beg, end):
@@ -286,9 +287,11 @@ class NeuralNetwork:
         return (vec)
 
     def update_predictions(self):
+        print "> update_predictions"
         self.predictions = []
         for i in range(1, 6):
             for j in range(1, 6):
+                print "update_predictions: ", i, j, self.predictions
                 self.predictions.append(self.predict(addends_matrix(i, j)))
 
     # What target does for now is create a square matrix filled with
@@ -360,6 +363,21 @@ def init_neturalnets():
 def results_network():
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
     nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
+    # Burn in counting examples. For the moment we simplify this to
+    # training: ?+B=B+1.
+    X_count = []
+    y_count = []
+    for a in range(1, 5):
+        for b in range(1,5):
+            X_count.append(addends_matrix(a, b))
+            y_count.append(1)
+    X_count = numpy.array(X_count)
+    y_count = numpy.array(y_count)
+    print X_count
+    print y_count
+    # Now burn it in:
+    nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
+    nn.update_predictions()
     return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
