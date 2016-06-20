@@ -230,7 +230,9 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        # a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        #WWW for an updated numpy version, replace the above line with the line below
+        a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
         return a
@@ -274,9 +276,12 @@ class NeuralNetwork:
     # things.
 #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
     def guess_vector(self, a1, a2, beg, end):
+        print a1,a2,beg,end
         vec = []
         self.predict(addends_matrix(a1, a2))
+        print self.predictions
         for i in range(beg, end):
+            print i, self.y_index(a1,a2)
             vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
         return (vec)
 
@@ -384,7 +389,7 @@ def exec_strategy():
         logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
         # ??? what should go here for the new version
-
+        print("# ??? what should go here for the new version")
     # update the nns:
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
@@ -440,7 +445,6 @@ def config_and_test(index=0):
             logstream.write(" (:file " + fn + ")\n")
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
-            logstream.write(' (:strategies' + lispify(settings.strategies.keys()) + ")\n")
             init_neturalnets()
             logstream.write(' )\n')
             logstream.write('(:run\n')
