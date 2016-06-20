@@ -4,8 +4,17 @@ import datetime
 import os
 import numpy
 from random import randint, shuffle, random
+from types import *
 
 global settings, logstream, rnet, snet
+
+def RoundedStr(l):
+    if type(l) is ListType:
+        return str(['{0:.5f}'.format(v) for v in l])
+    elif type(l) is FloatType:
+        return str('{0:.5f}'.format(l))
+    else:
+        sys.exit("Bad type sent to RoundedStr: +" + type(l))
 
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
@@ -23,8 +32,6 @@ class Settings:
     ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dump_hidden_activations = False
-    
-
     
     def param(self, key):
         return self.params[key]

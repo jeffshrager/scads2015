@@ -8,12 +8,21 @@ import datetime
 import os
 import numpy
 from random import randint, shuffle, random
+from types import *
 
 global settings, logstream, rnet, snet
 
 ##################### ADD #####################
 
 global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
+
+def RoundedStr(l):
+    if type(l) is ListType:
+        return str(['{0:.5f}'.format(v) for v in l])
+    elif type(l) is FloatType:
+        return str('{0:.5f}'.format(l))
+    else:
+        sys.exit("Bad type sent to RoundedStr: +" + type(l))
 
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
@@ -360,20 +369,20 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"testing 201605221924\""],
+    param_specs = {"experiment_label": ["\"testing 201dsfkjdslfsjfjfkj\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #     ************************************************************************************************************************
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [0,2000], # 1000 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [1000], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [200,1000],
+                 "n_problems": [1000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.0,0.33], # 0.1 confirmed 201509010826
+                 "PERR": [0.1], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
 #     ************************************************************************************************************************
@@ -844,7 +853,7 @@ def top_level_run():
         print ">>>>> Rep #" + str(i + 1) + " <<<<<"
         config_and_test()
     stop = timeit.default_timer()
-    print stop - start
+    print RoundedStr(stop - start)
 
 # Run:
 if __name__ == '__main__':
