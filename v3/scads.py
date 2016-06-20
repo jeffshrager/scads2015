@@ -710,6 +710,8 @@ def results_network():
             y_count.append(sum_matrix(b + 1))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
+    print X_count
+    print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()

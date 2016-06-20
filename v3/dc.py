@@ -19,6 +19,13 @@ def RoundedStr(l):
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
 
+class Addend(object):
+    def __init__(self, ad1, ad2):
+        self.ad1 = ad1
+        self.ad2 = ad2
+        self.addend = 0
+        self.cla = ''
+
 #this is the inputs
 def PPA():
     global ADDENDS
@@ -300,6 +307,7 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
+        print "> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
@@ -307,7 +315,7 @@ class NeuralNetwork:
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
     def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-
+        print "> update_target"
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
@@ -320,6 +328,7 @@ class NeuralNetwork:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
+        print self.target
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -386,6 +395,7 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
+    print "> exec_strategy"
     global rnet
     global SOLUTION
     rnet.reset_target()
@@ -402,6 +412,8 @@ def exec_strategy():
     # (this is just used to initialize solution, or else it's not in the right code block
     # we have to reset the target for every problem, 
     # or else it uses the target from the last problem
+    print "> exec_strategy B"
+    print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
         logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
@@ -409,6 +421,7 @@ def exec_strategy():
         # ??? what should go here for the new version
         print("# ??? what should go here for the new version")
     # update the nns:
+    print "> exec_strategy C"
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
