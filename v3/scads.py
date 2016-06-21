@@ -1,3 +1,4 @@
+
 # Notes:
 
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
@@ -575,7 +576,7 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
         return a
@@ -710,8 +711,8 @@ def results_network():
             y_count.append(sum_matrix(b + 1))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    print X_count
-    print y_count
+    #print X_count
+    #print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
