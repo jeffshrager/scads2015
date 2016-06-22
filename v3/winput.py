@@ -51,6 +51,10 @@ def Rstr(l):
 
 indict = lexical_inputs() # :-) Init the dictionary
 
+print str(5) + ":" + Rstr(indict.input_dictionary[5])
+
+print str(5) + ":" + Rstr(indict.addendWithNoise(5))
+
 print("Dictionary:")
 
 for k, v in indict.input_dictionary.items():
@@ -62,5 +66,3 @@ for i in range(10):
 	a1 = randint(1,5)
 	a2 = randint(1,5)
 	print(str(a1) + ":" + Rstr(indict.addendWithNoise(a1)) + "+" + str(a2) + ":" + Rstr(indict.addendWithNoise(a2)))
-
-
