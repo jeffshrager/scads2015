@@ -6,7 +6,7 @@ import numpy
 from random import randint, shuffle, random
 from types import *
 
-global settings, logstream, rnet, snet
+global settings, logstream, rnet
 
 def RoundedStr(l):
     if type(l) is ListType:
@@ -46,7 +46,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"testing 061516\""],
+    param_specs = {"experiment_label": ["\"testing 201606212111\""],
 
 
                  # Setting up the initial counting network
@@ -169,7 +169,7 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
                 #print outputs
-#building input probe^
+        #building input probe
         self.X = numpy.array(self.X)
         #go to v2 later print self.X
         self.predictions = []
@@ -283,22 +283,22 @@ class NeuralNetwork:
     # things.
 #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
     def guess_vector(self, a1, a2, beg, end):
-        print a1,a2,beg,end
+        #print a1,a2,beg,end
         vec = []
-        print self.predictions
+        #print self.predictions
         self.predict(addends_matrix(a1, a2))
-        print self.predictions
+        #print self.predictions
         for i in range(beg, end):
-            print i, self.y_index(a1,a2)
+            #print i, self.y_index(a1,a2)
             vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
         return (vec)
 
     def update_predictions(self):
-        print "> update_predictions"
+        #print "> update_predictions"
         self.predictions = []
         for i in range(1, 6):
             for j in range(1, 6):
-                print "update_predictions: ", i, j, self.predictions
+                #print "update_predictions: ", i, j, self.predictions
                 self.predictions.append(self.predict(addends_matrix(i, j)))
 
     # What target does for now is create a square matrix filled with
@@ -307,7 +307,7 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
-        print "> reset_target"
+        #print "> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
@@ -315,7 +315,7 @@ class NeuralNetwork:
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
     def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        print "> update_target"
+        #print "> update_target"
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
@@ -328,7 +328,7 @@ class NeuralNetwork:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-        print self.target
+        #print self.target
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -382,8 +382,8 @@ def results_network():
             y_count.append(1)
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    print X_count
-    print y_count
+    #print X_count
+    #print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
@@ -395,7 +395,7 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    print "> exec_strategy"
+    #print "> exec_strategy"
     global rnet
     global SOLUTION
     rnet.reset_target()
@@ -412,17 +412,17 @@ def exec_strategy():
     # (this is just used to initialize solution, or else it's not in the right code block
     # we have to reset the target for every problem, 
     # or else it uses the target from the last problem
-    print "> exec_strategy B"
-    print retrieval
+    #print "> exec_strategy B"
+    #print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
         logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
-        # ??? what should go here for the new version
-        print("# ??? what should go here for the new version")
+        # !!! ??? what should go here for the new version
+        SOLUTION = 5 # !!! This has to get changed to the desired output
     # update the nns:
-    print "> exec_strategy C"
-    rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
+    #print "> exec_strategy C"
+    rnet.update_target(ad1, ad2, SOLUTION, ad1 + ad2, ad1 + ad2) # !!! This call is obviously wrong for word learning
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
 
@@ -441,7 +441,6 @@ def present_problems():
         if i % settings.pbs == 0 or i == settings.param("n_problems"):
             logstream.write('   ) ;; close :problems\n')
             rnet.dump()
-            snet.dump()
             logstream.write('    ) ;; close :problem-block\n')
             logstream.write('  (:problem-block\n')
             logstream.write('   (:problems\n')
