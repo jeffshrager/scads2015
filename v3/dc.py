@@ -6,7 +6,7 @@ import numpy
 from random import randint, shuffle, random
 from types import *
 
-global settings, logstream, rnet, snet
+global settings, logstream, rnet
 
 def RoundedStr(l):
     if type(l) is ListType:
@@ -109,7 +109,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"testing 061516\""],
+    param_specs = {"experiment_label": ["\"testing 201606212111\""],
 
 
                  # Setting up the initial counting network
@@ -233,7 +233,7 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.X.append(addends_matrix(i, j))
                 #print outputs
-#building input probe^
+        #building input probe
         self.X = numpy.array(self.X)
         #go to v2 later print self.X
         self.predictions = []
@@ -462,6 +462,10 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
+<<<<<<< HEAD
+=======
+    #print "> exec_strategy"
+>>>>>>> 96c7f5f6e07c68c1b2079d6dac6462e7ce946689
     global rnet
     global SOLUTION
     rnet.reset_target()
@@ -481,18 +485,30 @@ def exec_strategy():
     # (this is just used to initialize solution, or else it's not in the right code block
     # we have to reset the target for every problem, 
     # or else it uses the target from the last problem
+<<<<<<< HEAD
+=======
+    #print "> exec_strategy B"
+>>>>>>> 96c7f5f6e07c68c1b2079d6dac6462e7ce946689
     #print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
         #print "USING RETRIEVAL, SOLUTION IS!!!!!!!!!!!" + str(SOLUTION)
         logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
+<<<<<<< HEAD
         #there are no results above the confidence criterion
         # ??? what should go here for the new version
         pass
 # update the nns:
     
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
+=======
+        # !!! ??? what should go here for the new version
+        SOLUTION = 5 # !!! This has to get changed to the desired output
+    # update the nns:
+    #print "> exec_strategy C"
+    rnet.update_target(ad1, ad2, SOLUTION, ad1 + ad2, ad1 + ad2) # !!! This call is obviously wrong for word learning
+>>>>>>> 96c7f5f6e07c68c1b2079d6dac6462e7ce946689
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
 
