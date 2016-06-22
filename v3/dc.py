@@ -31,6 +31,69 @@ def PPA():
     global ADDENDS
     ADDENDS = Addend(randint(1, 5), randint(1, 5))
 
+##################### input for linguistic model #####################
+
+### :-) These params would end up in the setting class in scads, so
+### they're just global here.
+
+n_inputs = 5
+noise_scale = 0.05
+
+# :-) Made this a class which will make it much simler to move the
+# whole thing into your new model.
+
+class lexical_inputs(object): 
+
+    # :-) The dictionary is a local to the lexical_inputs object.
+      input_dictionary = {}
+
+      # :-) Init will fill the dictionary with random numbers. We
+      # don't ever want to change these. Instead, copy them in the
+      # noisifying process.
+      def __init__(self):
+          for i in range(1,n_inputs+1):
+            self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)] # :-) Used a fancy comprehension here
+
+      # :-) This just noisifies a single value at a time. I'll get called
+      # over and over in a map over the list of values.
+      def noisify(self,v):
+          noise = numpy.random.normal(loc=0.0, scale=noise_scale)
+            #scale is SD
+            #absolute value of noise? since no negative values
+          if v == 0:
+              return (v + abs(noise))
+          else:
+              return (v - abs(noise))
+
+      # :-) This is the main function that a user will call. It just
+      # creates a COPY of the representation, with noise.
+      def addendWithNoise(self,a): 
+          r = self.input_dictionary[a]
+          return [self.noisify(r[x]) for x in range(n_inputs)] # :-) Comprehension again!
+      
+              
+### Just for display purposes, don't need all those decimal places.
+def Rstr(l):
+    return str(['{0:.5f}'.format(v) for v in l])
+
+### Testing
+
+indict = lexical_inputs() # :-) Init the dictionary
+
+print("Dictionary:")
+
+for k, v in indict.input_dictionary.items():
+        print(str(k) + " : " + Rstr(v))
+
+print("Expample addition inputs:")
+
+for i in range(10):
+    a1 = randint(1,5)
+    a2 = randint(1,5)
+    print(str(a1) + ":" + Rstr(indict.addendWithNoise(a1)) + "+" + str(a2) + ":" + Rstr(indict.addendWithNoise(a2)))
+
+
+
 ##################### SETTINGS #####################
 
 class Settings:
@@ -126,6 +189,7 @@ def addends_matrix(a1, a2):
 class NeuralNetwork:
     def __init__(self, name, layers, type, outputs):
         self.outputs = outputs
+        #print "HERE IS SELF.OUTPUT" + str(self.outputs)
         self.name=name
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
@@ -256,10 +320,12 @@ class NeuralNetwork:
     
     def try_memory_retrieval(self, a1, a2):
         index = self.y_index(a1, a2)
+        #print index
         if (a1 > 5) or (a2 > 5):
             return None
         # Collect the values that come above cc.
         results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
+
         l = len(results_above_cc)
         if l > 0:
             # At the moment this chooses randomly from all those
@@ -283,22 +349,22 @@ class NeuralNetwork:
     # things.
 #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
     def guess_vector(self, a1, a2, beg, end):
-        print a1,a2,beg,end
+        #print a1,a2,beg,end
         vec = []
-        print self.predictions
+        #print self.predictions
         self.predict(addends_matrix(a1, a2))
-        print self.predictions
+        #print self.predictions
         for i in range(beg, end):
-            print i, self.y_index(a1,a2)
+            #print i, self.y_index(a1,a2)
             vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
         return (vec)
 
     def update_predictions(self):
-        print "> update_predictions"
+        #print "> update_predictions"
         self.predictions = []
         for i in range(1, 6):
             for j in range(1, 6):
-                print "update_predictions: ", i, j, self.predictions
+                #print "update_predictions: ", i, j, self.predictions
                 self.predictions.append(self.predict(addends_matrix(i, j)))
 
     # What target does for now is create a square matrix filled with
@@ -307,7 +373,7 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
-        print "> reset_target"
+        #print "> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
@@ -315,20 +381,21 @@ class NeuralNetwork:
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
     def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        print "> update_target"
+        #print "> update_target"
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
-
+        #ok let's investigate this
+        #print targeted_output
         targeted_output_position = self.outputs.index(targeted_output)
-
+        #print "HERE IS TARGETED OUTPUT POSITION" + str(targeted_output_position)
         if correct:
             self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
         else:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-        print self.target
+        #print self.target
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -382,8 +449,8 @@ def results_network():
             y_count.append(1)
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    print X_count
-    print y_count
+    #print X_count
+    #print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
@@ -395,7 +462,6 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    print "> exec_strategy"
     global rnet
     global SOLUTION
     rnet.reset_target()
@@ -403,25 +469,29 @@ def exec_strategy():
     PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
     ad1=ADDENDS.ad1
     ad2=ADDENDS.ad2
+
+    correct = ad2 + ad1
     # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
     strat_name = None
     retrieval = rnet.try_memory_retrieval(ad1,ad2)
-    SOLUTION = -666
+    #changed the below from -666 to 0, since we don't have anything else in the else block right now and it would break :(
+    SOLUTION = 0
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
     # (this is just used to initialize solution, or else it's not in the right code block
     # we have to reset the target for every problem, 
     # or else it uses the target from the last problem
-    print "> exec_strategy B"
-    print retrieval
+    #print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
+        #print "USING RETRIEVAL, SOLUTION IS!!!!!!!!!!!" + str(SOLUTION)
         logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
+        #there are no results above the confidence criterion
         # ??? what should go here for the new version
-        print("# ??? what should go here for the new version")
-    # update the nns:
-    print "> exec_strategy C"
+        pass
+# update the nns:
+    
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
@@ -441,7 +511,6 @@ def present_problems():
         if i % settings.pbs == 0 or i == settings.param("n_problems"):
             logstream.write('   ) ;; close :problems\n')
             rnet.dump()
-            snet.dump()
             logstream.write('    ) ;; close :problem-block\n')
             logstream.write('  (:problem-block\n')
             logstream.write('   (:problems\n')
