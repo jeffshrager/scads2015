@@ -333,7 +333,7 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     dump_hidden_activations = False
@@ -361,20 +361,20 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"learning rate effect on burn in 201606211102\""],
+    param_specs = {"experiment_label": ["\"testing 201605221924\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #     ************************************************************************************************************************
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [0,1000,2000,3000], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.01,0.05,0.1,0.15,0.2], # 0.25 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [0,2000], # 1000 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [200],
+                 "n_problems": [200,1000],
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.1], # 0.1 confirmed 201509010826
+                 "PERR": [0.0,0.33], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
 #     ************************************************************************************************************************
@@ -453,11 +453,9 @@ def addends_matrix(a1, a2):
     return lis
 
 # This is used for counting exposure
-def sum_matrix(a,b):
+def sum_matrix(s):
     lis = [0] * 13
-    lis[a] = 1
-    lis[b] = 1
-    lis[b + 1] += 1
+    lis[s] = 1
     return lis
 
 class NeuralNetwork:
@@ -712,14 +710,12 @@ def results_network():
     # training: ?+B=B+1.
     X_count = []
     y_count = []
-    for a in range(1, 6):
-        for b in range(1,6):
+    for a in range(1, 5):
+        for b in range(1,5):
             X_count.append(addends_matrix(a, b))
-            y_count.append(sum_matrix(a,b))
+            y_count.append(sum_matrix(b + 1))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    #print X_count
-    #print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
