@@ -83,15 +83,15 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"testing 201606212111899898\""],
+    param_specs = {"experiment_label": ["\"testing 201606212111899898tjafdasfdsksldflksdaf\""],
 
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [0,2000], # 1000 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [0], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [200,1000],
+                 "n_problems": [3000],
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                  # Choosing to use retrieval v. a strategy
@@ -99,7 +99,7 @@ class Settings:
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
 
                  # Learning target params
-                 "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
+                 "results_hidden_units": [10], # 20 per experiments of 20160112b -- maybe 18?
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 
@@ -108,7 +108,7 @@ class Settings:
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-                 "results_learning_rate": [0.05], # default: 0.1 Explored 201509010826
+                 "results_learning_rate": [0.02], # default: 0.1 Explored 201509010826
                  "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
@@ -242,7 +242,7 @@ class NeuralNetwork:
                 a.append(activation)
 
             # Output layer
-            print y, a
+            #print y, a
             error = y[i] - a[-1]
             self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
