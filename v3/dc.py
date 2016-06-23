@@ -95,7 +95,7 @@ class Settings:
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                  # Choosing to use retrieval v. a strategy
-                 "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
+                 "RETRIEVAL_LOW_CC": [0.2], # Should be 0.6 usually; at 1.0 no retrieval will occur
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
 
                  # Learning target params
@@ -108,7 +108,7 @@ class Settings:
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-                 "results_learning_rate": [0.02], # default: 0.1 Explored 201509010826
+                 "results_learning_rate": [0.1], # default: 0.1 Explored 201509010826
                  "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
@@ -448,7 +448,7 @@ def exec_strategy():
     #print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
-        logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
+        logstream.write("(:used retrieval " +  str(ad1) + " = " + str(SOLUTION) + ") ")
     else:
         # !!! ??? what should go here for the new version
         return "did not associate auditory input with numerical representation"
