@@ -73,7 +73,7 @@ class lexical_inputs(object):
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dump_hidden_activations = False
     
@@ -83,7 +83,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"testing 201606212111\""],
+    param_specs = {"experiment_label": ["\"testing 201606212111899898\""],
 
 
                  # Setting up the initial counting network
@@ -151,8 +151,8 @@ def ling_matrix(a1):
 
 
 def addend_matrix(a1):
-    lis = [0] * 7
-    lis[a1] = 1
+    lis = [0] * 5
+    lis[a1-1] = 1
     return lis
 
 
@@ -222,8 +222,8 @@ class NeuralNetwork:
         return (a1 - 1)
 
     # Main forward feed and backpropagation
-
     def fit(self, learning_rate, epochs, X=None, y=None):
+
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
@@ -242,6 +242,7 @@ class NeuralNetwork:
                 a.append(activation)
 
             # Output layer
+            print y, a
             error = y[i] - a[-1]
             self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
@@ -291,7 +292,7 @@ class NeuralNetwork:
         # Collect the values that come above cc.
         results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
         l = len(results_above_cc)
-        print "lengt " + str(results_above_cc[0])
+        #print "lengt " + str(results_above_cc[0])
         if l > 0:
             # At the moment this chooses randomly from all those
             # (either strats or results) above the respective cc,
@@ -401,10 +402,10 @@ def init_neturalnets():
 def results_network():
     possible_outputs = [0] * 5
     for a in range(1,6):
-        lis = [0] * 7
-        lis[a] = 1
+        lis = [0] * 5
+        lis[a-1] = 1
         possible_outputs[a-1] = lis
-    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 7],"RETRIEVAL",possible_outputs)
+    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
     # Burn in counting examples. For the moment we simplify this to
     # training: ?+B=B+1.
     X_count = []
@@ -452,9 +453,9 @@ def exec_strategy():
         # !!! ??? what should go here for the new version
         return "did not associate auditory input with numerical representation"
     # update the nns:
-    list = [0] * 7
-    list[ad1] = 1
-    rnet.update_target(ad1, SOLUTION, list) # !!! This call is obviously wrong for word learning
+    list = [0] * 5
+    list[ad1-1] = 1
+    rnet.update_target(ad1, SOLUTION, list) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
 
