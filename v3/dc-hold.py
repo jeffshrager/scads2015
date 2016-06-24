@@ -1,3 +1,4 @@
+#to do : figure out inputs, Q00's, change the addends_matrix accordingly
 import timeit
 import datetime
 import os
@@ -5,7 +6,7 @@ import numpy
 from random import randint, shuffle, random
 from types import *
 
-global settings, logstream, rnet
+global settings, logstream, rnet, snet
 
 def RoundedStr(l):
     if type(l) is ListType:
@@ -25,55 +26,17 @@ class Addend(object):
         self.addend = 0
         self.cla = ''
 
+#this is the inputs
 def PPA():
     global ADDENDS
     ADDENDS = Addend(randint(1, 5), randint(1, 5))
-##################### LINGUISTIC INPUT #####################
-
-### By Myra; testing input creation for Lingustic model.
-
-n_inputs = 5
-noise_scale = 0.05
-
-# :-) Made this a class which will make it much simler to move the
-# whole thing into your new model.
-
-class lexical_inputs(object): 
-
-    # :-) The dictionary is a local to the lexical_inputs object.
-      input_dictionary = {}
-
-      # :-) Init will fill the dictionary with random numbers. We
-      # don't ever want to change these. Instead, copy them in the
-      # noisifying process.
-      def __init__(self):
-          for i in range(1,n_inputs+1):
-            self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)] 
-        # :-) Used a fancy comprehension here
-
-      # :-) This just noisifies a single value at a time. I'll get called
-      # over and over in a map over the list of values.
-      def noisify(self,v):
-          noise = numpy.random.normal(loc=0.0, scale=noise_scale)
-            #scale is SD
-            #absolute value of noise? since no negative values
-          if v == 0:
-              return (v + abs(noise))
-          else:
-              return (v - abs(noise))
-
-      # :-) This is the main function that a user will call. It just
-      # creates a COPY of the representation, with noise.
-      def addendWithNoise(self,a): 
-          r = self.input_dictionary[a]
-          return [self.noisify(r[x]) for x in range(n_inputs)] # :-) Comprehension again!
 
 ##################### SETTINGS #####################
 
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dump_hidden_activations = False
     
@@ -83,23 +46,23 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"testing 201606212111899898tjafdasfdsksldflksdaf\""],
+    param_specs = {"experiment_label": ["\"testing 061516\""],
 
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [0], # 1000 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [0,2000], # 1000 based on 201509010902
                  "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [3000],
+                 "n_problems": [200,1000],
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                  # Choosing to use retrieval v. a strategy
-                 "RETRIEVAL_LOW_CC": [0.2], # Should be 0.6 usually; at 1.0 no retrieval will occur
+                 "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
                  "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
 
                  # Learning target params
-                 "results_hidden_units": [10], # 20 per experiments of 20160112b -- maybe 18?
+                 "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
                  "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
 
@@ -108,7 +71,7 @@ class Settings:
                  "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
                  "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                  "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-                 "results_learning_rate": [0.1], # default: 0.1 Explored 201509010826
+                 "results_learning_rate": [0.05], # default: 0.1 Explored 201509010826
                  "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                  }
 
@@ -144,15 +107,19 @@ class Settings:
 # WWW WARNING !!! Don't confuse either of these with the fingers on
 # the hands!
 
-def ling_matrix(a1):
-    indict = lexical_inputs() # :-) Init the dictionary
-    #should this be noisy????
-    return indict.addendWithNoise(a1)
-
-
-def addend_matrix(a1):
-    lis = [0] * 5
-    lis[a1-1] = 1
+#this is going to be the output
+def addends_matrix(a1, a2):
+    cv = 1.0 # central value
+    delta = settings.param("addends_matrix_offby1_delta")
+    lis = [0] * 14
+    # First addend
+    lis[a1 - 1] = cv - delta
+    lis[a1] = cv
+    lis[a1 + 1] = cv - delta
+    # Second addend
+    lis[a2 + 6] = cv - delta
+    lis[a2 + 7] = cv
+    lis[a2 + 8] = cv - delta
     return lis
 
 
@@ -199,9 +166,10 @@ class NeuralNetwork:
 
         # Initial input, counting numbers
         for i in range(1, 6):
-                self.X.append(ling_matrix(i))
+            for j in range(1, 6):
+                self.X.append(addends_matrix(i, j))
                 #print outputs
-        #building input probe
+#building input probe^
         self.X = numpy.array(self.X)
         #go to v2 later print self.X
         self.predictions = []
@@ -214,16 +182,16 @@ class NeuralNetwork:
     #          ...generate the i+j output array and append to the growing vector...
     #
     # What results is a long array where the index of the problem we're looking for 
-    # is position: 5 * (i - 1) * (j - 1). For example, for 3+4 you end up with 
+    # is position: 5 * (i - 1) + (j - 1). For example, for 3+4 you end up with 
     # 5 * 2 * 3 = position 30 in the output units array. 
         
     @staticmethod
-    def y_index(a1):
-        return (a1 - 1)
+    def y_index(a1, a2):
+        return 5 * (a1 - 1) + (a2 - 1)
 
     # Main forward feed and backpropagation
-    def fit(self, learning_rate, epochs, X=None, y=None):
 
+    def fit(self, learning_rate, epochs, X=None, y=None):
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
@@ -242,7 +210,6 @@ class NeuralNetwork:
                 a.append(activation)
 
             # Output layer
-            #print y, a
             error = y[i] - a[-1]
             self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
@@ -287,20 +254,19 @@ class NeuralNetwork:
         logstream.write(")\n")
         return a
     
-    def try_memory_retrieval(self, a1):
-        index = self.y_index(a1)
+    def try_memory_retrieval(self, a1, a2):
+        index = self.y_index(a1, a2)
+        if (a1 > 5) or (a2 > 5):
+            return None
         # Collect the values that come above cc.
         results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
         l = len(results_above_cc)
-        #print "lengt " + str(results_above_cc[0])
         if l > 0:
             # At the moment this chooses randomly from all those
             # (either strats or results) above the respective cc,
             # although this could be changed to choose in a weighted
             # manner. FFF ???
-
-            #list index is out of range 
-            return self.outputs[int(results_above_cc[(randint(0, l - 1))])]
+            return self.outputs[int(results_above_cc[randint(0, l - 1)])]
         return None
 
     # Returns a function that picks a random result from a list of
@@ -316,23 +282,24 @@ class NeuralNetwork:
     # FFF Anyway, see notes for guess to explain the begin and end
     # things.
 #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
-    def guess_vector(self, a1, beg, end):
-        #print a1,a2,beg,end
+    def guess_vector(self, a1, a2, beg, end):
+        print a1,a2,beg,end
         vec = []
-        #print self.predictions
-        self.predict(ling_matrix(a1))
-        #print self.predictions
+        print self.predictions
+        self.predict(addends_matrix(a1, a2))
+        print self.predictions
         for i in range(beg, end):
-            #print i, self.y_index(a1,a2)
-            vec.append(round(self.predictions[self.y_index(a1)][i], 5))
+            print i, self.y_index(a1,a2)
+            vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
         return (vec)
 
     def update_predictions(self):
-        #print "> update_predictions"
+        print "> update_predictions"
         self.predictions = []
         for i in range(1, 6):
-                #print "update_predictions: ", i, j, self.predictions
-                self.predictions.append(self.predict(ling_matrix(i)))
+            for j in range(1, 6):
+                print "update_predictions: ", i, j, self.predictions
+                self.predictions.append(self.predict(addends_matrix(i, j)))
 
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
@@ -340,17 +307,17 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
-        #print "> reset_target"
+        print "> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
-    def update_target(self, a1, targeted_output, correct, correct_output_on_incorrect = None):
-        #print "> update_target"
+    def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
+        print "> update_target"
         self.X = []
-        self.X.append(ling_matrix(a1))
+        self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
 
         targeted_output_position = self.outputs.index(targeted_output)
@@ -361,18 +328,21 @@ class NeuralNetwork:
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-        #print self.target
+        print self.target
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
         for a1 in range(1, 6):
-                self.predict_with_dumpage(ling_matrix(a1))
+            for a2 in range(1, 6):
+                self.predict_with_dumpage(addends_matrix(a1, a2))
         logstream.write(')\n')
 
     def dump_predictions(self):
         logstream.write('(:'+self.name+"-prediction-table\n")
         for i in range(1, 6):
-                gv = self.guess_vector(i, 0, self.layers[-1])
+            for j in range(1, 6):
+                gv = self.guess_vector(i, j, 0, self.layers[-1])
+                logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
 
     def dump_weights(self):
@@ -400,23 +370,20 @@ def init_neturalnets():
     rnet = results_network()
 
 def results_network():
-    possible_outputs = [0] * 5
-    for a in range(1,6):
-        lis = [0] * 5
-        lis[a-1] = 1
-        possible_outputs[a-1] = lis
-    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
+    # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
+    nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
     # Burn in counting examples. For the moment we simplify this to
     # training: ?+B=B+1.
     X_count = []
     y_count = []
-    for a in range(1, 6):
-            X_count.append(ling_matrix(a))
-            y_count.append(addend_matrix(a))
+    for a in range(1, 5):
+        for b in range(1,5):
+            X_count.append(addends_matrix(a, b))
+            y_count.append(1)
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    #print X_count
-    #print y_count
+    print X_count
+    print y_count
     # Now burn it in:
     nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
@@ -428,34 +395,34 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    #print "> exec_strategy"
+    print "> exec_strategy"
     global rnet
     global SOLUTION
     rnet.reset_target()
     #create input
     PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
     ad1=ADDENDS.ad1
-    #ignore ad2 for now, use the already trained network on it afterward
     ad2=ADDENDS.ad2
-    retrieval = rnet.try_memory_retrieval(ad1)
+    # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
+    strat_name = None
+    retrieval = rnet.try_memory_retrieval(ad1,ad2)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
     # (this is just used to initialize solution, or else it's not in the right code block
     # we have to reset the target for every problem, 
     # or else it uses the target from the last problem
-    #print "> exec_strategy B"
-    #print retrieval
+    print "> exec_strategy B"
+    print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
-        logstream.write("(:used retrieval " +  str(ad1) + " = " + str(SOLUTION) + ") ")
+        logstream.write("(:used retrieval " +  str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
     else:
-        # !!! ??? what should go here for the new version
-        return "did not associate auditory input with numerical representation"
+        # ??? what should go here for the new version
+        print("# ??? what should go here for the new version")
     # update the nns:
-    list = [0] * 5
-    list[ad1-1] = 1
-    rnet.update_target(ad1, SOLUTION, list) 
+    print "> exec_strategy C"
+    rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
 
@@ -474,6 +441,7 @@ def present_problems():
         if i % settings.pbs == 0 or i == settings.param("n_problems"):
             logstream.write('   ) ;; close :problems\n')
             rnet.dump()
+            snet.dump()
             logstream.write('    ) ;; close :problem-block\n')
             logstream.write('  (:problem-block\n')
             logstream.write('   (:problems\n')
