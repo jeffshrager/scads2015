@@ -87,12 +87,12 @@ class Settings:
 
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [0], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
+                 #"initial_counting_network_burn_in_epochs": [0], # 1000 based on 201509010902
+                 #"initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
                  "n_problems": [3000],
-                 "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
+                 #"addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                  # Choosing to use retrieval v. a strategy
                  "RETRIEVAL_LOW_CC": [0.2], # Should be 0.6 usually; at 1.0 no retrieval will occur
@@ -417,8 +417,6 @@ def results_network():
     y_count = numpy.array(y_count)
     #print X_count
     #print y_count
-    # Now burn it in:
-    nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
     nn.update_predictions()
     return nn
 
@@ -435,8 +433,6 @@ def exec_strategy():
     #create input
     PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
     ad1=ADDENDS.ad1
-    #ignore ad2 for now, use the already trained network on it afterward
-    ad2=ADDENDS.ad2
     retrieval = rnet.try_memory_retrieval(ad1)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
@@ -448,9 +444,8 @@ def exec_strategy():
     #print retrieval
     if retrieval is not None:
         SOLUTION = retrieval
-        logstream.write("(:used retrieval " +  str(ad1) + " = " + str(SOLUTION) + ") ")
+        logstream.write("(:encoding " +  str(ad1) + " => " + str(SOLUTION) + ") ")
     else:
-        # !!! ??? what should go here for the new version
         return "did not associate auditory input with numerical representation"
     # update the nns:
     list = [0] * 5
