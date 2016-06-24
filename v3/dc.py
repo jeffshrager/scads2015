@@ -5,7 +5,7 @@ import numpy
 from random import randint, shuffle, random
 from types import *
 
-global settings, logstream, rnet
+global settings, logstream, rnet, lexicon
 
 def RoundedStr(l):
     if type(l) is ListType:
@@ -18,18 +18,17 @@ def RoundedStr(l):
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
 
-class Addend(object):
-    def __init__(self, ad1, ad2):
-        self.ad1 = ad1
-        self.ad2 = ad2
-        self.addend = 0
-        self.cla = ''
+class TrainingSet():
+    def __init__(self, n):
+        self.number = n
+        # FFF This will eventually get replaced by something more
+        # complex that provides an input representation. For the
+        # moment these are the same.
+        self.numword = lexicon.noisify(self.number)
+        self.correct_output = [0] * 5 # FFF Replace with setting var
+        self.correct_output[n-1] = 1
 
-def PPA():
-    global ADDENDS
-    ADDENDS = Addend(randint(1, 5), randint(1, 5))
 ##################### LINGUISTIC INPUT #####################
-
 ### By Myra; testing input creation for Lingustic model.
 
 n_inputs = 5
@@ -38,16 +37,17 @@ noise_scale = 0.05
 # :-) Made this a class which will make it much simler to move the
 # whole thing into your new model.
 
-class lexical_inputs(object): 
+class Lexicon(object): 
 
       input_dictionary = {}
 
       # Init will fill the dictionary with random numbers. We don't
       # ever want to change these. Instead, copy them in the
       # noisifying process.
+
       def __init__(self):
           for i in range(1,n_inputs+1):
-            self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)] 
+            self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
 
       # I'll get called over and over in a map over the list of values.
       def noisify(self,v):
@@ -63,7 +63,7 @@ class lexical_inputs(object):
       # creates a COPY of the representation, with noise.
       def addendWithNoise(self,a): 
           r = self.input_dictionary[a]
-          return [self.noisify(r[x]) for x in range(n_inputs)] # :-) Comprehension again!
+          return [self.noisify(r[x]) for x in range(n_inputs)] 
 
 ##################### SETTINGS #####################
 
@@ -88,7 +88,7 @@ class Settings:
                  #"initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [3000],
+                 "n_exposures": [3000],
                  #"addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                  # Choosing to use retrieval v. a strategy
@@ -141,14 +141,14 @@ class Settings:
 # WWW WARNING !!! Don't confuse either of these with the fingers on
 # the hands!
 
-def ling_matrix(a1):
-    indict = lexical_inputs() # Init the dictionary
-    #should this be noisy????
-    return indict.addendWithNoise(a1)
+#def init_lexical_dictionary():
+#    lexical_dictionary = lexicon() # Init the dictionary
+    #!!!should this be noisy -- No this is the wrong place to do this.
+    #return indict.addendWithNoise(n)
 
-def addend_matrix(a1):
+def addend_matrix(num):
     lis = [0] * 5
-    lis[a1-1] = 1
+    lis[num-1] = 1
     return lis
 
 class NeuralNetwork:
@@ -194,7 +194,7 @@ class NeuralNetwork:
 
         # Initial input, counting numbers
         for i in range(1, 6):
-                self.X.append(ling_matrix(i))
+                self.X.append(lexicon.noisify(i))
         self.X = numpy.array(self.X)
         self.predictions = []
 
@@ -216,10 +216,13 @@ class NeuralNetwork:
     # Main forward feed and backpropagation
     def fit(self, learning_rate, epochs, X=None, y=None):
 
-        print "> Fit"
+        print ">>> Fit"
 
         if X is None: X = self.X
         if y is None: y = self.target
+
+        print "self.target"
+        print self.target
 
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
@@ -255,12 +258,14 @@ class NeuralNetwork:
 
             print "y"
             print y
+            print "a"
+            print a
+            print "i"
+            print i
             print "y[i]"
             print y[i]
             print "a[-1]"
             print a[-1]
-            print "a"
-            print a
             print "error"
             print error
 
@@ -284,6 +289,8 @@ class NeuralNetwork:
                 layer = numpy.atleast_2d(a[i])
                 delta = numpy.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
+
+            print "<<< Fit"
 
     # Outputs a results "probability" (more like "amplitude") matrix
     # given an input (problem) matrix; used when we want to know "what
@@ -335,12 +342,13 @@ class NeuralNetwork:
     # for a particular sum. FFF Maybe this could be used inside guess?
     # FFF Anyway, see notes for guess to explain the begin and end
     # things.
-#explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
+
+    #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
     def guess_vector(self, a1, beg, end):
         #print a1,a2,beg,end
         vec = []
         #print self.predictions
-        self.predict(ling_matrix(a1))
+        self.predict(lexicon.noisify(a1))
         #print self.predictions
         for i in range(beg, end):
             #print i, self.y_index(a1,a2)
@@ -348,11 +356,12 @@ class NeuralNetwork:
         return (vec)
 
     def update_predictions(self):
-        #print "> update_predictions"
+        print ">>> update_predictions"
         self.predictions = []
         for i in range(1, 6):
                 #print "update_predictions: ", i, j, self.predictions
-                self.predictions.append(self.predict(ling_matrix(i)))
+                self.predictions.append(self.predict(lexicon.noisify(i)))
+        print "<<< update_predictions"
 
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
@@ -360,33 +369,47 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
-        #print "> reset_target"
+        print ">>> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
+        print "self.target"
+        print self.target
+        print "<<< reset_target"
 
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
     def update_target(self, a1, targeted_output, correct, correct_output_on_incorrect = None):
-        #print "> update_target"
+        print ">>> update_target"
         self.X = []
-        self.X.append(ling_matrix(a1))
+        self.X.append(lexicon.noisify(a1))
         self.X = numpy.array(self.X)
 
         targeted_output_position = self.outputs.index(targeted_output)
 
+        print "targeted_output_position"
+        print targeted_output_position
+
+        print "correct"
+        print correct
+
         if correct:
+            print "Correct!"
             self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
         else:
+            print "Wrong!"
             self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
             if correct_output_on_incorrect is not None: 
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-        #print self.target
+
+        print "self.target"
+        print self.target
+        print "<<< update_target"
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
         for a1 in range(1, 6):
-                self.predict_with_dumpage(ling_matrix(a1))
+                self.predict_with_dumpage(lexicon.noisify(a1))
         logstream.write(')\n')
 
     def dump_predictions(self):
@@ -440,48 +463,57 @@ def results_network():
 # a random strategy. Then we update the rnet accordingly, and fit and
 # update_y this is the main driver within driver that does the testing
 
-def exec_strategy():
-    #print "> exec_strategy"
+def train_word():
+    print ">>> train_word"
+
     global rnet
     global SOLUTION
     rnet.reset_target()
     #create input
-    PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
-    ad1=ADDENDS.ad1
-    retrieval = rnet.try_memory_retrieval(ad1)
-    SOLUTION = -666
-    # Used to be 0, but why is this needed?! 
-    # (DDD If this shows up, there's something really wrong!) 
-    # (this is just used to initialize solution, or else it's not in the right code block
-    # we have to reset the target for every problem, 
-    # or else it uses the target from the last problem
-    #print "> exec_strategy B"
-    #print retrieval
+    trainingset = TrainingSet(randint(1, 5))
+    number=trainingset.number
+    numword=trainingset.numword
+    correct_output=trainingset.correct_output
+
+    print "number"
+    print number
+    print "numword"
+    print numword
+    print "correct_output"
+    print correct_output
+
+    retrieval = rnet.try_memory_retrieval(numword)
+    SOLUTION = -666 # DDD If this shows up, there's something really wrong!
+
     if retrieval is not None:
         SOLUTION = retrieval
-        logstream.write("(:encoding " +  str(ad1) + " => " + str(SOLUTION) + ") ")
+        logstream.write("(:encoding " +  str(numword) + " => " + str(SOLUTION) + ") ")
+    elif retrieval is -666:
+        sys.exit("!!!!!!!!!!!!!! Retrieval was -666 !!!!!!!!!!!!!!")
     else:
-        return "did not associate auditory input with numerical representation"
-    # update the nns:
-    list = [0] * 5
-    list[ad1-1] = 1
-    rnet.update_target(ad1, SOLUTION, list) 
+        sys.exit("!!!!!!!!!!!!!! Did not associate auditory input with numerical representation !!!!!!!!!!!!!!")
+
+    # Train!
+
+    rnet.update_target(numword, SOLUTION, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
+
+    print "<<< train_word"
 
 # UUU The open and close structure here is a mess bcs of the
 # occassional dumping of tables, which I'm trying to embed at the end
 # of the relevant preceeding problem block for analytical conveneince.
 
 def present_problems():
-    logstream.write('(:problem-block\n')
+    logstream.write('(:training_block\n')
     rnet.dump()
-    logstream.write('   (:problems\n')
-    for i in range(settings.param("n_problems")):
+    logstream.write('   (:train_words\n')
+    for i in range(settings.param("n_exposures")):
         logstream.write('(')
-        exec_strategy()
+        train_word()
         logstream.write(')\n')
-        if i % settings.pbs == 0 or i == settings.param("n_problems"):
+        if i % settings.pbs == 0 or i == settings.param("n_exposures"):
             logstream.write('   ) ;; close :problems\n')
             rnet.dump()
             logstream.write('    ) ;; close :problem-block\n')
@@ -538,10 +570,11 @@ def gen_file_name():
 
 #print out the settings and timer, and then run it
 def top_level_run():
-    global param_specs_keys, settings, hidden_units
+    global param_specs_keys, settings, hidden_units, lexicon
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
     settings = Settings()  
+    lexicon = Lexicon()
     param_specs_keys=settings.param_specs.keys()
     print "Parameter spec:"
     print (str(settings.param_specs))
