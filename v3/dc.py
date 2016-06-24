@@ -61,7 +61,7 @@ class Lexicon(object):
 
       # This is the main function that a user will call. It just
       # creates a COPY of the representation, with noise.
-      def addendWithNoise(self,a): 
+      def numberWordWithNoise(self,a): 
           r = self.input_dictionary[a]
           return [self.noisify(r[x]) for x in range(n_inputs)] 
 
@@ -144,7 +144,7 @@ class Settings:
 #def init_lexical_dictionary():
 #    lexical_dictionary = lexicon() # Init the dictionary
     #!!!should this be noisy -- No this is the wrong place to do this.
-    #return indict.addendWithNoise(n)
+    #return indict.numberWordWithNoise(n)
 
 def addend_matrix(num):
     lis = [0] * 5
@@ -194,7 +194,7 @@ class NeuralNetwork:
 
         # Initial input, counting numbers
         for i in range(1, 6):
-                self.X.append(lexicon.noisify(i))
+                self.X.append(lexicon.numberWordWithNoise(i))
         self.X = numpy.array(self.X)
         self.predictions = []
 
@@ -297,11 +297,22 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        # a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
+        print ">>> predict"
+        print "x"
+        print x
         #WWW for an updated numpy version, replace the above line with the line below
         a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
+        print "a"
+        print a
         for l in range(0, len(self.weights)):
+            print "l"
+            print l
+            print "self.weights[l]"
+            print self.weights[l]
             a = self.activation(numpy.dot(a, self.weights[l]))
+        print "a"
+        print a
+        print "<<< predict"
         return a
 
     def predict_with_dumpage(self, x):
@@ -348,7 +359,7 @@ class NeuralNetwork:
         #print a1,a2,beg,end
         vec = []
         #print self.predictions
-        self.predict(lexicon.noisify(a1))
+        self.predict(lexicon.numberWordWithNoise(a1))
         #print self.predictions
         for i in range(beg, end):
             #print i, self.y_index(a1,a2)
@@ -359,8 +370,7 @@ class NeuralNetwork:
         print ">>> update_predictions"
         self.predictions = []
         for i in range(1, 6):
-                #print "update_predictions: ", i, j, self.predictions
-                self.predictions.append(self.predict(lexicon.noisify(i)))
+            self.predictions.append(self.predict(lexicon.numberWordWithNoise(i)))
         print "<<< update_predictions"
 
     # What target does for now is create a square matrix filled with
@@ -382,7 +392,7 @@ class NeuralNetwork:
     def update_target(self, a1, targeted_output, correct, correct_output_on_incorrect = None):
         print ">>> update_target"
         self.X = []
-        self.X.append(lexicon.noisify(a1))
+        self.X.append(lexicon.numberWordWithNoise(a1))
         self.X = numpy.array(self.X)
 
         targeted_output_position = self.outputs.index(targeted_output)
@@ -409,7 +419,7 @@ class NeuralNetwork:
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
         for a1 in range(1, 6):
-                self.predict_with_dumpage(lexicon.noisify(a1))
+                self.predict_with_dumpage(lexicon.numberWordWithNoise(a1))
         logstream.write(')\n')
 
     def dump_predictions(self):
