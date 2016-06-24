@@ -145,16 +145,14 @@ class Settings:
 # the hands!
 
 def ling_matrix(a1):
-    indict = lexical_inputs() # :-) Init the dictionary
+    indict = lexical_inputs() # Init the dictionary
     #should this be noisy????
     return indict.addendWithNoise(a1)
-
 
 def addend_matrix(a1):
     lis = [0] * 5
     lis[a1-1] = 1
     return lis
-
 
 class NeuralNetwork:
     def __init__(self, name, layers, type, outputs):
@@ -405,18 +403,17 @@ def results_network():
         lis = [0] * 5
         lis[a-1] = 1
         possible_outputs[a-1] = lis
+    logstream.write("(:possible_outputs " +  lispify(possible_outputs) + ")\n")
     nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
-    # Burn in counting examples. For the moment we simplify this to
-    # training: ?+B=B+1.
     X_count = []
     y_count = []
-    for a in range(1, 6):
-            X_count.append(ling_matrix(a))
-            y_count.append(addend_matrix(a))
-    X_count = numpy.array(X_count)
-    y_count = numpy.array(y_count)
-    #print X_count
-    #print y_count
+
+#    for a in range(1, 6):
+#             X_count.append(ling_matrix(a))
+#             y_count.append(addend_matrix(a))
+#     X_count = numpy.array(X_count)
+#     y_count = numpy.array(y_count)
+
     nn.update_predictions()
     return nn
 
