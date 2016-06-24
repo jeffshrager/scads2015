@@ -40,19 +40,16 @@ noise_scale = 0.05
 
 class lexical_inputs(object): 
 
-    # :-) The dictionary is a local to the lexical_inputs object.
       input_dictionary = {}
 
-      # :-) Init will fill the dictionary with random numbers. We
-      # don't ever want to change these. Instead, copy them in the
+      # Init will fill the dictionary with random numbers. We don't
+      # ever want to change these. Instead, copy them in the
       # noisifying process.
       def __init__(self):
           for i in range(1,n_inputs+1):
             self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)] 
-        # :-) Used a fancy comprehension here
 
-      # :-) This just noisifies a single value at a time. I'll get called
-      # over and over in a map over the list of values.
+      # I'll get called over and over in a map over the list of values.
       def noisify(self,v):
           noise = numpy.random.normal(loc=0.0, scale=noise_scale)
             #scale is SD
@@ -62,7 +59,7 @@ class lexical_inputs(object):
           else:
               return (v - abs(noise))
 
-      # :-) This is the main function that a user will call. It just
+      # This is the main function that a user will call. It just
       # creates a COPY of the representation, with noise.
       def addendWithNoise(self,a): 
           r = self.input_dictionary[a]
@@ -198,10 +195,7 @@ class NeuralNetwork:
         # Initial input, counting numbers
         for i in range(1, 6):
                 self.X.append(ling_matrix(i))
-                #print outputs
-        #building input probe
         self.X = numpy.array(self.X)
-        #go to v2 later print self.X
         self.predictions = []
 
     # The output array from the NN is created by .append(ing) a bunch of
@@ -222,8 +216,11 @@ class NeuralNetwork:
     # Main forward feed and backpropagation
     def fit(self, learning_rate, epochs, X=None, y=None):
 
+        print "> Fit"
+
         if X is None: X = self.X
         if y is None: y = self.target
+
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
@@ -231,17 +228,42 @@ class NeuralNetwork:
             # Choose a random training set
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
+
+            print "Input:"
+            print "X"
+            print X
+            print "i"
+            print i
+            print "X[i]"
+            print X[i]
+            print "y"
+            print y
+            print "a"
+            print a
+
 #Q00 what is X.shape[0] what does it look like...
 #mnote basically make the input the same format as addends_matrix
 #and then make the output like a 14-char array start with [] and then .append the weights of the other things
+
             for l in range(len(self.weights)):
                 dot_value = numpy.dot(a[l], self.weights[l])
                 activation = self.activation(dot_value)
                 a.append(activation)
 
             # Output layer
-            #print y, a
             error = y[i] - a[-1]
+
+            print "y"
+            print y
+            print "y[i]"
+            print y[i]
+            print "a[-1]"
+            print a[-1]
+            print "a"
+            print a
+            print "error"
+            print error
+
             self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
 
@@ -405,16 +427,12 @@ def results_network():
         possible_outputs[a-1] = lis
     logstream.write("(:possible_outputs " +  lispify(possible_outputs) + ")\n")
     nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
+
+    # This just inits the NN training machine.
     X_count = []
     y_count = []
-
-#    for a in range(1, 6):
-#             X_count.append(ling_matrix(a))
-#             y_count.append(addend_matrix(a))
-#     X_count = numpy.array(X_count)
-#     y_count = numpy.array(y_count)
-
     nn.update_predictions()
+
     return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
