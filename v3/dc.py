@@ -20,13 +20,17 @@ def lispify(s):
 
 class TrainingSet():
     def __init__(self, n):
+        print ">>> TrainingSet__init__"
         self.number = n
         # FFF This will eventually get replaced by something more
         # complex that provides an input representation. For the
         # moment these are the same.
-        self.numword = lexicon.noisify(self.number)
+        self.numword = lexicon.numberWordWithNoise(self.number)
+        print "self.numword"
+        print self.numword
         self.correct_output = [0] * 5 # FFF Replace with setting var
         self.correct_output[n-1] = 1
+        print ">>> TrainingSet__init__"
 
 ##################### LINGUISTIC INPUT #####################
 ### By Myra; testing input creation for Lingustic model.
@@ -46,8 +50,12 @@ class Lexicon(object):
       # noisifying process.
 
       def __init__(self):
+          print ">>> Lexicon_init_"
           for i in range(1,n_inputs+1):
             self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
+          print "self.input_dictionary"
+          print str(self.input_dictionary)
+          print "<<< Lexicon_init_"
 
       # I'll get called over and over in a map over the list of values.
       def noisify(self,v):
@@ -209,10 +217,6 @@ class NeuralNetwork:
     # is position: 5 * (i - 1) * (j - 1). For example, for 3+4 you end up with 
     # 5 * 2 * 3 = position 30 in the output units array. 
         
-    @staticmethod
-    def y_index(a1):
-        return (a1 - 1)
-
     # Main forward feed and backpropagation
     def fit(self, learning_rate, epochs, X=None, y=None):
 
@@ -325,8 +329,14 @@ class NeuralNetwork:
         logstream.write(")\n")
         return a
     
-    def try_memory_retrieval(self, a1):
-        index = self.y_index(a1)
+    def try_memory_retrieval(self, n):
+        print ">>> try_memory_retrieval(self, n)"
+        print "n"
+        print n
+        print "n-1"
+        index = n-1
+        print "self.predictions"
+        print self.predictions
         # Collect the values that come above cc.
         results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
         l = len(results_above_cc)
@@ -355,15 +365,21 @@ class NeuralNetwork:
     # things.
 
     #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
-    def guess_vector(self, a1, beg, end):
-        #print a1,a2,beg,end
+    def guess_vector(self, n, beg, end):
+        print ">>> guess_vector(n="+str(n)+", beg="+str(beg)+", end="+str(end)+")"
         vec = []
         #print self.predictions
-        self.predict(lexicon.numberWordWithNoise(a1))
+        self.predict(lexicon.numberWordWithNoise(n))
         #print self.predictions
         for i in range(beg, end):
-            #print i, self.y_index(a1,a2)
-            vec.append(round(self.predictions[self.y_index(a1)][i], 5))
+            print "i"
+            print i
+            print "n-1"
+            print n-1
+            vec.append(round(self.predictions[n][i], 5))
+        print "vec"
+        print vec
+        print "<<< guess_vector"
         return (vec)
 
     def update_predictions(self):
