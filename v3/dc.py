@@ -25,9 +25,8 @@ class TrainingSet():
         # FFF This will eventually get replaced by something more
         # complex that provides an input representation. For the
         # moment these are the same.
-        self.numword = lexicon.numberWordWithNoise(self.number)
-        print "self.numword"
-        print self.numword
+        self.input = lexicon.numberWordWithNoise(self.number)
+        print "self.input : " + str(self.input)
         self.correct_output = [0] * 5 # FFF Replace with setting var
         self.correct_output[n-1] = 1
         print ">>> TrainingSet__init__"
@@ -53,8 +52,7 @@ class Lexicon(object):
           print ">>> Lexicon_init_"
           for i in range(1,n_inputs+1):
             self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
-          print "self.input_dictionary"
-          print str(self.input_dictionary)
+          print "self.input_dictionary : " + str(self.input_dictionary)
           print "<<< Lexicon_init_"
 
       # I'll get called over and over in a map over the list of values.
@@ -98,10 +96,6 @@ class Settings:
                  # Problem presentation and execution
                  "n_exposures": [3000],
                  #"addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
-
-                 # Choosing to use retrieval v. a strategy
-                 "RETRIEVAL_LOW_CC": [0.2], # Should be 0.6 usually; at 1.0 no retrieval will occur
-                 "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
 
                  # Learning target params
                  "results_hidden_units": [10], # 20 per experiments of 20160112b -- maybe 18?
@@ -178,11 +172,6 @@ class NeuralNetwork:
 
         self.layers=layers
 
-        # Generate a cc in the range for this network type
-        self.low_cc = settings.param(type + "_LOW_CC")
-        self.high_cc = settings.param(type + "_HIGH_CC")
-        self.cc = self.low_cc + (self.high_cc - self.low_cc) * random()
-
         # Set weights
         self.weights = []
         self.target = []
@@ -225,8 +214,7 @@ class NeuralNetwork:
         if X is None: X = self.X
         if y is None: y = self.target
 
-        print "self.target"
-        print self.target
+        print "self.target : " + str( self.target)
 
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
@@ -236,17 +224,12 @@ class NeuralNetwork:
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
 
-            print "Input:"
-            print "X"
-            print X
-            print "i"
-            print i
-            print "X[i]"
-            print X[i]
-            print "y"
-            print y
-            print "a"
-            print a
+            print "Input:" 
+            print "X : " + str( X)
+            print "i : " + str( i)
+            print "X[i] : " + str( X[i])
+            print "y : " + str( y)
+            print "a : " + str( a)
 
 #Q00 what is X.shape[0] what does it look like...
 #mnote basically make the input the same format as addends_matrix
@@ -260,18 +243,12 @@ class NeuralNetwork:
             # Output layer
             error = y[i] - a[-1]
 
-            print "y"
-            print y
-            print "a"
-            print a
-            print "i"
-            print i
-            print "y[i]"
-            print y[i]
-            print "a[-1]"
-            print a[-1]
-            print "error"
-            print error
+            print "y : " + str(y)
+            print "a : " + str(a)
+            print "i : " + str(i)
+            print "y[i] : " + str(y[i])
+            print "a[-1] : " + str(a[-1])
+            print "error : " + str(error)
 
             self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
@@ -301,55 +278,23 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        print ">>> predict"
-        print "x"
-        print x
-        #WWW for an updated numpy version, replace the above line with the line below
-        a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
-        print "a"
-        print a
+        print ">>> predict("+str(x)+")"
+        amplitude = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
+        print "amplitude : " + str(amplitude)
         for l in range(0, len(self.weights)):
-            print "l"
-            print l
-            print "self.weights[l]"
-            print self.weights[l]
-            a = self.activation(numpy.dot(a, self.weights[l]))
-        print "a"
-        print a
+            #print "l : " + str(l)
+            #print "self.weights[l] : " + str(self.weights[l])
+            amplitude = self.activation(numpy.dot(amplitude, self.weights[l]))
+        print "final amplitude : " + str(amplitude)
         print "<<< predict"
-        return a
+        return amplitude
 
-    def predict_with_dumpage(self, x):
-        logstream.write("(:predict_with_dumpage\n (:inputs " +  lispify(x) + ")\n")
-        a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
-        for l in range(0, len(self.weights)):
-            logstream.write(" (:level " + lispify(l))
-            a = self.activation(numpy.dot(a, self.weights[l]))
-            logstream.write(" (:products "+ lispify([round(x,5) for x in  a]) + "))\n")
-        logstream.write(")\n")
-        return a
-    
-    def try_memory_retrieval(self, n):
-        print ">>> try_memory_retrieval(self, n)"
-        print "n"
-        print n
-        print "n-1"
-        index = n-1
-        print "self.predictions"
-        print self.predictions
-        # Collect the values that come above cc.
-        results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
-        l = len(results_above_cc)
-        #print "lengt " + str(results_above_cc[0])
-        if l > 0:
-            # At the moment this chooses randomly from all those
-            # (either strats or results) above the respective cc,
-            # although this could be changed to choose in a weighted
-            # manner. FFF ???
-
-            #list index is out of range 
-            return self.outputs[int(results_above_cc[(randint(0, l - 1))])]
-        return None
+    def wan2lnp(self,word,n): # word_and_number_to_localist_number_pattern
+        print ">>> wan2lnp("+str(n)+",("+str(word)+")"
+        print "n-1 : " + str(n-1)
+        result = self.predictions[n-1]
+        print "result : " + str( result)
+        return result
 
     # Returns a function that picks a random result from a list of
     # results above the confidence criterion this is used for the
@@ -358,35 +303,32 @@ class NeuralNetwork:
     # that are above the cc, and chooses a random number from those
     # values. if there are none, it returns None. 
 
-
     # Used for analysis output, this just gets the prediction values
     # for a particular sum. FFF Maybe this could be used inside guess?
     # FFF Anyway, see notes for guess to explain the begin and end
     # things.
 
     #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
+
     def guess_vector(self, n, beg, end):
         print ">>> guess_vector(n="+str(n)+", beg="+str(beg)+", end="+str(end)+")"
         vec = []
-        #print self.predictions
+        print "self.predictions : " + str( self.predictions)
         self.predict(lexicon.numberWordWithNoise(n))
-        #print self.predictions
+        print "self.predictions : " + str( self.predictions)
         for i in range(beg, end):
-            print "i"
-            print i
-            print "n-1"
-            print n-1
+            print "i : " + str(i)
+            print "n-1 : " + str(n-1)
             vec.append(round(self.predictions[n][i], 5))
-        print "vec"
-        print vec
+        print "vec : " + str(vec)
         print "<<< guess_vector"
         return (vec)
 
     def update_predictions(self):
         print ">>> update_predictions"
         self.predictions = []
-        for i in range(1, 6):
-            self.predictions.append(self.predict(lexicon.numberWordWithNoise(i)))
+        for n in range(1, 6):
+            self.predictions.append(self.predict(lexicon.numberWordWithNoise(n)))
         print "<<< update_predictions"
 
     # What target does for now is create a square matrix filled with
@@ -399,63 +341,22 @@ class NeuralNetwork:
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
-        print "self.target"
-        print self.target
+        print "self.target : " + str(self.target)
         print "<<< reset_target"
 
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
-    def update_target(self, a1, targeted_output, correct, correct_output_on_incorrect = None):
-        print ">>> update_target"
+
+    def update_target(self, input, retrieved_output, correct_output):
+        print ">>> update_target(n="+str(input)+", retrieved_output="+str(retrieved_output)+", correct_output="+str(correct_output)+")"
         self.X = []
-        self.X.append(lexicon.numberWordWithNoise(a1))
+        self.X.append(input)
         self.X = numpy.array(self.X)
+        print "self.X: " + str(self.X)
+        self.target[0]=correct_output
+        print "self.target: " + str(self.target)
 
-        targeted_output_position = self.outputs.index(targeted_output)
-
-        print "targeted_output_position"
-        print targeted_output_position
-
-        print "correct"
-        print correct
-
-        if correct:
-            print "Correct!"
-            self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
-        else:
-            print "Wrong!"
-            self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
-            if correct_output_on_incorrect is not None: 
-                self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
-
-        print "self.target"
-        print self.target
         print "<<< update_target"
-
-    def dump_hidden_activations(self):
-        logstream.write('(:'+self.name+"-hidden-activation-table\n")
-        for a1 in range(1, 6):
-                self.predict_with_dumpage(lexicon.numberWordWithNoise(a1))
-        logstream.write(')\n')
-
-    def dump_predictions(self):
-        logstream.write('(:'+self.name+"-prediction-table\n")
-        for i in range(1, 6):
-                gv = self.guess_vector(i, 0, self.layers[-1])
-        logstream.write(')\n')
-
-    def dump_weights(self):
-        logstream.write(" (:dump-weights\n")
-        for l in range(0, len(self.weights)):
-            logstream.write(" (:level " + lispify(l))
-            logstream.write(" (:weights "+ lispify([[round(x,5) for x in y] for y in self.weights[l]]) + "))\n")
-        logstream.write("   )\n")
-
-    def dump(self):
-        self.dump_weights()
-        if settings.dump_hidden_activations:
-            self.dump_hidden_activations()
-        self.dump_predictions()
 
 ##################### DRIVER #####################
 
@@ -463,10 +364,6 @@ class NeuralNetwork:
 # count before we got here, so there is a tendency for problems what
 # look like 3+4 to result in saying 5. To do this we burn in a set of
 # I/O relationships that have this tendency.
-
-def init_neturalnets():
-    global rnet
-    rnet = results_network()
 
 def results_network():
     possible_outputs = [0] * 5
@@ -476,12 +373,10 @@ def results_network():
         possible_outputs[a-1] = lis
     logstream.write("(:possible_outputs " +  lispify(possible_outputs) + ")\n")
     nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
-
     # This just inits the NN training machine.
     X_count = []
     y_count = []
     nn.update_predictions()
-
     return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
@@ -491,49 +386,29 @@ def results_network():
 
 def train_word():
     print ">>> train_word"
-
     global rnet
-    global SOLUTION
     rnet.reset_target()
-    #create input
     trainingset = TrainingSet(randint(1, 5))
     number=trainingset.number
-    numword=trainingset.numword
+    input=trainingset.input
     correct_output=trainingset.correct_output
-
-    print "number"
-    print number
-    print "numword"
-    print numword
-    print "correct_output"
-    print correct_output
-
-    retrieval = rnet.try_memory_retrieval(numword)
-    SOLUTION = -666 # DDD If this shows up, there's something really wrong!
-
-    if retrieval is not None:
-        SOLUTION = retrieval
-        logstream.write("(:encoding " +  str(numword) + " => " + str(SOLUTION) + ") ")
-    elif retrieval is -666:
-        sys.exit("!!!!!!!!!!!!!! Retrieval was -666 !!!!!!!!!!!!!!")
-    else:
-        sys.exit("!!!!!!!!!!!!!! Did not associate auditory input with numerical representation !!!!!!!!!!!!!!")
-
-    # Train!
-
-    rnet.update_target(numword, SOLUTION, correct_output) 
+    print "number : " + str(number)
+    print "input : " + str(input)
+    print "correct_output : " + str(correct_output)
+    retrieved_output = rnet.wan2lnp(input,number)
+    print "retrieved_output : " + str(retrieved_output)
+    logstream.write("(:encoding " +  str(input) + " => " + str(retrieved_output) + ") ")
+    rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
-
     print "<<< train_word"
 
 # UUU The open and close structure here is a mess bcs of the
 # occassional dumping of tables, which I'm trying to embed at the end
 # of the relevant preceeding problem block for analytical conveneince.
 
-def present_problems():
+def present_words():
     logstream.write('(:training_block\n')
-    rnet.dump()
     logstream.write('   (:train_words\n')
     for i in range(settings.param("n_exposures")):
         logstream.write('(')
@@ -541,7 +416,6 @@ def present_problems():
         logstream.write(')\n')
         if i % settings.pbs == 0 or i == settings.param("n_exposures"):
             logstream.write('   ) ;; close :problems\n')
-            rnet.dump()
             logstream.write('    ) ;; close :problem-block\n')
             logstream.write('  (:problem-block\n')
             logstream.write('   (:problems\n')
@@ -557,7 +431,7 @@ def present_problems():
 # quasi-global called param_specs_keys and gets set in the caller.)
 
 def config_and_test(index=0):
-    global param_specs_keys, logstream
+    global param_specs_keys, logstream, rnet
     if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
@@ -576,10 +450,10 @@ def config_and_test(index=0):
             logstream.write(" (:file " + fn + ")\n")
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
-            init_neturalnets()
+            rnet = results_network() # Init neural net
             logstream.write(' )\n')
             logstream.write('(:run\n')
-            present_problems()
+            present_words()
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
@@ -602,9 +476,7 @@ def top_level_run():
     settings = Settings()  
     lexicon = Lexicon()
     param_specs_keys=settings.param_specs.keys()
-    print "Parameter spec:"
-    print (str(settings.param_specs))
-    print "-----"
+    print "Parameter spec :" + str(settings.param_specs)
     for i in range(settings.ndups):
         print ">>>>> Rep #" + str(i + 1) + " <<<<<"
         config_and_test()
