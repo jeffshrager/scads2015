@@ -16,7 +16,7 @@ def RoundedStr(l):
         sys.exit("Bad type sent to RoundedStr: +" + type(l))
 
 def lispify(s):
-    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","$").replace("{","(").replace("}",")")
 
 class TrainingSet():
     def __init__(self, n, nn):
@@ -445,6 +445,9 @@ def config_and_test(index=0):
             logstream.write(" (:file " + fn + ")\n")
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
+            logstream.write(" (:dictionaries\n")
+            logstream.write("   (:input "+ lispify(lexicon.input_dictionary) + ")\n")
+            logstream.write("   (:output "+ lispify(lexicon.output_dictionary) + "))\n")
             rnet = results_network() # Init neural net
             logstream.write(' )\n')
             logstream.write('(:run\n')
