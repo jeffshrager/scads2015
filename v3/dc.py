@@ -123,7 +123,7 @@ class Settings:
                  "n_exposures": [3000],
 
                  # Learning target params
-                 "results_hidden_units": [6,8], 
+                 "results_hidden_units": [4,6,8,10], 
                  "non_result_y_filler": [0.0], 
                  "results_learning_rate": [0.1], 
                  "in_process_training_epochs": [1] 
@@ -396,7 +396,11 @@ def train_word():
     retrieved_output = rnet.wan2lnp(input,number)
 #DDD    print "retrieved_output : " + str(retrieved_output)
     minn = lexicon.score(retrieved_output)
-    logstream.write("(:encoding (" +  str(number) + " => " +str(minn)+") ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
+    if minn == number:
+        rw = ":+right+"
+    else:
+        rw = ":-wrong-"
+    logstream.write("(:encoding " + " " + rw + " (" +  str(number) + " => " +str(minn)+") ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
