@@ -19,7 +19,7 @@ def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
 
 class TrainingSet():
-    def __init__(self, n):
+    def __init__(self, n, nn):
         print ">>> TrainingSet__init__"
         self.number = n
         # FFF This will eventually get replaced by something more
@@ -27,8 +27,8 @@ class TrainingSet():
         # moment these are the same.
         self.input = lexicon.numberWordWithNoise(self.number)
         print "self.input : " + str(self.input)
-        self.correct_output = [0] * 5 # FFF Replace with setting var
-        self.correct_output[n-1] = 1
+        self.correct_output = nn.outputs[n]
+        print "self.correct_output : " + str(self.correct_output)
         print ">>> TrainingSet__init__"
 
 ##################### LINGUISTIC INPUT #####################
@@ -43,6 +43,7 @@ noise_scale = 0.05
 class Lexicon(object): 
 
       input_dictionary = {}
+      output_dictionary = {}
 
       # Init will fill the dictionary with random numbers. We don't
       # ever want to change these. Instead, copy them in the
@@ -53,6 +54,8 @@ class Lexicon(object):
           for i in range(1,n_inputs+1):
             self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
           print "self.input_dictionary : " + str(self.input_dictionary)
+          self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
+          print "self.output_dictionary : " + str(self.output_dictionary)
           print "<<< Lexicon_init_"
 
       # I'll get called over and over in a map over the list of values.
@@ -157,7 +160,6 @@ class NeuralNetwork:
     def __init__(self, name, layers, type, outputs):
         self.outputs = outputs
         self.name=name
-        self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
         self.activation_prime = lambda x: 1.0 - x**2
 
@@ -195,6 +197,10 @@ class NeuralNetwork:
         self.X = numpy.array(self.X)
         self.predictions = []
 
+        X_count = []
+        y_count = []
+        self.update_predictions()
+
     # The output array from the NN is created by .append(ing) a bunch of
     # probe results, something like this: 
     #
@@ -209,17 +215,16 @@ class NeuralNetwork:
     # Main forward feed and backpropagation
     def fit(self, learning_rate, epochs, X=None, y=None):
 
-        print ">>> Fit"
+        print ">>> Fit(learning_rate="+str()+", epochs="+str(epochs)+")"
 
         if X is None: X = self.X
         if y is None: y = self.target
 
-        print "self.target : " + str( self.target)
+        print "self.target : " + str(self.target)
 
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
-
             # Choose a random training set
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
@@ -250,7 +255,6 @@ class NeuralNetwork:
             print "a[-1] : " + str(a[-1])
             print "error : " + str(error)
 
-            self.errr.append(error)
             deltas = [error * self.activation_prime(a[-1])]
 
             # We need to begin at the second to last layer 
@@ -290,7 +294,7 @@ class NeuralNetwork:
         return amplitude
 
     def wan2lnp(self,word,n): # word_and_number_to_localist_number_pattern
-        print ">>> wan2lnp("+str(n)+",("+str(word)+")"
+        print ">>> wan2lnp(n="+str(n)+", word="+str(word)+")"
         print "n-1 : " + str(n-1)
         result = self.predictions[n-1]
         print "result : " + str( result)
@@ -366,17 +370,8 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def results_network():
-    possible_outputs = [0] * 5
-    for a in range(1,6):
-        lis = [0] * 5
-        lis[a-1] = 1
-        possible_outputs[a-1] = lis
-    logstream.write("(:possible_outputs " +  lispify(possible_outputs) + ")\n")
-    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",possible_outputs)
-    # This just inits the NN training machine.
-    X_count = []
-    y_count = []
-    nn.update_predictions()
+    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",lexicon.output_dictionary)
+    # Inits the NN training machine by doing a first prediction.
     return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
@@ -388,7 +383,7 @@ def train_word():
     print ">>> train_word"
     global rnet
     rnet.reset_target()
-    trainingset = TrainingSet(randint(1, 5))
+    trainingset = TrainingSet(randint(1, 5), rnet)
     number=trainingset.number
     input=trainingset.input
     correct_output=trainingset.correct_output
@@ -397,7 +392,7 @@ def train_word():
     print "correct_output : " + str(correct_output)
     retrieved_output = rnet.wan2lnp(input,number)
     print "retrieved_output : " + str(retrieved_output)
-    logstream.write("(:encoding " +  str(input) + " => " + str(retrieved_output) + ") ")
+    logstream.write("(:encoding " +  str(number) + " (" + lispify(input) + ") => " + lispify(retrieved_output) + ") ")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
