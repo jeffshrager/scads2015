@@ -74,6 +74,35 @@ class Lexicon(object):
           r = self.input_dictionary[a]
           return [self.noisify(r[x]) for x in range(n_inputs)] 
 
+      # Figures out which correct output is closest to the one given.
+      def scoresub1(self,i,o):
+          print ">>> scoresub1("+str(i)+","+str(o)+")"
+          sum = 0
+          # FFF There's probably a fancier way to do this using list comprehensions
+          for p in range(len(i)):
+              sum += self.scoresub2(i[p],o[p])
+          print "<<< scoresub1 : " + str(sum)
+          return sum
+
+      def scoresub2(self,i1,o1):
+          print ">>> scoresub2("+str(i1)+","+str(o1)+")"
+          r = abs(o1-i1)
+          print "<<< scoresub2 : " + str(r)
+          return r
+
+      def score(self,nn_output):
+          print ">>> score("+str(nn_output)+")"
+          minn = -999
+          mins = 999
+          r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
+          for n,s in r:
+              if s<mins:
+                  mins=s
+                  minn=n
+          # FFF There's probably a fancier way to do this using list comprehensions
+          print "<<< score : " + str(minn)
+          return minn
+
 ##################### SETTINGS #####################
 
 class Settings:
@@ -392,7 +421,8 @@ def train_word():
     print "correct_output : " + str(correct_output)
     retrieved_output = rnet.wan2lnp(input,number)
     print "retrieved_output : " + str(retrieved_output)
-    logstream.write("(:encoding " +  str(number) + " (" + lispify(input) + ") => " + lispify(retrieved_output) + ") ")
+    minn = lexicon.score(retrieved_output)
+    logstream.write("(:encoding (" +  str(number) + " => " +str(minn)+") ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
