@@ -412,18 +412,18 @@ def train_word():
 
 def present_words():
     logstream.write('(:training_block\n')
-    logstream.write('   (:train_words\n')
+    logstream.write('   (:training\n')
     for i in range(settings.param("n_exposures")):
         logstream.write('(')
         train_word()
         logstream.write(')\n')
         if i % settings.pbs == 0 or i == settings.param("n_exposures"):
-            logstream.write('   ) ;; close :problems\n')
-            logstream.write('    ) ;; close :problem-block\n')
-            logstream.write('  (:problem-block\n')
-            logstream.write('   (:problems\n')
-    logstream.write('   ) ;; close :problems\n')
-    logstream.write('    ) ;; close :problem-block\n') # Warning! We may get an extra one of these!           
+            logstream.write('      ) ;; close :training\n')
+            logstream.write('    ) ;; close :training-block\n')
+            logstream.write('   (:training-block\n')
+            logstream.write('     (:training\n')
+    logstream.write('   ) ;; close :training\n')
+    logstream.write('    ) ;; close :training-block\n') # Warning! We may get an extra one of these!           
 
 # Execute with all the possible values of each parameter. This is a
 # weird recursive function. The top half that calls itself repeatedly
