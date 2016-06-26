@@ -108,7 +108,7 @@ class Lexicon(object):
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     
     def param(self, key):
@@ -120,12 +120,12 @@ class Settings:
     param_specs = {"experiment_label": ["\"test 20160625a\""],
 
                  # Problem presentation and execution
-                 "n_exposures": [1000],
+                 "n_exposures": [3000],
 
                  # Learning target params
                  "results_hidden_units": [4,6,8,10], 
                  "non_result_y_filler": [0.0], 
-                 "results_learning_rate": [0.01], 
+                 "results_learning_rate": [0.01,0.25,0.5,0.75,0.1], 
                  "in_process_training_epochs": [1] 
                  }
 
