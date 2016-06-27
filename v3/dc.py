@@ -51,9 +51,15 @@ class Lexicon(object):
 
       def __init__(self):
 #DDD          print ">>> Lexicon_init_"
+          # MMM Add a param that says the number of bits in each input, so 
+          # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
+          # Also, if this is something special -999 then use 10000 11000 11100 ...
           for i in range(1,n_inputs+1):
             self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
           print "self.input_dictionary : " + str(self.input_dictionary)
+          # MMM Add a param that says the number of bits in each output, so 
+          # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
+          # Also, if this is something special -999 then use 10000 11000 11100 ...
           self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
           print "self.output_dictionary : " + str(self.output_dictionary)
 #DDD          print "<<< Lexicon_init_"
@@ -76,22 +82,12 @@ class Lexicon(object):
 
       # Figures out which correct output is closest to the one given.
       def scoresub1(self,i,o):
-#DDD          print ">>> scoresub1("+str(i)+","+str(o)+")"
           sum = 0
-          # FFF There's probably a fancier way to do this using list comprehensions
           for p in range(len(i)):
-              sum += self.scoresub2(i[p],o[p])
-#DDD          print "<<< scoresub1 : " + str(sum)
+              sum += o[p]-i[p]
           return sum
 
-      def scoresub2(self,i1,o1):
-#DDD          print ">>> scoresub2("+str(i1)+","+str(o1)+")"
-          r = abs(o1-i1)
-#DDD          print "<<< scoresub2 : " + str(r)
-          return r
-
       def score(self,nn_output):
-#DDD          print ">>> score("+str(nn_output)+")"
           minn = -999
           mins = 999
           r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
@@ -99,8 +95,6 @@ class Lexicon(object):
               if s<mins:
                   mins=s
                   minn=n
-          # FFF There's probably a fancier way to do this using list comprehensions
-#DDD          print "<<< score : " + str(minn)
           return minn
 
 ##################### SETTINGS #####################
@@ -108,7 +102,7 @@ class Lexicon(object):
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     
     def param(self, key):
@@ -117,15 +111,18 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"test 20160625a\""],
+    param_specs = {"experiment_label": ["\"test 20160625b\""],
 
                  # Problem presentation and execution
                  "n_exposures": [3000],
 
                  # Learning target params
-                 "results_hidden_units": [4,6,8,10], 
+                 "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
+                 "input_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
+
+                 "results_hidden_units": [4,6,8], 
                  "non_result_y_filler": [0.0], 
-                 "results_learning_rate": [0.01,0.25,0.5,0.75,0.1], 
+                 "results_learning_rate": [0.01,0.05,0.1,0.15,0.2], 
                  "in_process_training_epochs": [1] 
                  }
 
