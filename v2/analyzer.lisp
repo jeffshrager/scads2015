@@ -22,7 +22,9 @@
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
 ;;; overt strategy supression instruction!
 
-(defparameter *comparator-datasets* 
+(defvar *current-comparator-datasets* nil)
+
+(defparameter *all-comparator-datasets* 
   '(
     (:sns84
      ;; All these are ranged between 0 and 100:
@@ -210,7 +212,21 @@
 (defparameter *strat-keys* '(:ret :cfe :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
-(defun analyze (&key (low *low*) (high *high*) &aux  (ts (get-universal-time)))
+(defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
+  (setf *current-comparator-datasets* nil)
+  (setf *current-comparator-datasets*
+	(if (member comps '(:all nil))
+	    *all-comparator-datasets*
+	  (loop for entry in *all-comparator-datasets*
+		as (key nil) = entry
+		do (if (member key comps)
+		       (progn (setq comps (remove key comps))
+			      (push entry r))
+		     (error "Comp ~s doesn't have a dataset!" key))
+		finally (return r))))
+  (if (or (null comps) (eq :all comps))
+      (format t "Comps: ~a~%" (mapcar #'car *current-comparator-datasets*))
+    (error "Comps: ~s weren't found in *all-comparator-datasets*!" comps))
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
@@ -292,7 +308,7 @@
 	     (format o "# ~a~%" *heuristicated-experiment-label*)
 	   (format o "# low=~a, high=~a~%" *low* *high*))
 	 (format o "i	n")
-	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
+	 (loop for (key) in *current-comparator-datasets* do (format o "	~a" key))
 	 (loop for s in *strat-keys* do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
 	 (format o "~%")
 	 ;; The problem-block looks like this:
@@ -314,7 +330,7 @@
 	       as i from 1 by 1
 	       as ps = (cdr (assoc :problems pb))
 	       as np = (length ps)
-	       as corcoefs = (loop for (key data) in *comparator-datasets* 
+	       as corcoefs = (loop for (key data) in *current-comparator-datasets* 
 			      collect `(,key ,(compare (cdr (assoc :Results-prediction-table pb)) data)))
 	       do 
 	       (push `((:i ,i) (:corcoefs ,corcoefs)) (gethash file *file->summary*))
@@ -450,20 +466,20 @@
 	       ;; These are repeated once for each dataset bcs there'll be that many coefs
 	       do 
 	       (pushnew pv (gethash pn *params->all-values*) :test (if (stringp pv) #'string-equal #'equal))
-	       (loop for (nil) in *comparator-datasets*
+	       (loop for (nil) in *current-comparator-datasets*
 		     do (format o "	~a" pv)))
 	 (format o "~%"))
    ;; Report coefs -- WWW THIS DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
    ;; Sub Header to distinguish datasets
    (loop for file being the hash-keys of *file->summary*
-	 do (loop for (key) in *comparator-datasets* do (format o "	~a" key)))
+	 do (loop for (key) in *current-comparator-datasets* do (format o "	~a" key)))
    (format o "~%")
    ;; (FFF %%% This is sooooooooooo inefficient -- scanning these
    ;; tables over and over and over again, but there's no a whole lot
    ;; of data here, so what the hey!)
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
-	 do (loop for (nil) in *comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
+	 do (loop for (nil) in *current-comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
    (format o "~%")
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
@@ -507,7 +523,7 @@
      (loop for (nil . pn) in *param-reporting-order*
 	   when (member pn pns-that-change)
 	   do (format o ",~a" pn))
-     (loop for (key) in *comparator-datasets* do (format o ",~a" key))
+     (loop for (key) in *current-comparator-datasets* do (format o ",~a" key))
      (format o "~%")
      (loop for p* being the hash-keys of *params->final-coefs*
 	   using (hash-value coefs)
@@ -576,6 +592,6 @@
 
 (untrace)
 ;(trace find-sum)
-; Possible comparitos (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comparitors (list :sns84 :base-p/r/c :base-exact :adult))
+; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
+(analyze :comps :all)
 
