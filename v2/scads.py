@@ -361,15 +361,15 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"effect of burn in 201606231006\""],
+    param_specs = {"experiment_label": ["\"burn in at 5000xbilr 201606301123\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #     ************************************************************************************************************************
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [1000,3250,5500], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.05,0.125,0.2], # 0.25 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [5000], # 1000 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.05,0.1,0.15,0.2], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
                  "n_problems": [5000],
