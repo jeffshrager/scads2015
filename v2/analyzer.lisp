@@ -540,6 +540,8 @@
      ))
   )
 
+#| I don't think that this works anymore; it hasn't been used in a while:
+
 ;;; Combinalyzer takes several files created above, each called, for
 ;;; example, "3656687231-FinalPivotforR.csv" and a single variable to
 ;;; summarize, and does the stats for them.
@@ -576,6 +578,7 @@
 	 collect (let ((sline (string-split line)))
 		   (cons (read-from-string (nth ccol sline))
 			 (read-from-string (nth mcol sline))))))))
+|#
 
 (defun string-split (string &key (delimiter #\,))
   (let ((substrings '())
@@ -593,5 +596,5 @@
 (untrace)
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comps :all)
+(analyze :comps '(:base-exact :adult))
 
