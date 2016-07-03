@@ -31,6 +31,37 @@ class TrainingSet():
 #DDD        print "self.correct_output : " + str(self.correct_output)
 #DDD        print ">>> TrainingSet__init__"
 
+
+##################### SETTINGS #####################
+
+class Settings:
+
+    # PART 1: These usually DON'T change:
+    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+    pbs = 50  # problem bin size, every pbs problems we dump the predictions
+    
+    def param(self, key):
+        return self.params[key]
+
+    params = {} # These are set for a given run by the recursive param search algorithm
+
+#change the experiment label below!
+    param_specs = {"experiment_label": ["\"test 20160625b\""],
+
+                 # Problem presentation and execution
+                 "n_exposures": [3000],
+
+                 # Learning target params
+                 "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
+                 "input_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
+
+                 "results_hidden_units": [4,6,8], 
+                 "non_result_y_filler": [0.0], 
+                 "results_learning_rate": [0.01,0.05,0.1,0.15,0.2], 
+                 "in_process_training_epochs": [1] 
+                 }
+
+
 ##################### LINGUISTIC INPUT #####################
 ### By Myra; testing input creation for Lingustic model.
 
@@ -54,14 +85,23 @@ class Lexicon(object):
           # MMM Add a param that says the number of bits in each input, so 
           # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
           # Also, if this is something special -999 then use 10000 11000 11100 ...
+          
           for i in range(1,n_inputs+1):
-            self.input_dictionary[i] = [randint(0, 1) for x in range(n_inputs)]
+            x = [0] * 5
+            for i in range(0, settings.param("output_one_bits")):
+                x[i] = 1
+            shuffle(x)
+            self.input_dictionary[i] = x
+
           print "self.input_dictionary : " + str(self.input_dictionary)
           # MMM Add a param that says the number of bits in each output, so 
           # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
           # Also, if this is something special -999 then use 10000 11000 11100 ...
-          self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
-          print "self.output_dictionary : " + str(self.output_dictionary)
+    	  print settings.param("output_one_bits")
+
+    	  if var == -999:
+            #how to access settings as var?
+          	self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
 #DDD          print "<<< Lexicon_init_"
 
       # I'll get called over and over in a map over the list of values.
@@ -96,35 +136,6 @@ class Lexicon(object):
                   mins=s
                   minn=n
           return minn
-
-##################### SETTINGS #####################
-
-class Settings:
-
-    # PART 1: These usually DON'T change:
-    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 50  # problem bin size, every pbs problems we dump the predictions
-    
-    def param(self, key):
-        return self.params[key]
-
-    params = {} # These are set for a given run by the recursive param search algorithm
-
-#change the experiment label below!
-    param_specs = {"experiment_label": ["\"test 20160625b\""],
-
-                 # Problem presentation and execution
-                 "n_exposures": [3000],
-
-                 # Learning target params
-                 "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
-                 "input_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
-
-                 "results_hidden_units": [4,6,8], 
-                 "non_result_y_filler": [0.0], 
-                 "results_learning_rate": [0.01,0.05,0.1,0.15,0.2], 
-                 "in_process_training_epochs": [1] 
-                 }
 
 ##################### NN #####################
 
