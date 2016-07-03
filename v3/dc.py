@@ -85,7 +85,12 @@ class Lexicon(object):
           # MMM Add a param that says the number of bits in each input, so 
           # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
           # Also, if this is something special -999 then use 10000 11000 11100 ...
-          
+           
+        if var == -999:
+            #how to access settings as var?
+            self.input_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
+
+        elif var < 5:
           for i in range(1,n_inputs+1):
             x = [0] * 5
             for i in range(0, settings.param("output_one_bits")):
@@ -93,15 +98,11 @@ class Lexicon(object):
             shuffle(x)
             self.input_dictionary[i] = x
 
-          print "self.input_dictionary : " + str(self.input_dictionary)
+        #print "self.input_dictionary : " + str(self.input_dictionary)
           # MMM Add a param that says the number of bits in each output, so 
           # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
           # Also, if this is something special -999 then use 10000 11000 11100 ...
-    	  print settings.param("output_one_bits")
-
-    	  if var == -999:
-            #how to access settings as var?
-          	self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
+    	  #print settings.param("output_one_bits")
 #DDD          print "<<< Lexicon_init_"
 
       # I'll get called over and over in a map over the list of values.
