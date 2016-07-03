@@ -22,132 +22,138 @@
 ;;; Data from Siegler and Shrager 1984 -- Note that this data is under
 ;;; overt strategy supression instruction!
 
-(defparameter *comparator-datasets* 
+(defvar *current-comparator-datasets* nil)
+
+(defparameter *all-comparator-datasets* 
   '(
     (:sns84
-     ;; All these are hundreths:
-     ;; 0 1 2 3 4 5 6 7 8 9 10 11 other
+     ;; All these are ranged between 0 and 100:
      (
-      ((1 . 1) (0 5 86 0 2 0 2 0 0 0 0 2 4))
-      ((1 . 2) (0 0 9 70 2 0 4 0 0 7 2 2 5))
-      ((1 . 3) (0 2 0 11 71 5 2 2 0 0 0 0 7))
-      ((1 . 4) (0 0 0 0 11 61 9 7 0 0 0 2 11))
-      ((1 . 5) (0 0 0 0 13 16 50 11 0 2 2 0 5))
-      ((2 . 1) (0 7 5 79 5 0 0 0 0 0 0 0 4))
-      ((2 . 2) (2 0 4 5 80 4 0 5 0 0 0 0 0))
-      ((2 . 3) (0 0 4 7 38 34 9 2 2 2 0 0 4))
-      ((2 . 4) (0 2 0 7 2 43 29 7 7 0 0 0 4))
-      ((2 . 5) (0 2 0 5 2 16 43 13 0 0 2 0 18))
-      ((3 . 1) (0 2 0 9 79 4 0 4 0 0 0 0 4))
-      ((3 . 2) (0 0 9 11 11 55 7 0 0 0 0 0 7))
-      ((3 . 3) (4 0 0 5 21 9 48 0 2 2 2 0 7))
-      ((3 . 4) (0 0 0 5 11 23 14 29 2 0 0 0 16))
-      ((3 . 5) (0 0 0 7 0 13 23 14 18 0 5 0 20))
-      ((4 . 1) (0 0 4 2 9 68 2 2 7 0 0 0 7))
-      ((4 . 2) (0 0 7 9 0 20 36 13 7 0 2 0 7))
-      ((4 . 3) (0 0 0 5 18 9 9 38 9 0 2 0 11))
-      ((4 . 4) (4 0 0 2 2 29 7 7 34 0 4 0 13))
-      ((4 . 5) (0 0 0 0 4 9 16 9 11 18 11 4 20))
-      ((5 . 1) (0 0 4 0 4 7 71 4 4 0 4 0 4))
-      ((5 . 2) (0 0 5 20 2 18 27 25 2 0 2 0 0))
-      ((5 . 3) (0 0 2 11 9 18 5 16 23 0 5 0 11))
-      ((5 . 4) (0 0 0 0 11 21 16 5 11 16 4 0 16))
-      ((5 . 5) (4 0 0 0 0 7 25 11 2 4 34 4 11))
+      ;;         0  1  2  3  4  5  6  7  8  9 10 11 other
+      ((1 . 1) (00 05 86 00 02 00 02 00 00 00 00 02 04))
+      ((1 . 2) (00 00 09 70 02 00 04 00 00 07 02 02 05))
+      ((1 . 3) (00 02 00 11 71 05 02 02 00 00 00 00 07))
+      ((1 . 4) (00 00 00 00 11 61 09 07 00 00 00 02 11))
+      ((1 . 5) (00 00 00 00 13 16 50 11 00 02 02 00 05))
+      ((2 . 1) (00 07 05 79 05 00 00 00 00 00 00 00 04))
+      ((2 . 2) (02 00 04 05 80 04 00 05 00 00 00 00 00))
+      ((2 . 3) (00 00 04 07 38 34 09 02 02 02 00 00 04))
+      ((2 . 4) (00 02 00 07 02 43 29 07 07 00 00 00 04))
+      ((2 . 5) (00 02 00 05 02 16 43 13 00 00 02 00 18))
+      ((3 . 1) (00 02 00 09 79 04 00 04 00 00 00 00 04))
+      ((3 . 2) (00 00 09 11 11 55 07 00 00 00 00 00 07))
+      ((3 . 3) (04 00 00 05 21 09 48 00 02 02 02 00 07))
+      ((3 . 4) (00 00 00 05 11 23 14 29 02 00 00 00 16))
+      ((3 . 5) (00 00 00 07 00 13 23 14 18 00 05 00 20))
+      ((4 . 1) (00 00 04 02 09 68 02 02 07 00 00 00 07))
+      ((4 . 2) (00 00 07 09 00 20 36 13 07 00 02 00 07))
+      ((4 . 3) (00 00 00 05 18 09 09 38 09 00 02 00 11))
+      ((4 . 4) (04 00 00 02 02 29 07 07 34 00 04 00 13))
+      ((4 . 5) (00 00 00 00 04 09 16 09 11 18 11 04 20))
+      ((5 . 1) (00 00 04 00 04 07 71 04 04 00 04 00 04))
+      ((5 . 2) (00 00 05 20 02 18 27 25 02 00 02 00 00))
+      ((5 . 3) (00 00 02 11 09 18 05 16 23 00 05 00 11))
+      ((5 . 4) (00 00 00 00 11 21 16 05 11 16 04 00 16))
+      ((5 . 5) (04 00 00 00 00 07 25 11 02 04 34 04 11))
       ))
-
-;; This represents primacy, recency, and next biases. We assign 33%
-;; to each addend, then 16% to the next of each. (You might think
-;; that by recency, the latter addend should get a little more, but
-;; this is counter-balanced by primacy, where the first one
-;; should...so we just call it even.)
 
     (:base-p/r/c
+     ;; This represents primacy, recency, and next biases. We assign 33%
+     ;; to each addend, then 16% to the next of each. (You might think
+     ;; that by recency, the latter addend should get a little more, but
+     ;; this is counter-balanced by primacy, where the first one
+     ;; should...so we just call it even.)
      (
-      ((1 . 1) (0 66 33 0 0 0 0 0 0 0 0 0 0))
-      ((1 . 2) (0 33 33 33 0 0 0 0 0 0 0 0))
-      ((1 . 3) (0 33 0 33 33 0 0 0 0 0 0 0 0))
-      ((1 . 4) (0 33 16 0 33 16 0 0 0 0 0 0 0))
-      ((1 . 5) (0 33 16 0 0 33 16 0 0 0 0 0 0))
-      ((2 . 1) (0 33 49 16 0 0 0 0 0 0 0 0 0))
-      ((2 . 2) (0 0 66 33 0 0 0 0 0 0 0 0 0))
-      ((2 . 3) (0 0 33 33 33 0 0 0 0 0 0 0 0))
-      ((2 . 4) (0 0 33 16 33 16 0 0 0 0 0 0 0))
-      ((2 . 5) (0 0 33 16 0 33 16 0 0 0 0 0 0))
-      ((3 . 1) (0 33 16 33 16 0 0 0 0 0 0 0 0))
-      ((3 . 2) (0 0 0 0 0 0 0 0 0 0 0 0 0))
-      ((3 . 3) (0 0 0 66 33 0 0 0 0 0 0 0 0))
-      ((3 . 4) (0 0 0 33 33 33 0 0 0 0 0 0 0))
-      ((3 . 5) (0 0 0 33 16 33 16 0 0 0 0 0 0))
-      ((4 . 1) (0 33 16 0 33 16 0 0 0 0 0 0 0))
-      ((4 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
-      ((4 . 3) (0 0 0 16 49 16 0 0 0 0 0 0 0))
-      ((4 . 4) (0 0 0 0 66 33 0 0 0 0 0 0 0))
-      ((4 . 5) (0 0 0 0 33 33 33 0 0 0 0 0 0))
-      ((5 . 1) (0 33 16 0 0 33 16 0 0 0 0 0 0))
-      ((5 . 2) (0 0 33 16 33 16 0 0 0 0 0 0 0))
-      ((5 . 3) (0 0 0 33 16 33 16 0 0 0 0 0 0))
-      ((5 . 4) (0 0 0 0 33 49 16 0 0 0 0 0 0))
-      ((5 . 5) (0 0 0 0 0 66 33 0 0 0 0 0 0))
+      ;;         0  1  2  3  4  5  6  7  8  9 10 11 other
+      ((1 . 1) (00 66 33 00 00 00 00 00 00 00 00 00 00))
+      ((1 . 2) (00 33 33 33 00 00 00 00 00 00 00 00 00))
+      ((1 . 3) (00 33 00 33 33 00 00 00 00 00 00 00 00))
+      ((1 . 4) (00 33 16 00 33 16 00 00 00 00 00 00 00))
+      ((1 . 5) (00 33 16 00 00 33 16 00 00 00 00 00 00))
+      ((2 . 1) (00 33 49 16 00 00 00 00 00 00 00 00 00))
+      ((2 . 2) (00 00 66 33 00 00 00 00 00 00 00 00 00))
+      ((2 . 3) (00 00 33 33 33 00 00 00 00 00 00 00 00))
+      ((2 . 4) (00 00 33 16 33 16 00 00 00 00 00 00 00))
+      ((2 . 5) (00 00 33 16 00 33 16 00 00 00 00 00 00))
+      ((3 . 1) (00 33 16 33 16 00 00 00 00 00 00 00 00))
+      ((3 . 2) (00 00 00 66 33 00 00 00 00 00 00 00 00))
+      ((3 . 3) (00 00 00 66 33 00 00 00 00 00 00 00 00))
+      ((3 . 4) (00 00 00 33 33 33 00 00 00 00 00 00 00))
+      ((3 . 5) (00 00 00 33 16 33 16 00 00 00 00 00 00))
+      ((4 . 1) (00 33 16 00 33 16 00 00 00 00 00 00 00))
+      ((4 . 2) (00 00 33 16 33 16 00 00 00 00 00 00 00))
+      ((4 . 3) (00 00 00 16 49 16 00 00 00 00 00 00 00))
+      ((4 . 4) (00 00 00 00 66 33 00 00 00 00 00 00 00))
+      ((4 . 5) (00 00 00 00 33 33 33 00 00 00 00 00 00))
+      ((5 . 1) (00 33 16 00 00 33 16 00 00 00 00 00 00))
+      ((5 . 2) (00 00 33 16 33 16 00 00 00 00 00 00 00))
+      ((5 . 3) (00 00 00 33 16 33 16 00 00 00 00 00 00))
+      ((5 . 4) (00 00 00 00 33 49 16 00 00 00 00 00 00))
+      ((5 . 5) (00 00 00 00 00 66 33 00 00 00 00 00 00))
       ))
-     (:adult 
-   (
-    ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
-    ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
-    ((1 . 3) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((1 . 4) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((1 . 5) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((2 . 1) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
-    ((2 . 2) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((2 . 3) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((2 . 4) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((2 . 5) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((3 . 1) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((3 . 2) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((3 . 3) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((3 . 4) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((3 . 5) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((4 . 1) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((4 . 2) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((4 . 3) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((4 . 4) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((4 . 5) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
-    ((5 . 1) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((5 . 2) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((5 . 3) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((5 . 4) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
-    ((5 . 5) (0 0 0 0 0 0 0 0 0 0 100 0 0 ))
-    ))
 
+    (:base-exact
+     ;; This preload a, b, and b+1, which is exactly what the training
+     ;; does.
+     (
+      ;;         0  1  2  3  4  5  6  7  8  9 10 11 other
+      ((1 . 1) (00 33 66 00 00 00 00 00 00 00 00 00 00))
+      ((1 . 2) (00 33 33 33 00 00 00 00 00 00 00 00 00))
+      ((1 . 3) (00 33 00 33 33 00 00 00 00 00 00 00 00))
+      ((1 . 4) (00 33 00 00 33 33 00 00 00 00 00 00 00))
+      ((1 . 5) (00 33 00 00 00 33 33 00 00 00 00 00 00))
+      ((2 . 1) (00 33 66 00 00 00 00 00 00 00 00 00 00))
+      ((2 . 2) (00 00 66 33 00 00 00 00 00 00 00 00 00))
+      ((2 . 3) (00 00 33 33 33 00 00 00 00 00 00 00 00))
+      ((2 . 4) (00 00 33 00 33 33 00 00 00 00 00 00 00))
+      ((2 . 5) (00 00 33 00 00 33 33 00 00 00 00 00 00))
+      ((3 . 1) (00 33 33 33 00 00 00 00 00 00 00 00 00))
+      ((3 . 2) (00 00 33 66 00 00 00 00 00 00 00 00 00))
+      ((3 . 3) (00 00 00 66 33 00 00 00 00 00 00 00 00))
+      ((3 . 4) (00 00 00 33 33 33 00 00 00 00 00 00 00))
+      ((3 . 5) (00 00 00 33 00 33 33 00 00 00 00 00 00))
+      ((4 . 1) (00 33 33 00 33 00 00 00 00 00 00 00 00))
+      ((4 . 2) (00 00 33 33 33 00 00 00 00 00 00 00 00))
+      ((4 . 3) (00 00 00 33 66 00 00 00 00 00 00 00 00))
+      ((4 . 4) (00 00 00 00 66 33 00 00 00 00 00 00 00))
+      ((4 . 5) (00 00 00 00 33 33 33 00 00 00 00 00 00))
+      ((5 . 1) (33 33 00 00 00 33 00 00 00 00 00 00 00))
+      ((5 . 2) (00 33 33 00 00 33 00 00 00 00 00 00 00))
+      ((5 . 3) (00 00 00 33 33 33 00 00 00 00 00 00 00))
+      ((5 . 4) (00 00 00 00 33 66 00 00 00 00 00 00 00))
+      ((5 . 5) (00 00 00 00 00 66 33 00 00 00 00 00 00))
+      ))
 
-  (:adult 
-   (
-    ((1 . 1) (0 0 100 0 0 0 0 0 0 0 0 0 0 ))
-    ((1 . 2) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
-    ((1 . 3) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((1 . 4) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((1 . 5) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((2 . 1) (0 0 0 100 0 0 0 0 0 0 0 0 0 ))
-    ((2 . 2) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((2 . 3) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((2 . 4) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((2 . 5) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((3 . 1) (0 0 0 0 100 0 0 0 0 0 0 0 0 ))
-    ((3 . 2) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((3 . 3) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((3 . 4) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((3 . 5) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((4 . 1) (0 0 0 0 0 100 0 0 0 0 0 0 0 ))
-    ((4 . 2) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((4 . 3) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((4 . 4) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((4 . 5) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
-    ((5 . 1) (0 0 0 0 0 0 100 0 0 0 0 0 0 ))
-    ((5 . 2) (0 0 0 0 0 0 0 100 0 0 0 0 0 ))
-    ((5 . 3) (0 0 0 0 0 0 0 0 100 0 0 0 0 ))
-    ((5 . 4) (0 0 0 0 0 0 0 0 0 100 0 0 0 ))
-    ((5 . 5) (0 0 0 0 0 0 0 0 0 0 100 0 0 ))
+    (:adult 
+     (
+      ;;         0  1  2  3  4  5  6  7  8  9 10 11 other
+      ((1 . 1) (00 00 99 00 00 00 00 00 00 00 00 00 00))
+      ((1 . 2) (00 00 00 99 00 00 00 00 00 00 00 00 00))
+      ((1 . 3) (00 00 00 00 99 00 00 00 00 00 00 00 00))
+      ((1 . 4) (00 00 00 00 00 99 00 00 00 00 00 00 00))
+      ((1 . 5) (00 00 00 00 00 00 99 00 00 00 00 00 00))
+      ((2 . 1) (00 00 00 99 00 00 00 00 00 00 00 00 00))
+      ((2 . 2) (00 00 00 00 99 00 00 00 00 00 00 00 00))
+      ((2 . 3) (00 00 00 00 00 99 00 00 00 00 00 00 00))
+      ((2 . 4) (00 00 00 00 00 00 99 00 00 00 00 00 00))
+      ((2 . 5) (00 00 00 00 00 00 00 99 00 00 00 00 00))
+      ((3 . 1) (00 00 00 00 99 00 00 00 00 00 00 00 00))
+      ((3 . 2) (00 00 00 00 00 99 00 00 00 00 00 00 00))
+      ((3 . 3) (00 00 00 00 00 00 99 00 00 00 00 00 00))
+      ((3 . 4) (00 00 00 00 00 00 00 99 00 00 00 00 00))
+      ((3 . 5) (00 00 00 00 00 00 00 00 99 00 00 00 00))
+      ((4 . 1) (00 00 00 00 00 99 00 00 00 00 00 00 00))
+      ((4 . 2) (00 00 00 00 00 00 99 00 00 00 00 00 00))
+      ((4 . 3) (00 00 00 00 00 00 00 99 00 00 00 00 00))
+      ((4 . 4) (00 00 00 00 00 00 00 00 99 00 00 00 00))
+      ((4 . 5) (00 00 00 00 00 00 00 00 00 99 00 00 00))
+      ((5 . 1) (00 00 00 00 00 00 99 00 00 00 00 00 00))
+      ((5 . 2) (00 00 00 00 00 00 00 99 00 00 00 00 00))
+      ((5 . 3) (00 00 00 00 00 00 00 00 99 00 00 00 00))
+      ((5 . 4) (00 00 00 00 00 00 00 00 00 99 00 00 00))
+      ((5 . 5) (00 00 00 00 00 00 00 00 00 00 99 00 00))
+      ))
     ))
-  ))
 
 ;;; =============================================================
 ;;; Globals
@@ -186,7 +192,7 @@
 ;;; =============================================================
 ;;; Utils
 
-(defun dht (table &optional (n 10000))
+(defun dht (table &optional (n 10))
   (maphash #'(lambda (key value)
 	       (when (zerop (decf n)) (return-from dht))
 	       (format t "~s: ~s~%" key value)	       
@@ -206,7 +212,21 @@
 (defparameter *strat-keys* '(:ret :cfe :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
-(defun analyze (&key (low *low*) (high *high*) &aux  (ts (get-universal-time)))
+(defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
+  (setf *current-comparator-datasets* nil)
+  (setf *current-comparator-datasets*
+	(if (member comps '(:all nil))
+	    *all-comparator-datasets*
+	  (loop for entry in *all-comparator-datasets*
+		as (key nil) = entry
+		do (if (member key comps)
+		       (progn (setq comps (remove key comps))
+			      (push entry r))
+		     (error "Comp ~s doesn't have a dataset!" key))
+		finally (return r))))
+  (if (or (null comps) (eq :all comps))
+      (format t "Comps: ~a~%" (mapcar #'car *current-comparator-datasets*))
+    (error "Comps: ~s weren't found in *all-comparator-datasets*!" comps))
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
@@ -288,7 +308,7 @@
 	     (format o "# ~a~%" *heuristicated-experiment-label*)
 	   (format o "# low=~a, high=~a~%" *low* *high*))
 	 (format o "i	n")
-	 (loop for (key) in *comparator-datasets* do (format o "	~a" key))
+	 (loop for (key) in *current-comparator-datasets* do (format o "	~a" key))
 	 (loop for s in *strat-keys* do (format o "	~a_n	~a_log_%	~a_+	~a_+%" s s s s))
 	 (format o "~%")
 	 ;; The problem-block looks like this:
@@ -310,7 +330,7 @@
 	       as i from 1 by 1
 	       as ps = (cdr (assoc :problems pb))
 	       as np = (length ps)
-	       as corcoefs = (loop for (key data) in *comparator-datasets* 
+	       as corcoefs = (loop for (key data) in *current-comparator-datasets* 
 			      collect `(,key ,(compare (cdr (assoc :Results-prediction-table pb)) data)))
 	       do 
 	       (push `((:i ,i) (:corcoefs ,corcoefs)) (gethash file *file->summary*))
@@ -446,20 +466,20 @@
 	       ;; These are repeated once for each dataset bcs there'll be that many coefs
 	       do 
 	       (pushnew pv (gethash pn *params->all-values*) :test (if (stringp pv) #'string-equal #'equal))
-	       (loop for (nil) in *comparator-datasets*
+	       (loop for (nil) in *current-comparator-datasets*
 		     do (format o "	~a" pv)))
 	 (format o "~%"))
    ;; Report coefs -- WWW THIS DEPENDS UPON HASH TABLES SCANNNING DETERMINISTICALLY !!!
    ;; Sub Header to distinguish datasets
    (loop for file being the hash-keys of *file->summary*
-	 do (loop for (key) in *comparator-datasets* do (format o "	~a" key)))
+	 do (loop for (key) in *current-comparator-datasets* do (format o "	~a" key)))
    (format o "~%")
    ;; (FFF %%% This is sooooooooooo inefficient -- scanning these
    ;; tables over and over and over again, but there's no a whole lot
    ;; of data here, so what the hey!)
    (loop for file being the hash-keys of *file->summary*
 	 as nn = (substitute #\_ #\space (pathname-name file))
-	 do (loop for (nil) in *comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
+	 do (loop for (nil) in *current-comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
    (format o "~%")
    ;; Find the highest value
    (let ((maxi (loop for data being the hash-values of *file->summary*
@@ -503,7 +523,7 @@
      (loop for (nil . pn) in *param-reporting-order*
 	   when (member pn pns-that-change)
 	   do (format o ",~a" pn))
-     (loop for (key) in *comparator-datasets* do (format o ",~a" key))
+     (loop for (key) in *current-comparator-datasets* do (format o ",~a" key))
      (format o "~%")
      (loop for p* being the hash-keys of *params->final-coefs*
 	   using (hash-value coefs)
@@ -519,6 +539,8 @@
 		 (format o "~%")))
      ))
   )
+
+#| I don't think that this works anymore; it hasn't been used in a while:
 
 ;;; Combinalyzer takes several files created above, each called, for
 ;;; example, "3656687231-FinalPivotforR.csv" and a single variable to
@@ -556,6 +578,7 @@
 	 collect (let ((sline (string-split line)))
 		   (cons (read-from-string (nth ccol sline))
 			 (read-from-string (nth mcol sline))))))))
+|#
 
 (defun string-split (string &key (delimiter #\,))
   (let ((substrings '())
@@ -572,5 +595,6 @@
 
 (untrace)
 ;(trace find-sum)
-(analyze)
+; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
+(analyze :comps '(:base-exact :adult))
 
