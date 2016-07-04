@@ -46,7 +46,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"test 201607031833\""],
+    param_specs = {"experiment_label": ["\"test 201607031833 w/ new dicts\""],
 
                  # Problem presentation and execution
                  "n_exposures": [300],
@@ -85,10 +85,24 @@ class Lexicon(object):
         # MMM Add a param that says the number of bits in each input, so 
         # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
         # Also, if this is something special -999 then use 10000 11000 11100 ...
+
+        #input
+        input_one_bits = settings.param("input_one_bits")
+        if input_one_bits == -999:
+            self.input_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
+            
+        elif input_one_bits < 5:
+            for i in range(1,n_inputs+1):
+                x = [0] * 5
+                for j in range(0, input_one_bits):
+                    x[j] = 1
+                shuffle(x)
+                self.input_dictionary[i] = x
+        
+        #output
         output_one_bits = settings.param("output_one_bits")
         if output_one_bits == -999:
-            #how to access settings as var?
-            self.input_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
+            self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
             
         elif output_one_bits < 5:
             for i in range(1,n_inputs+1):
@@ -96,7 +110,7 @@ class Lexicon(object):
                 for j in range(0, output_one_bits):
                     x[j] = 1
                 shuffle(x)
-                self.input_dictionary[i] = x
+                self.output_dictionary[i] = x
 
         #print "self.input_dictionary : " + str(self.input_dictionary)
         # MMM Add a param that says the number of bits in each output, so 
@@ -118,7 +132,7 @@ class Lexicon(object):
     # This is the main function that a user will call. It just
     # creates a COPY of the representation, with noise.
     def numberWordWithNoise(self,a): 
-        print str(self.input_dictionary)
+        #print str(self.input_dictionary)
         r = self.input_dictionary[a]
         return [self.noisify(r[x]) for x in range(n_inputs)] 
         
