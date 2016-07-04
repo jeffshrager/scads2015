@@ -377,7 +377,15 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"201607032122: Testing suppression of count_up_by_one_from_second_addend strategy\""],
+    # Auto Timestamping will put a time stamp at the end of the experiment
+    # label to make sure that the runs are differentiated even if you
+    # forgot to change the label. If you really want to merge several
+    # runs together, you have to set this to True BEFORE the first
+    # one, or else you'll have to go back and manually rename your
+    # first dataset.
+    suppress_auto_timestamping = False
+
+    param_specs = {"experiment_label": ["\"201607041316: Testing basic results (again)\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -873,6 +881,8 @@ def top_level_run():
         print "Because of analyzer limitations, use only one n_problems in a given run, please."
         sys.exit(-1)
     param_specs_keys=settings.param_specs.keys()
+    if settings.suppress_auto_timestamping is False:
+        settings.param_specs["experiment_label"]=[(settings.param_specs["experiment_label"][0])[:-1] + " (@" +  str(datetime.datetime.time(datetime.datetime.now())) + ")\""]
     print "Parameter spec:"
     print (str(settings.param_specs))
     print "Strategies in play:"
