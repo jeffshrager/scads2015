@@ -216,18 +216,13 @@
 (defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
   (setf *current-comparator-datasets* nil)
   (setf *current-comparator-datasets*
-	(if (member comps '(:all nil))
-	    *all-comparator-datasets*
-	  (loop for entry in *all-comparator-datasets*
-		as (key nil) = entry
-		do (if (member key comps)
-		       (progn (setq comps (remove key comps))
-			      (push entry r))
-		     (error "Comp ~s doesn't have a dataset!" key))
-		finally (return r))))
-  (if (or (null comps) (eq :all comps))
-      (format t "Comps: ~a~%" (mapcar #'car *current-comparator-datasets*))
-    (error "Comps: ~s weren't found in *all-comparator-datasets*!" comps))
+	(cond ((member comps '(:all nil)) *all-comparator-datasets*)
+	      (t (loop for key in comps
+		       as v = (assoc key *all-comparator-datasets*)
+		       if v
+		       collect v
+		       else 
+		       do (break "Missing comp ~a" key)))))
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
@@ -482,7 +477,7 @@
 	 as nn = (substitute #\_ #\space (pathname-name file))
 	 do (loop for (nil) in *current-comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
    (format o "~%")
-   ;; Find the highest value
+   ;; Find the highest value.
    (let ((maxi (loop for data being the hash-values of *file->summary*
 		     with max = 0
 		     as newmax = (reduce #'max (loop for d in data collect (second (assoc :i d))))

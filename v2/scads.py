@@ -341,6 +341,9 @@ def PPA():
 
 ##################### SETTINGS #####################
 
+# This is a class just for modularity; things would be simpler if this
+# was a global, like it used to be.
+
 class Settings:
 
     # PART 1: These usually DON'T change:
@@ -374,7 +377,7 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"201607031031: Testing suppression of count_up_by_one_from_second_addend strategy\""],
+    param_specs = {"experiment_label": ["\"201607032122: Testing suppression of count_up_by_one_from_second_addend strategy\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -382,12 +385,12 @@ class Settings:
 
                  # Setting up the initial counting network
                  "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.15], # 0.25 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.25], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
-                 "n_problems": [2000],
+                 "n_problems": [5000], # WARNING !!!!!! THE ANALYZER EXPECTS JUST ONE OF THESE ON A RUN AND WILL ABORT!!!!!
                  "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.1], # 0.1 confirmed 201509010826
+                 "PERR": [0.05], # 0.1 confirmed 201509010826
                  "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
 #     ************************************************************************************************************************
@@ -866,6 +869,9 @@ def top_level_run():
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
     settings = Settings()  
+    if len(settings.param_specs["n_problems"]) > 1:
+        print "Because of analyzer limitations, use only one n_problems in a given run, please."
+        sys.exit(-1)
     param_specs_keys=settings.param_specs.keys()
     print "Parameter spec:"
     print (str(settings.param_specs))
