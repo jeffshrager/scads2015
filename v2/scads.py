@@ -195,6 +195,14 @@ def count_from_one_once_strategy():
         HAND.swap, ADDENDS.swap, raise_hand,
         end]
 
+def count_up_by_one_from_second_addend():
+    return [
+        # First addend on first hand.
+        HAND.clear, HAND.choose, ADDENDS.choose_second, ADDENDS.say, clear_eb, raise_hand,
+        # Now just count up once more
+        say_next
+        end]
+
 def count_from_either_strategy():
     return [
         # Count from the first addend.
@@ -345,7 +353,9 @@ class Settings:
                   "count_from_one_once": count_from_one_once_strategy,
                   "count_from_either": count_from_either_strategy,
                   #"random_strategy": random_strategy,
-                  "min": min_strategy
+                  "min": min_strategy,
+                  #"This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up"
+                  "count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
                   }
     
     # PART 3: These usually DO change:
@@ -361,7 +371,7 @@ class Settings:
 
     params = {} # These are set for a given run by the recursive param search algorithm
 
-    param_specs = {"experiment_label": ["\"201606301420:icnb=[1,1000,5000,10000], icnlr=[0.01,0.05,0.1,0.2], np=2000\""],
+    param_specs = {"experiment_label": ["\"201607031031: Testing suppression of count_up_by_one_from_second_addend strategy\""],
 
 #     ************************************************************************************************************************
 #     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

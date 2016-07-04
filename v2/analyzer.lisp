@@ -168,6 +168,7 @@
 
 (defparameter *function-name-substitutions*
   '(("count_from_either" . :cfe)
+    ("count_up_by_one_from_second_addend" . :upx1)
     ("min" . :min)
     ("count_from_one_once" . :cf1x1)
     ("count_from_one_twice" . :cf1x2)
@@ -209,7 +210,7 @@
 
 ;;; This is the order in which they'll show up in the analyzed
 ;;; results.
-(defparameter *strat-keys* '(:ret :cfe :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
+(defparameter *strat-keys* '(:ret :cfe :upx1 :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
 (defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
