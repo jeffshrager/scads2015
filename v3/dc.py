@@ -46,10 +46,10 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"test 20160625b\""],
+    param_specs = {"experiment_label": ["\"test 201607031833\""],
 
                  # Problem presentation and execution
-                 "n_exposures": [3000],
+                 "n_exposures": [300],
 
                  # Learning target params
                  "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
@@ -72,71 +72,72 @@ noise_scale = 0.05
 # whole thing into your new model.
 
 class Lexicon(object): 
+    input_dictionary = {}
+    output_dictionary = {}
 
-      input_dictionary = {}
-      output_dictionary = {}
+    # Init will fill the dictionary with random numbers. We don't
+    # ever want to change these. Instead, copy them in the
+    # noisifying process.
 
-      # Init will fill the dictionary with random numbers. We don't
-      # ever want to change these. Instead, copy them in the
-      # noisifying process.
-
-      def __init__(self):
-#DDD          print ">>> Lexicon_init_"
-          # MMM Add a param that says the number of bits in each input, so 
-          # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
-          # Also, if this is something special -999 then use 10000 11000 11100 ...
-           
-        if var == -999:
+    def __init__(self):
+        global param_specs_keys, settings
+        #DDD          print ">>> Lexicon_init_"
+        # MMM Add a param that says the number of bits in each input, so 
+        # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
+        # Also, if this is something special -999 then use 10000 11000 11100 ...
+        output_one_bits = settings.param("output_one_bits")
+        if output_one_bits == -999:
             #how to access settings as var?
             self.input_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
-
-        elif var < 5:
-          for i in range(1,n_inputs+1):
-            x = [0] * 5
-            for i in range(0, settings.param("output_one_bits")):
-                x[i] = 1
-            shuffle(x)
-            self.input_dictionary[i] = x
+            
+        elif output_one_bits < 5:
+            for i in range(1,n_inputs+1):
+                x = [0] * 5
+                for j in range(0, output_one_bits):
+                    x[j] = 1
+                shuffle(x)
+                self.input_dictionary[i] = x
 
         #print "self.input_dictionary : " + str(self.input_dictionary)
-          # MMM Add a param that says the number of bits in each output, so 
-          # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
-          # Also, if this is something special -999 then use 10000 11000 11100 ...
-    	  #print settings.param("output_one_bits")
-#DDD          print "<<< Lexicon_init_"
+        # MMM Add a param that says the number of bits in each output, so 
+        # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
+        # Also, if this is something special -999 then use 10000 11000 11100 ...
+        #print settings.param("output_one_bits")
+        #DDD          print "<<< Lexicon_init_"
 
-      # I'll get called over and over in a map over the list of values.
-      def noisify(self,v):
-          noise = numpy.random.normal(loc=0.0, scale=noise_scale)
+    # I'll get called over and over in a map over the list of values.
+    def noisify(self,v):
+        noise = numpy.random.normal(loc=0.0, scale=noise_scale)
             #scale is SD
             #absolute value of noise? since no negative values
-          if v == 0:
-              return (v + abs(noise))
-          else:
-              return (v - abs(noise))
+        if v == 0:
+            return (v + abs(noise))
+        else:
+            return (v - abs(noise))
 
-      # This is the main function that a user will call. It just
-      # creates a COPY of the representation, with noise.
-      def numberWordWithNoise(self,a): 
-          r = self.input_dictionary[a]
-          return [self.noisify(r[x]) for x in range(n_inputs)] 
-
-      # Figures out which correct output is closest to the one given.
-      def scoresub1(self,i,o):
-          sum = 0
-          for p in range(len(i)):
-              sum += o[p]-i[p]
-          return sum
-
-      def score(self,nn_output):
-          minn = -999
-          mins = 999
-          r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
-          for n,s in r:
-              if s<mins:
-                  mins=s
-                  minn=n
-          return minn
+    # This is the main function that a user will call. It just
+    # creates a COPY of the representation, with noise.
+    def numberWordWithNoise(self,a): 
+        print str(self.input_dictionary)
+        r = self.input_dictionary[a]
+        return [self.noisify(r[x]) for x in range(n_inputs)] 
+        
+    # Figures out which correct output is closest to the one given.
+    def scoresub1(self,i,o):
+        sum = 0
+        for p in range(len(i)):
+            sum += o[p]-i[p]
+        return sum
+            
+    def score(self,nn_output):
+        minn = -999
+        mins = 999
+        r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
+        for n,s in r:
+            if s<mins:
+                mins=s
+                minn=n
+        return minn
 
 ##################### NN #####################
 
@@ -443,7 +444,7 @@ def present_words():
 # quasi-global called param_specs_keys and gets set in the caller.)
 
 def config_and_test(index=0):
-    global param_specs_keys, logstream, rnet
+    global param_specs_keys, logstream, rnet, lexicon
     if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
@@ -453,6 +454,7 @@ def config_and_test(index=0):
             config_and_test(index + 1)  # Next param (recursive!)
     else:
         # Finally we have a set of choices, do it:
+        lexicon = Lexicon()
         fn=gen_file_name()
         print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
         with open(fn, 'wb') as logstream:
@@ -488,8 +490,7 @@ def top_level_run():
     global param_specs_keys, settings, hidden_units, lexicon
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
-    settings = Settings()  
-    lexicon = Lexicon()
+    settings = Settings()
     param_specs_keys=settings.param_specs.keys()
     print "Parameter spec :" + str(settings.param_specs)
     for i in range(settings.ndups):
