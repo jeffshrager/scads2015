@@ -200,7 +200,7 @@ def count_up_by_one_from_second_addend():
         # First addend on first hand.
         HAND.clear, HAND.choose, ADDENDS.choose_second, ADDENDS.say, clear_eb, raise_hand,
         # Now just count up once more
-        say_next
+        say_next,
         end]
 
 def count_from_either_strategy():
@@ -288,6 +288,9 @@ class Addend(object):
         else:
             self.cla = 'smaller'
 
+    def choose_second(self):
+        self.addend = self.ad2
+
     def swap(self):
         if self.addend == self.ad1:
             self.addend = self.ad2
@@ -341,7 +344,7 @@ def PPA():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     dynamic_retrieval_on = False
     dump_hidden_activations = False
@@ -351,9 +354,9 @@ class Settings:
     # We usually leave out random_strategy
     strategies = {"count_from_one_twice": count_from_one_twice_strategy,
                   "count_from_one_once": count_from_one_once_strategy,
-                  "count_from_either": count_from_either_strategy,
+                  #"count_from_either": count_from_either_strategy,
                   #"random_strategy": random_strategy,
-                  "min": min_strategy,
+                  #"min": min_strategy,
                   #"This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up"
                   "count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
                   }
@@ -378,8 +381,8 @@ class Settings:
 #     ************************************************************************************************************************
 
                  # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [1,1000,5000,10000], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.01,0.05,0.1,0.2], # 0.25 based on 201509010902
+                 "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
+                 "initial_counting_network_learning_rate": [0.15], # 0.25 based on 201509010902
 
                  # Problem presentation and execution
                  "n_problems": [2000],
