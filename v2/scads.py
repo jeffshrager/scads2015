@@ -873,7 +873,7 @@ def top_level_run():
     # Used in the recursive config_and_test fn.
     scanned_params_keys=scanned_params.keys()
     if suppress_auto_timestamping is False:
-        experiment_label = experiment_label[:-1] + " (n = " + str(n_problems) + ", @" +  str(datetime.datetime.time(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))) + ")\""
+        experiment_label = experiment_label[:-1] + " (n = " + str(n_problems) + ", @" +  str(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) + ")\""
     print "*** Running: " + experiment_label + "***"
     print "Scanned Parameters:"
     print str(scanned_params)
