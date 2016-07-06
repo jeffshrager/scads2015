@@ -925,11 +925,25 @@ def config_and_test(index=0):
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
-            logstream.write("  (:experiment_label "+experiment_label+")\n")
+            dump_non_scanned_params()
             for key in scanned_params:
                 logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
             logstream.write(' )\n')
             logstream.write(')\n')
+
+def dump_non_scanned_params():
+    logstream.write("  (:ndups "+str(ndups)+")\n")
+    logstream.write("  (:pbs "+str(pbs)+")\n")
+    logstream.write("  (:dynamic_retrieval_on "+str(dynamic_retrieval_on)+")\n")
+    logstream.write("  (:dump_hidden_activations "+str(dump_hidden_activations)+")\n")
+    logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
+    logstream.write("  (:addend_representation "+str(addend_representation)+")\n")
+    logstream.write("  (:addend_delocalizing_noise "+str(addend_delocalizing_noise)+")\n")
+    logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
+    logstream.write("  (:results_representation "+str(results_representation)+")\n")
+    logstream.write("  (:n_problems "+str(n_problems)+")\n")
+    logstream.write("  (:suppress_auto_timestamping "+str(suppress_auto_timestamping)+")\n")
+    logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
