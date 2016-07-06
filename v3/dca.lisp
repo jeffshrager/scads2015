@@ -31,10 +31,10 @@
 
 (defun dht (table &optional (n 10000))
   (maphash #'(lambda (key value)
-					       (when (zerop (decf n)) (return-from dht))
-					       (format t "~s: ~s~%" key value)       
-					       )
-					   table))
+	       (when (zerop (decf n)) (return-from dht))
+	       (format t "~s: ~s~%" key value)       
+	       )
+	   table))
 
 ;;; =============================================================
 ;;; Main
@@ -120,9 +120,9 @@
 					 (let ((params (cdr (assoc :params log)))
 					       (training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*))
 					       (head (assoc :head log)))
-					   (format o "~a" (pathname-name file))
+					   (format o "~a	" (pathname-name file))
 					   (loop for (n v) in params 
-						 do (format o "~a~a" n v))
+						 do (format o "~a	~a	" n v))
 					   (clrhash *p->last-wrong-pos*)
 					   ;; ((:ENCODING :-WRONG- (5 => 3) ... )
 					   (loop for enc in training
@@ -132,9 +132,9 @@
 					 do (setf (gethash (car i/o) *p->last-wrong-pos*) pos))
 					   (loop for i from 1 to 5
 					 as pos = (gethash i *p->last-wrong-pos*)
-					 do (format o "~a~a" i pos))
+					 do (format o "~a	~a	" i pos))
 					   (if *heuristicated-experiment-label*
-					       (format o "~a~%" *heuristicated-experiment-label*))
+					       (format o "~a	~%" *heuristicated-experiment-label*))
 					   ))))
 
 ;;; Analysis on a per-parameter basis of the most used strategy for

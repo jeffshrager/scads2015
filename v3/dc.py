@@ -46,18 +46,18 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"201607061355 scanning everything\""],
+    param_specs = {"experiment_label": ["\"201607061507 this should be very efficient\""],
 
                  # Problem presentation and execution
                  "n_exposures": [2000],
 
                  # Learning target params
-                 "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
-                 "input_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
+                 "input_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
+                 "output_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
 
-                 "results_hidden_units": [3,4,5,8], 
+                 "results_hidden_units": [6],
                  "non_result_y_filler": [0.0], 
-                 "results_learning_rate": [0.01,0.05,0.1,0.15,0.2], 
+                 "results_learning_rate": [0.2], 
                  "in_process_training_epochs": [1] 
                  }
 
@@ -66,6 +66,7 @@ class Settings:
 ### By Myra; testing input creation for Lingustic model.
 
 n_inputs = 5
+n_outputs = 5
 noise_scale = 0.05
 
 # :-) Made this a class which will make it much simler to move the
@@ -88,36 +89,35 @@ class Lexicon(object):
 
         #input
         input_one_bits = settings.param("input_one_bits")
-        if input_one_bits == -999:
-            self.input_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
-            
-        elif input_one_bits < 5:
-            for i in range(1,n_inputs+1):
-                x = [0] * 5
-                for j in range(0, input_one_bits):
-                    x[j] = 1
-                shuffle(x)
-                self.input_dictionary[i] = x
-        
-        #output
+        self.input_dictionary = {}
+        if input_one_bits == 1:
+            for p in range(1,n_inputs+1): # This will leave the edge bits at 0
+                # This includes edge bits for delocalization
+                self.input_dictionary[p] = ([0]*(2+n_inputs))
+                self.input_dictionary[p][p] = 1 
+        elif input_one_bits>2:
+            fmt = "{0:0"+str(n_inputs)+"b}"
+            v = [x for x in range(2**n_inputs)]
+            r = []
+            while len(r) < n_inputs + 1:
+                n = randint(0,len(v)-1)
+                s = fmt.format(v[n])
+                if s.count('1') == input_one_bits:
+                    r.extend([s])
+            for k in range(len(r)):
+                self.input_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
+        elif addend_representation == -111:
+            for k in range(1,n_inputs+1):
+                self.input_dictionary[k]= [0]*(2+n_inputs)
+                for p in range(1,k+1):
+                    self.input_dictionary[k][p]=1
+        # Results dictionary:
         output_one_bits = settings.param("output_one_bits")
-        if output_one_bits == -999:
-            self.output_dictionary = {k:v for k, v in [[x,[1 for b in range(1,x+1)]+[0 for b in range(x,5)]] for x in range(1,6)]}
-            
-        elif output_one_bits < 5:
-            for i in range(1,n_inputs+1):
-                x = [0] * 5
-                for j in range(0, output_one_bits):
-                    x[j] = 1
-                shuffle(x)
-                self.output_dictionary[i] = x
-
-        #print "self.input_dictionary : " + str(self.input_dictionary)
-        # MMM Add a param that says the number of bits in each output, so 
-        # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
-        # Also, if this is something special -999 then use 10000 11000 11100 ...
-        #print settings.param("output_one_bits")
-        #DDD          print "<<< Lexicon_init_"
+        self.output_dictionary={}
+        if output_one_bits == 1:
+            for p in range(5):
+                self.output_dictionary[p+1] = [0]*5
+                self.output_dictionary[p+1][p]=1
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
