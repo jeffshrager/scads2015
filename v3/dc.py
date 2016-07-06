@@ -46,16 +46,16 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"test 201607031833 w/ new dicts\""],
+    param_specs = {"experiment_label": ["\"201607061355 scanning everything\""],
 
                  # Problem presentation and execution
-                 "n_exposures": [300],
+                 "n_exposures": [2000],
 
                  # Learning target params
                  "output_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
                  "input_one_bits": [1,3,-999], # If -999 then uses 10000,11000, etc
 
-                 "results_hidden_units": [4,6,8], 
+                 "results_hidden_units": [3,4,5,8], 
                  "non_result_y_filler": [0.0], 
                  "results_learning_rate": [0.01,0.05,0.1,0.15,0.2], 
                  "in_process_training_epochs": [1] 
