@@ -1,5 +1,52 @@
 ;(load (compile-file "analyzer.lisp"))
 
+(defparameter *param-reporting-order* 
+  '(
+    ("experiment_label" . experiment_label)
+    ("n_problems" . n_problems)
+    ("strategy_hidden_units" . strategy_hidden_units)
+    ("results_hidden_units" . results_hidden_units)
+    ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
+    ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
+    ("DR_threshold" . DR_threshold)
+    ("PERR" . PERR)
+    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
+    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
+    ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
+    ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
+    ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
+    ("non_result_y_filler" . non_result_y_filler)
+    ("INCR_on_RIGHT" . INCR_on_RIGHT)
+    ("DECR_on_WRONG" . DECR_on_WRONG)
+    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
+    ("strategy_learning_rate" . strategy_learning_rate)
+    ("results_learning_rate" . results_learning_rate)
+    ("in_process_training_epochs" . in_process_training_epochs)
+    ("ndups" . ndups)
+    ("pbs" . pbs)
+    ("dynamic_retrieval_on" . dynamic_retrieval_on)
+    ("dump_hidden_activations" . dump_hidden_activations)
+    ("n_addend_bits" . n_addend_bits)
+    ("addend_representation" . addend_representation)
+    ("addend_delocalizing_noise" . addend_delocalizing_noise)
+    ("n_results_bits" . n_results_bits)
+    ("results_representation" . results_representation)
+    ))
+
+(defparameter *function-name-substitutions*
+  '(("count_from_either" . :cfe)
+    ("count_up_by_one_from_second_addend" . :upx1)
+    ("min" . :min)
+    ("count_from_one_once" . :cf1x1)
+    ("count_from_one_twice" . :cf1x2)
+    ("random" . :rand)
+    ("retrieval" . :ret)
+    ("dynamic_retrival" . :dynaret)
+    ("used" . :used)
+    ("trying" . :trying)
+    ("!" . :!)
+    ))
+
 ;;; === ToDo ===
 ;;; Analyze the strategy logs.
 
@@ -165,20 +212,6 @@
 
 ;;; =============================================================
 ;;; Log Analysis
-
-(defparameter *function-name-substitutions*
-  '(("count_from_either" . :cfe)
-    ("count_up_by_one_from_second_addend" . :upx1)
-    ("min" . :min)
-    ("count_from_one_once" . :cf1x1)
-    ("count_from_one_twice" . :cf1x2)
-    ("random" . :rand)
-    ("retrieval" . :ret)
-    ("dynamic_retrival" . :dynaret)
-    ("used" . :used)
-    ("trying" . :trying)
-    ("!" . :!)
-    ))
 
 ;;; =============================================================
 ;;; Math
@@ -414,29 +447,6 @@
 		  (format o "~%")))
    ))
 
-(defparameter *param-reporting-order* 
-  '(
-    ("strategy_hidden_units" . strategy_hidden_units)
-    ("results_hidden_units" . results_hidden_units)
-    ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
-    ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
-    ("n_problems" . n_problems)
-    ("DR_threshold" . DR_threshold)
-    ("PERR" . PERR)
-    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
-    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
-    ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
-    ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
-    ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("non_result_y_filler" . non_result_y_filler)
-    ("INCR_on_RIGHT" . INCR_on_RIGHT)
-    ("DECR_on_WRONG" . DECR_on_WRONG)
-    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
-    ("strategy_learning_rate" . strategy_learning_rate)
-    ("results_learning_rate" . results_learning_rate)
-    ("in_process_training_epochs" . in_process_training_epochs)
-    ))
-
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
 (defvar *params->all-values* (make-hash-table :test #'equal)) ;; Let's us tell which ones actually changed.
 
@@ -593,4 +603,3 @@
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
 (analyze :comps '(:base-exact :adult))
-
