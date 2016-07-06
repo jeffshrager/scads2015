@@ -489,15 +489,31 @@ def precompute_ISOs():
     global addend_dictionary
     addend_dictionary = {}
     logstream.write("(:lex-sym-res-dictionaries\n")
+    # Addend dictionary:
+    # The special case for 1: 1=0100000 2=0010000, etc.
     if addend_representation is 1:
         for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
             # This includes edge bits for delocalization
             addend_dictionary[p] = ([0]*(2+n_addend_bits))
             addend_dictionary[p][p] = 1 
-    logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
+    # The n random bits case:
+    elif addend_representation>2:
+        fmt = "{0:0"+str(n_addend_bits)+"b}"
+        v = [x for x in range(2**5)]
+        r = []
+        while len(r) < n_addend_bits + 1:
+            n = randint(0,len(v)-1)
+            s = fmt.format(v[n])
+            if s.count('1') is addend_representation:
+                r.extend([s])
+            for k in range(len(r)):
+                addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
+                k+=1
     if addend_dictionary is {}:
         print "in precompute_isos(): addend_representation = " + addend_representation + " isn't understood!"
         sys.exit(1)
+    logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
+    # Results dictionary:
     results_dictionary={}
     if results_representation is 1:
         for p in range(0,n_results_bits):
