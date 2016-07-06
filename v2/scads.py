@@ -35,15 +35,15 @@ dump_hidden_activations = False
 
 # LEXICAL AND SYMBOLIC LEVELS AREN'T USED YET -- They'll get added when Myra's code is combined in.
 #"n_lexical_bits": [5], # Will actually be 14 bcs each hand has an edge bit, so 7x2
-#"lexical_representation": [1, 3,111], # on n_input_bits
+#"lexical_representation": [1, 3,-111], # on n_input_bits
 #"lexical_delocalizing_noise": [1.0], 
 #"n_symbolic_bits": [5],
-#"symbolic_representation": [1, 3, 111], # on 5
+#"symbolic_representation": [1, 3, -111], # on 5
 #"symbolic_delocalizing_noise": [1.0], 
 
-n_addend_bits=5 # really becomes (n+2)*2 (usually 14)
-addend_representation=1 # or, e.g., 3  (on 5) or 111 for weight-based
-addend_delocalizing_noise=0.05
+n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
+addend_representation=-111 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_delocalizing_noise=0.05 # Probably a bad idea to use in the -111 case!
 n_results_bits=13
 results_representation=1
                
@@ -102,7 +102,7 @@ scanned_params = {
 ##################### ADD #####################
 
 def lispify(s):
-    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","-").replace("{","(").replace("}",")")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","=").replace("{","(").replace("}",")")
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -441,7 +441,7 @@ def exec_explicit_strategy(strategy_choice):
 # 1 = Localist (1=10000, 2=01000, ..., 5=00001)
 # 2 = two bits randomly chosen (1=00110, ... 5=01010)
 # etc.
-# 111 = "subitizing representation" (this is non-uniform!)
+# -111 = "subitizing representation" (this is non-uniform!)
 #       i.e., 1=10000, 2=11000, 3=01110, etc.
 #
 # (In creating these I cheat by presetting groups of these for each
@@ -491,38 +491,45 @@ def precompute_ISOs():
     logstream.write("(:lex-sym-res-dictionaries\n")
     # Addend dictionary:
     # The special case for 1: 1=0100000 2=0010000, etc.
-    if addend_representation is 1:
+    if addend_representation == 1:
         for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
             # This includes edge bits for delocalization
             addend_dictionary[p] = ([0]*(2+n_addend_bits))
             addend_dictionary[p][p] = 1 
-    # The n random bits case:
+    # The delocalized n random bits case. This is a tricky little
+    # algorithm to generate m unique n-bit numbers by first picking m
+    # from among 0..2^n and then turning those into binary.
     elif addend_representation>2:
         fmt = "{0:0"+str(n_addend_bits)+"b}"
-        v = [x for x in range(2**5)]
+        v = [x for x in range(2**n_addend_bits)]
         r = []
         while len(r) < n_addend_bits + 1:
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
-            if s.count('1') is addend_representation:
+            if s.count('1') == addend_representation:
                 r.extend([s])
             for k in range(len(r)):
                 addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
                 k+=1
-    if addend_dictionary is {}:
-        print "in precompute_isos(): addend_representation = " + addend_representation + " isn't understood!"
+    elif addend_representation == -111:
+        for k in range(1,n_addend_bits+1):
+            addend_dictionary[k]= [0]*(2+n_addend_bits)
+            for p in range(1,k+1):
+                addend_dictionary[k][p]=1
+    else:
+        print "in precompute_isos(): addend_representation = " + str(addend_representation) + " isn't understood!"
         sys.exit(1)
     logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
     # Results dictionary:
     results_dictionary={}
-    if results_representation is 1:
+    if results_representation == 1:
         for p in range(0,n_results_bits):
             results_dictionary[p] = [0]*n_results_bits
             results_dictionary[p][p]=1
-    logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
-    if results_dictionary is {}:
-        print "in precompute_isos(): results_representation = " + results_representation + " isn't understood!"
+    else:
+        print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
+    logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
     logstream.write(")\n")
 
 def addends_matrix(a1, a2):
@@ -532,7 +539,7 @@ def delocalize(a):
     addend_dictionary
     b=addend_dictionary[a]
     for p in range(1,n_addend_bits+1):
-        if b[p] is 1:
+        if b[p] == 1:
             b[p-1]+=addend_delocalizing_noise
             b[p+1]+=addend_delocalizing_noise
             b[p]-=2*addend_delocalizing_noise
