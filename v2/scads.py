@@ -1,3 +1,7 @@
+#****************************************************************************************************************
+#******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#****************************************************************************************************************
+
 # Notes:
 
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
@@ -10,7 +14,8 @@ import numpy
 from random import randint, shuffle, random
 import sys
 
-global current_params, logstream, rnet, snet
+addend_dictionary = {}
+results_dictionary = {}
 
 ##################### SETTINGS #####################
 
@@ -24,6 +29,24 @@ pbs = 50  # problem bin size, every pbs problems we dump the predictions
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 
+# I/S/O params; see note in code -- WARNING: You'll
+# make a mess if you change the n_ in a run--(FFF Pull
+# these out?)
+
+# LEXICAL AND SYMBOLIC LEVELS AREN'T USED YET -- They'll get added when Myra's code is combined in.
+#"n_lexical_bits": [5], # Will actually be 14 bcs each hand has an edge bit, so 7x2
+#"lexical_representation": [1, 3,111], # on n_input_bits
+#"lexical_delocalizing_noise": [1.0], 
+#"n_symbolic_bits": [5],
+#"symbolic_representation": [1, 3, 111], # on 5
+#"symbolic_delocalizing_noise": [1.0], 
+
+n_addend_bits=5 # really becomes (n+2)*2 (usually 14)
+addend_representation=1 # or, e.g., 3  (on 5) or 111 for weight-based
+addend_delocalizing_noise=0.05
+n_results_bits=13
+results_representation=1
+               
 # *** Remember to change the global strategies, which is defined after
 # *** the stratagies themselves, below, if you want to change the
 # *** strategy set.
@@ -33,38 +56,26 @@ current_params = {} # These are set for a given run by the recursive param searc
 # ----- PART 3: These usually DO change -----
 
 n_problems = 5000
-experiment_label = "\"Scanning burn in counts and learning rates\""
 
-#     ****************************************************************************************************************
-#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#     ****************************************************************************************************************
-
-# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is
-# used by the analyzer to label the results file. (Because we set
-# these by exec(), this has to have an extra set of "\"quotes\""
-# around it.) [These are all False initially just so that if something
-# screws up, and one or more of these don't get set, I'll get an obvious 
-# error.]
-
-# Auto Timestamping will put a time stamp at the end of the experiment
+# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
+# analyzer to label the results file. If you forget to change it, auto
+# timestamping will put a time stamp at the end of the experiment
 # label to make sure that the runs are differentiated even if you
-# forgot to change the label. If you really want to merge several
-# runs together, you have to set this to True BEFORE the first
-# one, or else you'll have to go back and manually rename your
-# first dataset.
+# forgot to change the label. If you really want to merge several runs
+# together, you have to set this to True BEFORE the first one, or else
+# you'll have to go back and manually rename your first dataset.
 
 suppress_auto_timestamping = False
+experiment_label = "\"Scanning burn in counts and learning rates\""
 
 scanned_params = {
-
                # Setting up the initial counting network
                "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
-               "initial_counting_network_learning_rate": [0.25, 0.35, 0.45], # 0.25 based on 201509010902
+               "initial_counting_network_learning_rate": [0.3,0.4], # 0.25 based on 201509010902
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
                "PERR": [0.05], # 0.1 confirmed 201509010826
-               "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
@@ -91,7 +102,7 @@ scanned_params = {
 ##################### ADD #####################
 
 def lispify(s):
-    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","-").replace("{","(").replace("}",")")
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -418,21 +429,39 @@ def exec_explicit_strategy(strategy_choice):
         i()
     return SOLUTION
 
-# Problem Presentation Algorithm (PPA).  Just random for now.
-
-def PPA():
-    global ADDENDS
-    ADDENDS = Addend(randint(1, 5), randint(1, 5))
-
 ##################### NN #####################
 
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
-# driver).
+# driver). The way that addends and sums get created is pretty
+# complex, and depends upon a number of parameters, in brief, these
+# two params control the inputs and output representation:
+# input_representation, symbolic_representation, and
+# result_representation and . The possible values are these:
+# 1 = Localist (1=10000, 2=01000, ..., 5=00001)
+# 2 = two bits randomly chosen (1=00110, ... 5=01010)
+# etc.
+# 111 = "subitizing representation" (this is non-uniform!)
+#       i.e., 1=10000, 2=11000, 3=01110, etc.
 #
-# Transform two addends into a distributed representation input array,
-# e.g., for a representation of 3 + 4, the input array created by
-# addends_matrix) is:
+# (In creating these I cheat by presetting groups of these for each
+# value and then just choose from among them at random in the relevant
+# cases.)
+
+# Delocalization is controlled by the delocalizing noise, which, once
+# the representation is created, spreads the 1.0s around a little to
+# delocalize the representation. If delocalization is 1 then the
+# representation is as given. A delocalization of, say, 0.1 will pull
+# 2x0.1 from each 1 (make it 0.8) and add it to each neighboring
+# bit. So, for example, from 0,0,1,0,0 and deloc=0.1 you get 0, 0.1,
+# 0.8, 0.1, 0, and from 0,1,0,1,0 deloc=0.3=> 0.3, 0.4, 0.6, 0.4, 0.3!
+# So USE SMALL DELOCALIZATIONS!!
+
+# Note that at the moment delocalization only applies to the
+# addends.
+
+# a distributed representation input array, e.g., for a representation
+# of 3 + 4, the input array created by addends_matrix) is:
 #
 # Index:         0 , 1 ,   2 , 3 , 4   , 5 , 6 | 7 , 8 , 9 , 10  , 11 , 12 , 13]
 # Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 | 0 , 0 , 0 ,  0.5,  1 ,  0.5, 0]
@@ -456,19 +485,43 @@ def PPA():
 # WWW WARNING !!! Don't confuse either of these with the fingers on
 # the hands!
 
+def precompute_ISOs():
+    global addend_dictionary
+    addend_dictionary = {}
+    logstream.write("(:lex-sym-res-dictionaries\n")
+    if addend_representation is 1:
+        for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
+            # This includes edge bits for delocalization
+            addend_dictionary[p] = ([0]*(2+n_addend_bits))
+            addend_dictionary[p][p] = 1 
+    logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
+    if addend_dictionary is {}:
+        print "in precompute_isos(): addend_representation = " + addend_representation + " isn't understood!"
+        sys.exit(1)
+    results_dictionary={}
+    if results_representation is 1:
+        for p in range(0,n_results_bits):
+            results_dictionary[p] = [0]*n_results_bits
+            results_dictionary[p][p]=1
+    logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
+    if results_dictionary is {}:
+        print "in precompute_isos(): results_representation = " + results_representation + " isn't understood!"
+        sys.exit(1)
+    logstream.write(")\n")
+
 def addends_matrix(a1, a2):
-    cv = 1.0 # central value
-    delta = current_params["addends_matrix_offby1_delta"]
-    lis = [0] * 14
-    # First addend
-    lis[a1 - 1] = cv - delta
-    lis[a1] = cv
-    lis[a1 + 1] = cv - delta
-    # Second addend
-    lis[a2 + 6] = cv - delta
-    lis[a2 + 7] = cv
-    lis[a2 + 8] = cv - delta
-    return lis
+    return delocalize(a1)+delocalize(a2)
+
+def delocalize(a):
+    addend_dictionary
+    b=addend_dictionary[a]
+    for p in range(1,n_addend_bits+1):
+        if b[p] is 1:
+            b[p-1]+=addend_delocalizing_noise
+            b[p+1]+=addend_delocalizing_noise
+            b[p]-=2*addend_delocalizing_noise
+    #print "delocalized("+str(a)+") => " + str(b)
+    return b
 
 # This is used for counting exposure
 def sum_matrix(a,b):
@@ -754,13 +807,12 @@ def strategy_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    global rnet, snet
-    global SOLUTION
+    global rnet, snet, SOLUTION, ADDENDS
     rnet.reset_target()
     snet.reset_target()
-    PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
-    ad1=ADDENDS.ad1
-    ad2=ADDENDS.ad2
+    ad1=randint(1, 5)
+    ad2=randint(1, 5)
+    ADDENDS = Addend(ad1, ad2)
     # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
     strat_name = None
     retrieval = rnet.try_memory_retrieval(ad1,ad2)
@@ -846,9 +898,10 @@ def config_and_test(index=0):
             logstream.write('(:log\n')
             logstream.write(' (:head\n')
             logstream.write(" (:file " + fn + ")\n")
-            logstream.write(' (:output-format-version 20151103)\n')
+            logstream.write(' (:output-format-version 20160705)\n')
             logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
             logstream.write(' (:strategies' + lispify(strategies.keys()) + ")\n")
+            precompute_ISOs()
             init_neturalnets()
             logstream.write(' )\n')
             logstream.write('(:run\n')
