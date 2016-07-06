@@ -3,7 +3,6 @@
 #****************************************************************************************************************
 
 # Notes:
-
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
 # simulate improvment in ability to count correctly with age.
 
@@ -14,17 +13,31 @@ import numpy
 from random import randint, shuffle, random
 import sys
 
+# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
+# analyzer to label the results file. (LEAVE THE \" AT EACH END!!!)
+
+experiment_label = "\"Scanning many params 5x with addend_rep = 3 and deloc = 0.0\""
+
+# If you forget to change it, auto timestamping will put a time stamp
+# at the end of the experiment label to make sure that the runs are
+# differentiated even if you forgot to change the label. If you really
+# want to merge several runs together, you have to set this to True
+# BEFORE the first one, or else you'll have to go back and manually
+# rename your first dataset.
+
+suppress_auto_timestamping = False
+
 addend_dictionary = {}
 results_dictionary = {}
 
-##################### SETTINGS #####################
+##################### GLOBAL SETTINGS #####################
 
 # This is a class just for modularity; things would be simpler if this
 # was a global, like it used to be.
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 2  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 50  # problem bin size, every pbs problems we dump the predictions
 dynamic_retrieval_on = False
 dump_hidden_activations = False
@@ -42,36 +55,24 @@ dump_hidden_activations = False
 #"symbolic_delocalizing_noise": [1.0], 
 
 n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
-addend_representation=-111 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
-addend_delocalizing_noise=0.05 # Probably a bad idea to use in the -111 case!
+addend_representation=3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_delocalizing_noise=0.0 # 0=no noise. USE LOW VALUES! (Probably a bad idea to use this at all in the -111 case!)
 n_results_bits=13
-results_representation=1
+results_representation=1 # Nothing else implemented yet.
                
 # *** Remember to change the global strategies, which is defined after
 # *** the stratagies themselves, below, if you want to change the
 # *** strategy set.
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
+n_problems = 15000
 
-# ----- PART 3: These usually DO change -----
-
-n_problems = 5000
-
-# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
-# analyzer to label the results file. If you forget to change it, auto
-# timestamping will put a time stamp at the end of the experiment
-# label to make sure that the runs are differentiated even if you
-# forgot to change the label. If you really want to merge several runs
-# together, you have to set this to True BEFORE the first one, or else
-# you'll have to go back and manually rename your first dataset.
-
-suppress_auto_timestamping = False
-experiment_label = "\"Scanning burn in counts and learning rates\""
+##################### SCANNED SETTINGS #####################
 
 scanned_params = {
                # Setting up the initial counting network
                "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
-               "initial_counting_network_learning_rate": [0.3,0.4], # 0.25 based on 201509010902
+               "initial_counting_network_learning_rate": [0.1,0.2,0.3,0.4], # 0.25 based on 201509010902
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
@@ -85,7 +86,7 @@ scanned_params = {
 
                # Learning target params
                "strategy_hidden_units": [3],
-               "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
                # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
@@ -95,7 +96,7 @@ scanned_params = {
                "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                "strategy_learning_rate": [0.1],
-               "results_learning_rate": [0.05], # default: 0.1 Explored 201509010826
+               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 Explored 201509010826
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                }
 
@@ -344,11 +345,11 @@ def look_n_count():
 
 strategies = {"count_from_one_twice": count_from_one_twice_strategy,
               "count_from_one_once": count_from_one_once_strategy,
-              #"count_from_either": count_from_either_strategy,
+              "count_from_either": count_from_either_strategy,
+              "min": min_strategy,
               #"random_strategy": random_strategy,
-              #"min": min_strategy,
-              #"This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up"
-              "count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
+              #This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up
+              #"count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
               }
 
 # Finally we need to replace the n1 and n2 with echoic buffers so
