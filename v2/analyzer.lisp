@@ -265,6 +265,13 @@
   (summarize-coefs ts)
   )
 
+(defvar *d* nil)
+(defun ltdftcfociatltd (file) ;; load-the-data-from-the-compiled-file-or-compile-it-and-then-load-the-data
+  (let ((cfn (format nil "runlogs/~a.dx32fsl" (pathname-name file))))
+    (unless (probe-file cfn) (compile-file file))
+    (load cfn)
+    *d*))
+
 (defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
@@ -277,7 +284,7 @@
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
 	as log = (when (and (>= fno low) (<= fno high))
-		   (with-open-file (i (print file)) (cdr (read i))))
+		   (cdr (ltdftcfociatltd file)))
 	do
 	(let* ((params (cdr (assoc :params log)))
 	       (this-label (second (assoc :experiment_label params)))
@@ -599,6 +606,20 @@
           (setq last (1+ i))))
       (add-substring length)
       (nreverse substrings))))
+
+;;; Converting to compiled data files.
+
+(defun setqify (&aux nfn)
+  (loop for file in (directory "*.lisp")
+	do (with-open-file 
+	    (i file)
+	    (with-open-file 
+	     (o (setf nfn (format nil "~a-B.lisp" (pathname-name file))) :direction :output)
+	     (format o "(setq *d* '~%")
+	     (loop for line = (read-line i nil nil)
+		   until (null line)
+		   do (format o "~a~%" line))
+	     (format o ")")))))
 
 (untrace)
 ;(trace find-sum)

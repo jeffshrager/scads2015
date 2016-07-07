@@ -919,6 +919,7 @@ def config_and_test(index=0):
         print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
         with open(fn, 'wb') as logstream:
             # initialize the logstream and neural network for each config we want to test
+            logstream.write('(setq *d* \'\n')
             logstream.write('(:log\n')
             logstream.write(' (:head\n')
             logstream.write(" (:file " + fn + ")\n")
@@ -937,6 +938,7 @@ def config_and_test(index=0):
             for key in scanned_params:
                 logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
             logstream.write(' )\n')
+            logstream.write(')\n')
             logstream.write(')\n')
 
 def dump_non_scanned_params():
