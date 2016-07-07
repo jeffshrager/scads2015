@@ -113,29 +113,39 @@
   (with-open-file 
    (o (print (format nil "sumstats/~a-dcsum.xls" ts))
       :direction :output :if-exists :supersede) 
-   (loop for file being the hash-keys of *file->log*
-					 using (hash-value log)
-					 do 
-					 ;; output headers
-					 (let ((params (cdr (assoc :params log)))
-					       (training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*))
-					       (head (assoc :head log)))
-					   (format o "~a	" (pathname-name file))
-					   (loop for (n v) in params 
-						 do (format o "~a	~a	" n v))
-					   (clrhash *p->last-wrong-pos*)
-					   ;; ((:ENCODING :-WRONG- (5 => 3) ... )
-					   (loop for enc in training
-					 as ((nil r/w? i/o)) = enc
-					 as pos from 1 by 1
-					 if (eq :-wrong- r/w?)
-					 do (setf (gethash (car i/o) *p->last-wrong-pos*) pos))
-					   (loop for i from 1 to 5
-					 as pos = (gethash i *p->last-wrong-pos*)
-					 do (format o "~a	~a	" i pos))
-					   (if *heuristicated-experiment-label*
-					       (format o "~a	~%" *heuristicated-experiment-label*))
-					   ))))
+   ;; Headers -- only roles once!
+   (loop for log being the hash-value of *file->log*
+	 do 	     
+	 (let ((params (cdr (assoc :params log))))
+	   (format o "file	")
+	   (loop for (n nil) in params 
+		 do (format o "~a	" n))
+	   (loop for i from 1 to 5 
+		 do (format o "~a	" i))
+	   (format o "~%"))
+	 (return t))
+   ;; Data
+   (loop for file being the hash-key of *file->log*
+	 using (hash-value log)
+	 do 
+	 (let ((params (cdr (assoc :params log)))
+	       (training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*)))
+	   (format o "~a	" (pathname-name file))
+	   (loop for (nil v) in params 
+		 do (format o "~a	" v))
+	   (clrhash *p->last-wrong-pos*)
+	   ;; ((:ENCODING :-WRONG- (5 => 3) ... )
+	   (loop for enc in training
+		 as ((nil r/w? i/o)) = enc
+		 as pos from 1 by 1
+		 if (eq :-wrong- r/w?)
+		 do (setf (gethash (car i/o) *p->last-wrong-pos*) pos))
+	   (loop for i from 1 to 5
+		 as pos = (gethash i *p->last-wrong-pos*)
+		 do (format o "~a	" pos))
+	   (if *heuristicated-experiment-label*
+	       (format o "~a	~%" *heuristicated-experiment-label*))
+	   ))))
 
 ;;; Analysis on a per-parameter basis of the most used strategy for
 ;;; each problem.

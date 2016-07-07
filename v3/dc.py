@@ -20,16 +20,12 @@ def lispify(s):
 
 class TrainingSet():
     def __init__(self, n, nn):
-#DDD        print ">>> TrainingSet__init__"
         self.number = n
         # FFF This will eventually get replaced by something more
         # complex that provides an input representation. For the
         # moment these are the same.
         self.input = lexicon.numberWordWithNoise(self.number)
-#DDD        print "self.input : " + str(self.input)
         self.correct_output = nn.outputs[n]
-#DDD        print "self.correct_output : " + str(self.correct_output)
-#DDD        print ">>> TrainingSet__init__"
 
 
 ##################### SETTINGS #####################
@@ -46,7 +42,7 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"201607061507 this should be very efficient\""],
+    param_specs = {"experiment_label": ["\"201607061740 this should be very efficient\""],
 
                  # Problem presentation and execution
                  "n_exposures": [2000],
@@ -55,9 +51,9 @@ class Settings:
                  "input_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
                  "output_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
 
-                 "results_hidden_units": [6],
-                 "non_result_y_filler": [0.0], 
-                 "results_learning_rate": [0.2], 
+                 "results_hidden_units": [4,6,8],
+                 "non_result_y_filler": [0.0],
+                 "results_learning_rate": [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4],
                  "in_process_training_epochs": [1] 
                  }
 
@@ -82,7 +78,6 @@ class Lexicon(object):
 
     def __init__(self):
         global param_specs_keys, settings
-        #DDD          print ">>> Lexicon_init_"
         # MMM Add a param that says the number of bits in each input, so 
         # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
         # Also, if this is something special -999 then use 10000 11000 11100 ...
@@ -137,21 +132,63 @@ class Lexicon(object):
         return [self.noisify(r[x]) for x in range(n_inputs)] 
         
     # Figures out which correct output is closest to the one given.
+# I think that this version is wrong bcs is always returns the SAME value!
+#     def scoresub1(self,i,o):
+#         print "scoresub1("+str(i)+", "+ str(o)
+#         sum = 0
+#         for p in range(len(i)):
+#             print "p="+str(p)+"; o[p]="+str(o[p])+"; i[p]="+str(i[p])+"; o[p]-i[p]="+str(o[p]-i[p])
+#             sum += o[p]-i[p]
+#             print "sum="+str(sum)
+#         print "scoresub1 => sum = " + str(sum)
+#         return sum
+
     def scoresub1(self,i,o):
+        #print "scoresub1("+str(i)+", "+ str(o)
         sum = 0
         for p in range(len(i)):
-            sum += o[p]-i[p]
+            if o[p]>=0.5:
+                if i[p]==1:
+                    sum += 1
+                    #print "11+="+str(sum)
+                else:
+                    sum -= 1
+                    #print "01-="+str(sum)
+            else: # o[p]<0.5
+                if i[p]==0:
+                    sum += 1
+                    #print "00+="+str(sum)
+                else:
+                    sum -= 1
+                    #print "01-="+str(sum)
+        #print "scoresub1 => sum = " + str(sum)
         return sum
             
     def score(self,nn_output):
-        minn = -999
-        mins = 999
+        #print "score("+str(nn_output)+")"
+        maxn = 999
+        maxs = -999
         r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
+        #print str(r)
         for n,s in r:
-            if s<mins:
-                mins=s
-                minn=n
-        return minn
+            if s>maxs:
+                maxs=s
+                maxn=n
+        #print "   = "+str(maxn)
+        return maxn
+
+#     def score(self,nn_output):
+#         print "score("+str(nn_output)+")"
+#         minn = -999
+#         mins = 999
+#         r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
+#         print str(r)
+#         for n,s in r:
+#             if s<mins:
+#                 mins=s
+#                 minn=n
+#         print "   = "+str(minn)
+#         return minn
 
 ##################### NN #####################
 
@@ -244,12 +281,10 @@ class NeuralNetwork:
     # Main forward feed and backpropagation
     def fit(self, learning_rate, epochs, X=None, y=None):
 
-#DDD        print ">>> Fit(learning_rate="+str()+", epochs="+str(epochs)+")"
 
         if X is None: X = self.X
         if y is None: y = self.target
 
-#DDD        print "self.target : " + str(self.target)
 
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         X = numpy.concatenate((ones.T, X), axis=1)
@@ -258,12 +293,6 @@ class NeuralNetwork:
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
 
-#DDD            print "Input:" 
-#DDD            print "X : " + str( X)
-#DDD            print "i : " + str( i)
-#DDD            print "X[i] : " + str( X[i])
-#DDD            print "y : " + str( y)
-#DDD            print "a : " + str( a)
 
 #Q00 what is X.shape[0] what does it look like...
 #mnote basically make the input the same format as addends_matrix
@@ -277,12 +306,6 @@ class NeuralNetwork:
             # Output layer
             error = y[i] - a[-1]
 
-#DDD            print "y : " + str(y)
-#DDD            print "a : " + str(a)
-#DDD            print "i : " + str(i)
-#DDD            print "y[i] : " + str(y[i])
-#DDD            print "a[-1] : " + str(a[-1])
-#DDD            print "error : " + str(error)
 
             deltas = [error * self.activation_prime(a[-1])]
 
@@ -304,27 +327,19 @@ class NeuralNetwork:
                 delta = numpy.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
 
-#DDD            print "<<< Fit"
 
     # Outputs a results "probability" (more like "amplitude") matrix
     # given an input (problem) matrix; used when we want to know "what
     # is in the kid's mind"
 
     def predict(self, x):
-#DDD        print ">>> predict("+str(x)+")"
         amplitude = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
-#DDD        print "amplitude : " + str(amplitude)
         for l in range(0, len(self.weights)):
             amplitude = self.activation(numpy.dot(amplitude, self.weights[l]))
-#DDD        print "final amplitude : " + str(amplitude)
-#DDD        print "<<< predict"
         return amplitude
 
     def wan2lnp(self,word,n): # word_and_number_to_localist_number_pattern
-#DDD        print ">>> wan2lnp(n="+str(n)+", word="+str(word)+")"
-#DDD        print "n-1 : " + str(n-1)
         result = self.predictions[n-1]
-#DDD        print "result : " + str( result)
         return result
 
     # Returns a function that picks a random result from a list of
@@ -342,25 +357,16 @@ class NeuralNetwork:
     #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
 
     def guess_vector(self, n, beg, end):
-#DDD        print ">>> guess_vector(n="+str(n)+", beg="+str(beg)+", end="+str(end)+")"
         vec = []
-#DDD        print "self.predictions : " + str( self.predictions)
         self.predict(lexicon.numberWordWithNoise(n))
-#DDD        print "self.predictions : " + str( self.predictions)
         for i in range(beg, end):
-#DDD            print "i : " + str(i)
-#DDD            print "n-1 : " + str(n-1)
             vec.append(round(self.predictions[n][i], 5))
-#DDD        print "vec : " + str(vec)
-#DDD        print "<<< guess_vector"
         return (vec)
 
     def update_predictions(self):
-#DDD        print ">>> update_predictions"
         self.predictions = []
         for n in range(1, 6):
             self.predictions.append(self.predict(lexicon.numberWordWithNoise(n)))
-#DDD        print "<<< update_predictions"
 
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
@@ -368,26 +374,19 @@ class NeuralNetwork:
     # correct answer will have INCR_RIGHT/WRONG added to it
 
     def reset_target(self):
-#DDD        print ">>> reset_target"
         self.target = []
         self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
         self.target = numpy.array(self.target)
-#DDD        print "self.target : " + str(self.target)
-#DDD        print "<<< reset_target"
 
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
 
     def update_target(self, input, retrieved_output, correct_output):
-#DDD        print ">>> update_target(n="+str(input)+", retrieved_output="+str(retrieved_output)+", correct_output="+str(correct_output)+")"
         self.X = []
         self.X.append(input)
         self.X = numpy.array(self.X)
-#DDD        print "self.X: " + str(self.X)
         self.target[0]=correct_output
-#DDD        print "self.target: " + str(self.target)
 
-#DDD        print "<<< update_target"
 
 ##################### DRIVER #####################
 
@@ -407,18 +406,13 @@ def results_network():
 # update_y this is the main driver within driver that does the testing
 
 def train_word():
-#DDD    print ">>> train_word"
     global rnet
     rnet.reset_target()
     trainingset = TrainingSet(randint(1, 5), rnet)
     number=trainingset.number
     input=trainingset.input
     correct_output=trainingset.correct_output
-#DDD    print "number : " + str(number)
-#DDD    print "input : " + str(input)
-#DDD    print "correct_output : " + str(correct_output)
     retrieved_output = rnet.wan2lnp(input,number)
-#DDD    print "retrieved_output : " + str(retrieved_output)
     minn = lexicon.score(retrieved_output)
     if minn == number:
         rw = ":+right+"
@@ -428,7 +422,6 @@ def train_word():
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
     rnet.update_predictions()
-#DDD    print "<<< train_word"
 
 # UUU The open and close structure here is a mess bcs of the
 # occassional dumping of tables, which I'm trying to embed at the end
