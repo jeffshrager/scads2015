@@ -276,7 +276,8 @@
   (loop for file in (downsorted-directory "runlogs/*.lisp")
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
-	as log = (with-open-file (i file) (cdr (read i)))
+	as log = (when (and (>= fno low) (<= fno high))
+		   (with-open-file (i (print file)) (cdr (read i))))
 	do
 	(let* ((params (cdr (assoc :params log)))
 	       (this-label (second (assoc :experiment_label params)))
@@ -602,4 +603,4 @@
 (untrace)
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comps '(:base-exact :adult))
+(analyze :comps '(:base-exact :adult) :low 20160706132004 :high 20160706152749)
