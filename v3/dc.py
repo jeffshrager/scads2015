@@ -47,7 +47,7 @@ class Settings:
                  "n_exposures": [2000],
 
                  # Learning target params
-                 "input_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
+                 "input_one_bits": [-111], # If -111 then uses 10000,11000, etc # ,3,-111
                  "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
 
                  "results_hidden_units": [4,6,8],
@@ -122,11 +122,11 @@ class Lexicon(object):
                 if s.count('1') == output_one_bits:
                     r.extend([s])
             for k in range(len(r)):
-                self.output_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
+                self.output_dictionary[k]=[int(c) for c in r[k]]
         elif output_one_bits == -111:
             for k in range(1,6):
-                self.ouput_dictionary[k]= [0]*5
-                for p in range(1,6):
+                self.output_dictionary[k]= [0]*5
+                for p in range(5):
                     self.output_dictionary[k][p]=1
 
     # I'll get called over and over in a map over the list of values.
@@ -142,7 +142,6 @@ class Lexicon(object):
     # This is the main function that a user will call. It just
     # creates a COPY of the representation, with noise.
     def numberWordWithNoise(self,a): 
-        #print str(self.input_dictionary)
         r = self.input_dictionary[a]
         return [self.noisify(r[x]) for x in range(n_inputs)] 
         
