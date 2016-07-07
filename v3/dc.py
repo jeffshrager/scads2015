@@ -16,7 +16,7 @@ def RoundedStr(l):
         sys.exit("Bad type sent to RoundedStr: +" + type(l))
 
 def lispify(s):
-    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","$").replace("{","(").replace("}",")")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","=").replace("{","(").replace("}",")")
 
 class TrainingSet():
     def __init__(self, n, nn):
@@ -26,7 +26,6 @@ class TrainingSet():
         # moment these are the same.
         self.input = lexicon.numberWordWithNoise(self.number)
         self.correct_output = nn.outputs[n]
-
 
 ##################### SETTINGS #####################
 
@@ -42,19 +41,19 @@ class Settings:
     params = {} # These are set for a given run by the recursive param search algorithm
 
 #change the experiment label below!
-    param_specs = {"experiment_label": ["\"201607061740 this should be very efficient\""],
+    param_specs = {"experiment_label": ["\"201607061822 this should be very efficient\""],
 
                  # Problem presentation and execution
                  "n_exposures": [2000],
 
                  # Learning target params
-                 "input_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
-                 "output_one_bits": [1], # If -999 then uses 10000,11000, etc # ,3,-999
+                 "input_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
+                 "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
 
                  "results_hidden_units": [4,6,8],
                  "non_result_y_filler": [0.0],
-                 "results_learning_rate": [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4],
-                 "in_process_training_epochs": [1] 
+                 "results_learning_rate": [0.1,0.2,0.3,0.4],
+                "in_process_training_epochs": [1] 
                  }
 
 
@@ -80,30 +79,30 @@ class Lexicon(object):
         global param_specs_keys, settings
         # MMM Add a param that says the number of bits in each input, so 
         # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
-        # Also, if this is something special -999 then use 10000 11000 11100 ...
+        # Also, if this is something special -111 then use 10000 11000 11100 ...
 
         #input
         input_one_bits = settings.param("input_one_bits")
         self.input_dictionary = {}
         if input_one_bits == 1:
-            for p in range(1,n_inputs+1): # This will leave the edge bits at 0
+            for p in range(1,6): # This will leave the edge bits at 0
                 # This includes edge bits for delocalization
-                self.input_dictionary[p] = ([0]*(2+n_inputs))
+                self.input_dictionary[p] = ([0]*(2+5))
                 self.input_dictionary[p][p] = 1 
         elif input_one_bits>2:
-            fmt = "{0:0"+str(n_inputs)+"b}"
-            v = [x for x in range(2**n_inputs)]
+            fmt = "{0:0"+str(5)+"b}"
+            v = [x for x in range(2**5)]
             r = []
-            while len(r) < n_inputs + 1:
+            while len(r) < 6:
                 n = randint(0,len(v)-1)
                 s = fmt.format(v[n])
                 if s.count('1') == input_one_bits:
                     r.extend([s])
             for k in range(len(r)):
                 self.input_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
-        elif addend_representation == -111:
-            for k in range(1,n_inputs+1):
-                self.input_dictionary[k]= [0]*(2+n_inputs)
+        elif input_one_bits == -111:
+            for k in range(1,6):
+                self.input_dictionary[k]= [0]*(2+5)
                 for p in range(1,k+1):
                     self.input_dictionary[k][p]=1
         # Results dictionary:
@@ -113,6 +112,22 @@ class Lexicon(object):
             for p in range(5):
                 self.output_dictionary[p+1] = [0]*5
                 self.output_dictionary[p+1][p]=1
+        elif output_one_bits>2:
+            fmt = "{0:0"+str(5)+"b}"
+            v = [x for x in range(2**5)]
+            r = []
+            while len(r) < 6:
+                n = randint(0,len(v)-1)
+                s = fmt.format(v[n])
+                if s.count('1') == output_one_bits:
+                    r.extend([s])
+            for k in range(len(r)):
+                self.output_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
+        elif output_one_bits == -111:
+            for k in range(1,6):
+                self.ouput_dictionary[k]= [0]*5
+                for p in range(1,6):
+                    self.output_dictionary[k][p]=1
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
@@ -132,63 +147,31 @@ class Lexicon(object):
         return [self.noisify(r[x]) for x in range(n_inputs)] 
         
     # Figures out which correct output is closest to the one given.
-# I think that this version is wrong bcs is always returns the SAME value!
-#     def scoresub1(self,i,o):
-#         print "scoresub1("+str(i)+", "+ str(o)
-#         sum = 0
-#         for p in range(len(i)):
-#             print "p="+str(p)+"; o[p]="+str(o[p])+"; i[p]="+str(i[p])+"; o[p]-i[p]="+str(o[p]-i[p])
-#             sum += o[p]-i[p]
-#             print "sum="+str(sum)
-#         print "scoresub1 => sum = " + str(sum)
-#         return sum
 
     def scoresub1(self,i,o):
-        #print "scoresub1("+str(i)+", "+ str(o)
         sum = 0
         for p in range(len(i)):
             if o[p]>=0.5:
                 if i[p]==1:
                     sum += 1
-                    #print "11+="+str(sum)
                 else:
                     sum -= 1
-                    #print "01-="+str(sum)
             else: # o[p]<0.5
                 if i[p]==0:
                     sum += 1
-                    #print "00+="+str(sum)
                 else:
                     sum -= 1
-                    #print "01-="+str(sum)
-        #print "scoresub1 => sum = " + str(sum)
         return sum
             
     def score(self,nn_output):
-        #print "score("+str(nn_output)+")"
         maxn = 999
         maxs = -999
         r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
-        #print str(r)
         for n,s in r:
             if s>maxs:
                 maxs=s
                 maxn=n
-        #print "   = "+str(maxn)
         return maxn
-
-#     def score(self,nn_output):
-#         print "score("+str(nn_output)+")"
-#         minn = -999
-#         mins = 999
-#         r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
-#         print str(r)
-#         for n,s in r:
-#             if s<mins:
-#                 mins=s
-#                 minn=n
-#         print "   = "+str(minn)
-#         return minn
 
 ##################### NN #####################
 
