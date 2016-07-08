@@ -246,7 +246,7 @@
 (defparameter *strat-keys* '(:ret :cfe :upx1 :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
-(defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
+(defun analyze (&key (low *low*) (high *high*) comps (compress-data? t) &aux  r (ts (get-universal-time)))
   (setf *current-comparator-datasets* nil)
   (setf *current-comparator-datasets*
 	(cond ((member comps '(:all nil)) *all-comparator-datasets*)
@@ -259,7 +259,7 @@
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (load-data low high)
+  (load-data low high compress-data?)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
@@ -268,11 +268,13 @@
 (defvar *d* nil)
 (defun ltdftcfociatltd (file) ;; load-the-data-from-the-compiled-file-or-compile-it-and-then-load-the-data
   (let ((cfn (format nil "runlogs/~a.dx32fsl" (pathname-name file))))
-    (unless (probe-file cfn) (compile-file file))
-    (load cfn)
+    (unless (probe-file cfn) 
+      (format t "~a doesn't exist, compiling from ~a~%" file cfn)
+      (compile-file file))
+    (load (print cfn))
     *d*))
 
-(defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
+(defun load-data (low high compress-data? &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
@@ -301,7 +303,7 @@
 			     log))
 		  (if (and (>= fno low) (<= fno high)) log))))
 	  (when store-log 
-	    (clean-up store-log) ;; This smashes the :run entry
+	    (clean-up store-log compress-data?) ;; This smashes the :run entry
 	    (setf (gethash file *file->log*) store-log)))
 	))
 	
@@ -318,7 +320,7 @@
 ;; of the code can run generically. UUU FFF This should be fixed up in
 ;; the sim, not here! FFF
 
-(defun clean-up (log)
+(defun clean-up (log compress-data?)
   (let ((pbs (second (assoc :problem-bin-size (cdr (assoc :head log))))))
     (setf (cdr (assoc :run log))
 	  (loop for (nil . pb) in (cdr (assoc :run log))
@@ -328,7 +330,16 @@
 			  ;; And has all the right content?
 			  (assoc :results-prediction-table pb)
 			  (assoc :strategy-prediction-table pb))
-		collect pb))))
+		collect 
+		(progn (when compress-data?
+			 (setq *pb* pb)
+			 (mapcar #'(lambda (l) (rplaca (nthcdr 5 l) nil))
+				 (cdr (assoc :results-prediction-table pb)))
+			 (mapcar #'(lambda (l) (rplaca (nthcdr 5 l) nil))
+				 (cdr (assoc :strategy-prediction-table pb)))
+			 (rplacd (assoc :dump-weights pb) nil)
+			 )
+		       pb)))))
 
 (defun summarize-logs (ts)
   ;; Report the retrieval fractions and % correct mean and serr for each dataset seprately
@@ -607,21 +618,7 @@
       (add-substring length)
       (nreverse substrings))))
 
-;;; Converting to compiled data files.
-
-(defun setqify (&aux nfn)
-  (loop for file in (directory "*.lisp")
-	do (with-open-file 
-	    (i file)
-	    (with-open-file 
-	     (o (setf nfn (format nil "~a-B.lisp" (pathname-name file))) :direction :output)
-	     (format o "(setq *d* '~%")
-	     (loop for line = (read-line i nil nil)
-		   until (null line)
-		   do (format o "~a~%" line))
-	     (format o ")")))))
-
 (untrace)
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comps '(:base-exact :adult) :low 20160706132004 :high 20160706152749)
+(analyze :comps '(:base-exact :adult) :compress-data? t)
