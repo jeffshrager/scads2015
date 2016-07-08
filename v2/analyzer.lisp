@@ -246,7 +246,7 @@
 (defparameter *strat-keys* '(:ret :cfe :upx1 :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
-(defun analyze (&key (low *low*) (high *high*) comps (compress-data? t) &aux  r (ts (get-universal-time)))
+(defun analyze (&key (low *low*) (high *high*) its/p/v comps &aux r (ts (get-universal-time)))
   (setf *current-comparator-datasets* nil)
   (setf *current-comparator-datasets*
 	(cond ((member comps '(:all nil)) *all-comparator-datasets*)
@@ -259,7 +259,7 @@
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (load-data low high compress-data?)
+  (load-data :low low :high high :its/p/v its/p/v)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
@@ -274,7 +274,7 @@
     (load (print cfn))
     *d*))
 
-(defun load-data (low high compress-data? &aux first-fno last-fno label temp constrain-by-label)
+(defun load-data (&key low high its/p/v for-indexing? &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
@@ -282,7 +282,7 @@
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
-  (loop for file in (downsorted-directory "runlogs/*.lisp")
+  (loop for file in (or (its/p/v->files its/p/v) (downsorted-directory "runlogs/*.lisp"))
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
 	as log = (when (and (>= fno low) (<= fno high))
@@ -303,7 +303,10 @@
 			     log))
 		  (if (and (>= fno low) (<= fno high)) log))))
 	  (when store-log 
-	    (clean-up store-log compress-data?) ;; This smashes the :run entry
+	    (if for-indexing?
+		(setq store-log (assoc :params log)) ;; This smashes the :run entry
+	      ;; Drop everything but the params
+	      (clean-up store-log))
 	    (setf (gethash file *file->log*) store-log)))
 	))
 	
@@ -320,7 +323,7 @@
 ;; of the code can run generically. UUU FFF This should be fixed up in
 ;; the sim, not here! FFF
 
-(defun clean-up (log compress-data?)
+(defun clean-up (log)
   (let ((pbs (second (assoc :problem-bin-size (cdr (assoc :head log))))))
     (setf (cdr (assoc :run log))
 	  (loop for (nil . pb) in (cdr (assoc :run log))
@@ -330,16 +333,7 @@
 			  ;; And has all the right content?
 			  (assoc :results-prediction-table pb)
 			  (assoc :strategy-prediction-table pb))
-		collect 
-		(progn (when compress-data?
-			 (setq *pb* pb)
-			 (mapcar #'(lambda (l) (rplaca (nthcdr 5 l) nil))
-				 (cdr (assoc :results-prediction-table pb)))
-			 (mapcar #'(lambda (l) (rplaca (nthcdr 5 l) nil))
-				 (cdr (assoc :strategy-prediction-table pb)))
-			 (rplacd (assoc :dump-weights pb) nil)
-			 )
-		       pb)))))
+		collect pb))))
 
 (defun summarize-logs (ts)
   ;; Report the retrieval fractions and % correct mean and serr for each dataset seprately
@@ -618,7 +612,75 @@
       (add-substring length)
       (nreverse substrings))))
 
+;;; When For dealing with large set of results, say > 300, you can
+;;; only analyze subset at a time, these let you pivot the dataset on
+;;; a particular variable. First you have to make a dataset index.
+
+(defvar *index-file-name* "")
+(defvar *file->params* (make-hash-table :test #'equal))
+
+(defun index-dataset (&aux lfn) ;; Assumes you're doing all the same experiment label
+  (load-data :for-indexing? t)
+  (let ((ts (get-universal-time)))
+    (with-open-file
+     (o (setf *index-file-name* (format nil "runlogs/~a.index" ts))
+	:direction :output)
+     (loop for path being the hash-keys of *file->log*
+	   using (hash-value params)
+	   do (print (cons (pathname-name path) params) o)))
+    (load-index ts)
+    ))
+
+(defun load-index (&optional ts)
+  (unless (or ts *index-file-name*)
+    (break "You need to either have just created an index, or else give an index timestamp."))
+  (if ts (setf *index-file-name* (format nil "runlogs/~a.index" ts)))
+  (format t "Loading index from ~a~%" *index-file-name*)
+  (clrhash *file->params*)
+  (with-open-file
+   (i *index-file-name*)
+   (loop for entry = (read i nil nil)
+	 until (null entry)
+	 do (setf (gethash (car entry) *file->params*) (cdr entry))))
+  (invert-index)
+  *index-file-name*
+  )
+
+(defvar *param->values/files* (make-hash-table :test #'equal))
+(defun invert-index () 
+  (clrhash *param->values/files*)
+  (loop for tss being the hash-keys of *file->params* ;; ts is a string, thus tss
+	using (hash-value params)
+	do (loop for (p v) in (cdr params) ;; Gets the :params off
+		 as curs = (gethash p *param->values/files*) ;; This will be like (...(5 f1 f2 f3...)...)
+		 as cvfs = (assoc v curs :test #'equal)
+		 do (if cvfs (setf (cdr cvfs) (cons tss (cdr cvfs)))
+		      (push (list v tss) (gethash p *param->values/files*))))))
+		 
+(defun report-index-diffs ()
+  (loop for p being the hash-keys of *param->values/files*
+	using (hash-value v/fs-sets)
+	when (cdr v/fs-sets)
+	do (format t "~a has: " p)
+	(loop for (v . fs) in v/fs-sets
+	      do (format t " :~a @ ~a, " (length fs) v))
+	(format t "~%")))
+
+(defun get-index-files (param value)
+  (cdr (assoc value (gethash param *param->values/files*) :test #'equal)))
+
+(defun its/p/v->files (its/p/v)
+  (if (and (= 3 (length its/p/v))
+	     (numberp (first its/p/v))
+	     (keywordp (second its/p/v))
+	     (numberp (third its/p/v))
+	     (load-index (first its/p/v)))
+      (get-index-files (second its/p/v) (third its/p/v))
+    (break "In its/p/v->files: ~a isn't a valid index/param/value triple!" its/p/v)))
+
 (untrace)
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comps '(:base-exact :adult) :compress-data? t)
+;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
+(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
+
