@@ -1,5 +1,8 @@
-# Notes:
+#****************************************************************************************************************
+#******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#****************************************************************************************************************
 
+# Notes:
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
 # simulate improvment in ability to count correctly with age.
 
@@ -10,14 +13,97 @@ import numpy
 from random import randint, shuffle, random
 import sys
 
-global settings, logstream, rnet, snet
+# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
+# analyzer to label the results file. (LEAVE THE \" AT EACH END!!!)
+
+experiment_label = "\"Scanning many params 5x with addend_rep = 3 and deloc = 0.0\""
+
+# If you forget to change it, auto timestamping will put a time stamp
+# at the end of the experiment label to make sure that the runs are
+# differentiated even if you forgot to change the label. If you really
+# want to merge several runs together, you have to set this to True
+# BEFORE the first one, or else you'll have to go back and manually
+# rename your first dataset.
+
+suppress_auto_timestamping = False
+
+addend_dictionary = {}
+results_dictionary = {}
+
+##################### GLOBAL SETTINGS #####################
+
+# This is a class just for modularity; things would be simpler if this
+# was a global, like it used to be.
+
+# ----- PART 1: These usually DON'T change -----
+
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+pbs = 50  # problem bin size, every pbs problems we dump the predictions
+dynamic_retrieval_on = False
+dump_hidden_activations = False
+
+# I/S/O params; see note in code -- WARNING: You'll
+# make a mess if you change the n_ in a run--(FFF Pull
+# these out?)
+
+# LEXICAL AND SYMBOLIC LEVELS AREN'T USED YET -- They'll get added when Myra's code is combined in.
+#"n_lexical_bits": [5], # Will actually be 14 bcs each hand has an edge bit, so 7x2
+#"lexical_representation": [1, 3,-111], # on n_input_bits
+#"lexical_delocalizing_noise": [1.0], 
+#"n_symbolic_bits": [5],
+#"symbolic_representation": [1, 3, -111], # on 5
+#"symbolic_delocalizing_noise": [1.0], 
+
+n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
+addend_representation=3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_delocalizing_noise=0.0 # 0=no noise. USE LOW VALUES! (Probably a bad idea to use this at all in the -111 case!)
+n_results_bits=13
+results_representation=1 # Nothing else implemented yet.
+               
+# *** Remember to change the global strategies, which is defined after
+# *** the stratagies themselves, below, if you want to change the
+# *** strategy set.
+
+current_params = {} # These are set for a given run by the recursive param search algorithm
+n_problems = 15000
+
+##################### SCANNED SETTINGS #####################
+
+scanned_params = {
+               # Setting up the initial counting network
+               "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
+               "initial_counting_network_learning_rate": [0.1,0.2,0.3,0.4], # 0.25 based on 201509010902
+
+               # Problem presentation and execution
+               "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
+               "PERR": [0.05], # 0.1 confirmed 201509010826
+
+               # Choosing to use retrieval v. a strategy
+               "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
+               "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
+               "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
+               "STRATEGY_HIGH_CC": [1.0],
+
+               # Learning target params
+               "strategy_hidden_units": [3],
+               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
+               "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
+
+               # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
+               # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
+
+               "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
+               "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
+               "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
+               "strategy_learning_rate": [0.1],
+               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 Explored 201509010826
+               "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
+               }
 
 ##################### ADD #####################
 
-global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
-
 def lispify(s):
-    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"")
+    return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","=").replace("{","(").replace("}",")")
 
 # ----- Operators for actual addition strategies and test routines.
 
@@ -26,6 +112,8 @@ def lispify(s):
 # attention, and an echoic memory into which numbers are stored.
 # Operations on these constitute the basic operations of the
 # domain.
+
+global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
 
 class Hand(object):
     def __init__(self):
@@ -143,7 +231,7 @@ def say_next():
     global EB
     if EB == 0:
         say(1)
-    elif settings.param("PERR") > random():
+    elif current_params["PERR"] > random():
         say(EB)  #forgot to count but flipped finger
     else:
         say(EB + 1)
@@ -239,7 +327,7 @@ def raise_hand():
         CB += 1
         if CB >= ADDENDS.addend:
             break
-    if settings.dynamic_retrieval_on:
+    if dynamic_retrieval_on:
         # DR (if on) will set global SOLUTION and SOLUTION_COMPLETED
         # if it works, otherwise, things will just move along.
         try_dynamic_retrieval()
@@ -254,6 +342,15 @@ def look_n_count():
         say_next()
     HAND.increment_focus()
 
+
+strategies = {"count_from_one_twice": count_from_one_twice_strategy,
+              "count_from_one_once": count_from_one_once_strategy,
+              "count_from_either": count_from_either_strategy,
+              "min": min_strategy,
+              #"random_strategy": random_strategy,
+              #This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up
+              #"count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
+              }
 
 # Finally we need to replace the n1 and n2 with echoic buffers so
 # that they aren't arguments to a lisp function. This also requires
@@ -333,101 +430,39 @@ def exec_explicit_strategy(strategy_choice):
         i()
     return SOLUTION
 
-# Problem Presentation Algorithm (PPA).  Just random for now.
-
-def PPA():
-    global ADDENDS
-    ADDENDS = Addend(randint(1, 5), randint(1, 5))
-
-##################### SETTINGS #####################
-
-class Settings:
-
-    # PART 1: These usually DON'T change:
-    ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 50  # problem bin size, every pbs problems we dump the predictions
-    dynamic_retrieval_on = False
-    dump_hidden_activations = False
-    
-    # PART 2: These also usually DON'T change, although they might if you
-    # want to explore bringing in and out various strategies:
-    # We usually leave out random_strategy
-    strategies = {"count_from_one_twice": count_from_one_twice_strategy,
-                  "count_from_one_once": count_from_one_once_strategy,
-                  #"count_from_either": count_from_either_strategy,
-                  #"random_strategy": random_strategy,
-                  #"min": min_strategy,
-                  #"This is actually an INCORRECT strategy (for addition) that is CORRECT for counting up"
-                  "count_up_by_one_from_second_addend": count_up_by_one_from_second_addend
-                  }
-    
-    # PART 3: These usually DO change:
-    # IMPORTANT: REMEMBER TO CHANGE experiment_label, which is
-    # used by the analyzer to label the results file. (Because we set
-    # these by exec(), this has to have an extra set of "\"quotes\""
-    # around it.) [These are all False initially just so that if something
-    # screws up, and one or more of these don't get set, I'll get an obvious 
-    # error.]
-    
-    def param(self, key):
-        return self.params[key]
-
-    params = {} # These are set for a given run by the recursive param search algorithm
-
-    param_specs = {"experiment_label": ["\"201607031031: Testing suppression of count_up_by_one_from_second_addend strategy\""],
-
-#     ************************************************************************************************************************
-#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#     ************************************************************************************************************************
-
-                 # Setting up the initial counting network
-                 "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
-                 "initial_counting_network_learning_rate": [0.15], # 0.25 based on 201509010902
-
-                 # Problem presentation and execution
-                 "n_problems": [2000],
-                 "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-                 "PERR": [0.1], # 0.1 confirmed 201509010826
-                 "addends_matrix_offby1_delta": [1.0], # =1 will make the "next-to" inputs 0, =0 makes them 1, and so on
-
-#     ************************************************************************************************************************
-#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#     ************************************************************************************************************************
-
-                 # Choosing to use retrieval v. a strategy
-                 "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
-                 "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
-                 "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
-                 "STRATEGY_HIGH_CC": [1.0],
-
-                 # Learning target params
-                 "strategy_hidden_units": [3],
-                 "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
-                 "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
-
-#     ************************************************************************************************************************
-#     ******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL (ABOVE) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#     ************************************************************************************************************************
-
-                 # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
-                 # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
-                 "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
-                 "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
-                 "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
-                 "strategy_learning_rate": [0.1],
-                 "results_learning_rate": [0.05], # default: 0.1 Explored 201509010826
-                 "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
-                 }
-
 ##################### NN #####################
 
 # The fns addends_matrix and sum_matrix create the input and output
 # arrays that get appened up into training matrices by the caller (in
-# driver).
+# driver). The way that addends and sums get created is pretty
+# complex, and depends upon a number of parameters, in brief, these
+# two params control the inputs and output representation:
+# input_representation, symbolic_representation, and
+# result_representation and . The possible values are these:
+# 1 = Localist (1=10000, 2=01000, ..., 5=00001)
+# 2 = two bits randomly chosen (1=00110, ... 5=01010)
+# etc.
+# -111 = "subitizing representation" (this is non-uniform!)
+#       i.e., 1=10000, 2=11000, 3=01110, etc.
 #
-# Transform two addends into a distributed representation input array,
-# e.g., for a representation of 3 + 4, the input array created by
-# addends_matrix) is:
+# (In creating these I cheat by presetting groups of these for each
+# value and then just choose from among them at random in the relevant
+# cases.)
+
+# Delocalization is controlled by the delocalizing noise, which, once
+# the representation is created, spreads the 1.0s around a little to
+# delocalize the representation. If delocalization is 1 then the
+# representation is as given. A delocalization of, say, 0.1 will pull
+# 2x0.1 from each 1 (make it 0.8) and add it to each neighboring
+# bit. So, for example, from 0,0,1,0,0 and deloc=0.1 you get 0, 0.1,
+# 0.8, 0.1, 0, and from 0,1,0,1,0 deloc=0.3=> 0.3, 0.4, 0.6, 0.4, 0.3!
+# So USE SMALL DELOCALIZATIONS!!
+
+# Note that at the moment delocalization only applies to the
+# addends.
+
+# a distributed representation input array, e.g., for a representation
+# of 3 + 4, the input array created by addends_matrix) is:
 #
 # Index:         0 , 1 ,   2 , 3 , 4   , 5 , 6 | 7 , 8 , 9 , 10  , 11 , 12 , 13]
 # Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 | 0 , 0 , 0 ,  0.5,  1 ,  0.5, 0]
@@ -451,19 +486,66 @@ class Settings:
 # WWW WARNING !!! Don't confuse either of these with the fingers on
 # the hands!
 
+def precompute_ISOs():
+    global addend_dictionary
+    addend_dictionary = {}
+    logstream.write("(:lex-sym-res-dictionaries\n")
+    # Addend dictionary:
+    # The special case for 1: 1=0100000 2=0010000, etc.
+    if addend_representation == 1:
+        for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
+            # This includes edge bits for delocalization
+            addend_dictionary[p] = ([0]*(2+n_addend_bits))
+            addend_dictionary[p][p] = 1 
+    # The delocalized n random bits case. This is a tricky little
+    # algorithm to generate m unique n-bit numbers by first picking m
+    # from among 0..2^n and then turning those into binary.
+    elif addend_representation>2:
+        fmt = "{0:0"+str(n_addend_bits)+"b}"
+        v = [x for x in range(2**n_addend_bits)]
+        r = []
+        while len(r) < n_addend_bits + 1:
+            n = randint(0,len(v)-1)
+            s = fmt.format(v[n])
+            if s.count('1') == addend_representation:
+                r.extend([s])
+            for k in range(len(r)):
+                addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
+                k+=1
+    elif addend_representation == -111:
+        for k in range(1,n_addend_bits+1):
+            addend_dictionary[k]= [0]*(2+n_addend_bits)
+            for p in range(1,k+1):
+                addend_dictionary[k][p]=1
+    else:
+        print "in precompute_isos(): addend_representation = " + str(addend_representation) + " isn't understood!"
+        sys.exit(1)
+    logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
+    # Results dictionary:
+    results_dictionary={}
+    if results_representation == 1:
+        for p in range(0,n_results_bits):
+            results_dictionary[p] = [0]*n_results_bits
+            results_dictionary[p][p]=1
+    else:
+        print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
+        sys.exit(1)
+    logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
+    logstream.write(")\n")
+
 def addends_matrix(a1, a2):
-    cv = 1.0 # central value
-    delta = settings.param("addends_matrix_offby1_delta")
-    lis = [0] * 14
-    # First addend
-    lis[a1 - 1] = cv - delta
-    lis[a1] = cv
-    lis[a1 + 1] = cv - delta
-    # Second addend
-    lis[a2 + 6] = cv - delta
-    lis[a2 + 7] = cv
-    lis[a2 + 8] = cv - delta
-    return lis
+    return delocalize(a1)+delocalize(a2)
+
+def delocalize(a):
+    addend_dictionary
+    b=addend_dictionary[a]
+    for p in range(1,n_addend_bits+1):
+        if b[p] == 1:
+            b[p-1]+=addend_delocalizing_noise
+            b[p+1]+=addend_delocalizing_noise
+            b[p]-=2*addend_delocalizing_noise
+    #print "delocalized("+str(a)+") => " + str(b)
+    return b
 
 # This is used for counting exposure
 def sum_matrix(a,b):
@@ -493,8 +575,8 @@ class NeuralNetwork:
         self.layers=layers
 
         # Generate a cc in the range for this network type
-        self.low_cc = settings.param(type + "_LOW_CC")
-        self.high_cc = settings.param(type + "_HIGH_CC")
+        self.low_cc = current_params[type + "_LOW_CC"]
+        self.high_cc = current_params[type + "_HIGH_CC"]
         self.cc = self.low_cc + (self.high_cc - self.low_cc) * random()
 
         # Set weights
@@ -658,7 +740,7 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
+        self.target.append([current_params["non_result_y_filler"]] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
     # This gets very ugly because in order to be generalizable
@@ -672,11 +754,11 @@ class NeuralNetwork:
         targeted_output_position = self.outputs.index(targeted_output)
 
         if correct:
-            self.target[0][targeted_output_position] += settings.param("INCR_on_RIGHT")
+            self.target[0][targeted_output_position] += current_params["INCR_on_RIGHT"]
         else:
-            self.target[0][targeted_output_position] -= settings.param("DECR_on_WRONG")
+            self.target[0][targeted_output_position] -= current_params["DECR_on_WRONG"]
             if correct_output_on_incorrect is not None: 
-                self.target[0][self.outputs.index(correct_output_on_incorrect)] += settings.param("INCR_the_right_answer_on_WRONG")
+                self.target[0][self.outputs.index(correct_output_on_incorrect)] += current_params["INCR_the_right_answer_on_WRONG"]
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -702,7 +784,7 @@ class NeuralNetwork:
 
     def dump(self):
         self.dump_weights()
-        if settings.dump_hidden_activations:
+        if dump_hidden_activations:
             self.dump_hidden_activations()
         self.dump_predictions()
 
@@ -720,7 +802,7 @@ def init_neturalnets():
 
 def results_network():
     # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
-    nn = NeuralNetwork("Results", [14, settings.param("results_hidden_units"), 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
+    nn = NeuralNetwork("Results", [14, current_params["results_hidden_units"], 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
     # Burn in counting examples. For the moment we simplify this to
     # training: ?+B=B+1.
     X_count = []
@@ -734,12 +816,12 @@ def results_network():
     #print X_count
     #print y_count
     # Now burn it in:
-    nn.fit(settings.param("initial_counting_network_learning_rate"), settings.param("initial_counting_network_burn_in_epochs"), X_count, y_count)
+    nn.fit(current_params["initial_counting_network_learning_rate"], current_params["initial_counting_network_burn_in_epochs"], X_count, y_count)
     nn.update_predictions()
     return nn
 
 def strategy_network():
-    nn = NeuralNetwork("Strategy", [14, settings.param("strategy_hidden_units"), len(settings.strategies)],"STRATEGY",settings.strategies.keys())
+    nn = NeuralNetwork("Strategy", [14, current_params["strategy_hidden_units"], len(strategies)],"STRATEGY",strategies.keys())
     nn.update_predictions()
     return nn
 
@@ -749,13 +831,12 @@ def strategy_network():
 # update_y this is the main driver within driver that does the testing
 
 def exec_strategy():
-    global rnet, snet
-    global SOLUTION
+    global rnet, snet, SOLUTION, ADDENDS
     rnet.reset_target()
     snet.reset_target()
-    PPA()  # Create a random problem: sets the global ADDENDS to an Addend object
-    ad1=ADDENDS.ad1
-    ad2=ADDENDS.ad2
+    ad1=randint(1, 5)
+    ad2=randint(1, 5)
+    ADDENDS = Addend(ad1, ad2)
     # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
     strat_name = None
     retrieval = rnet.try_memory_retrieval(ad1,ad2)
@@ -773,9 +854,9 @@ def exec_strategy():
         strat_name = snet.try_memory_retrieval(ad1,ad2)
         if strat_name is None:
             # Pick a random one!
-            strat_name = settings.strategies.keys()[randint(0, len(settings.strategies) - 1)]
+            strat_name = strategies.keys()[randint(0, len(strategies) - 1)]
         logstream.write("(:trying " +  strat_name +  " " + str(ad1) + " + " + str(ad2) + ") ")
-        SOLUTION = exec_explicit_strategy(settings.strategies[strat_name])
+        SOLUTION = exec_explicit_strategy(strategies[strat_name])
         # !!! WWW WARNING (for analysis): This gets displayed even if
         # Dynamic Retrieval was used. You have to Analyze this
         # distinction out of the log at the end by seeing that a DR
@@ -786,11 +867,11 @@ def exec_strategy():
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
     # update the nns:
     rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
-    rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
+    rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
     if strat_name is not None:
         snet.update_target(ad1, ad2, strat_name, correct)
-        snet.fit(settings.param("strategy_learning_rate"), settings.param("in_process_training_epochs"))
+        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"])
         snet.update_predictions()
 
 # UUU The open and close structure here is a mess bcs of the
@@ -801,11 +882,11 @@ def present_problems():
     logstream.write('(:problem-block\n')
     rnet.dump()
     logstream.write('   (:problems\n')
-    for i in range(settings.param("n_problems")):
+    for i in range(n_problems):
         logstream.write('(')
         exec_strategy()
         logstream.write(')\n')
-        if i % settings.pbs == 0 or i == settings.param("n_problems"):
+        if i % pbs == 0 or i == n_problems:
             logstream.write('   ) ;; close :problems\n')
             rnet.dump()
             snet.dump()
@@ -821,16 +902,16 @@ def present_problems():
 # it drops into the second half, which actually runs with whatever the
 # latest set of parameters is. The state of the recursion holds the
 # state of the parameter scan. (For slight efficiency this uses a
-# quasi-global called param_specs_keys and gets set in the caller.)
+# quasi-global called scanned_params_keys and gets set in the caller.)
 
 def config_and_test(index=0):
-    global param_specs_keys, logstream
-    if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
+    global scanned_params_keys, logstream
+    if index < len(scanned_params_keys):  # Any more scanned_params_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
-        for param_value in settings.param_specs[param_specs_keys[index]]:
-            settings.params[param_specs_keys[index]] = param_value
-            print ("Setting param: " + param_specs_keys[index] + " = " + str(settings.params[param_specs_keys[index]]))
+        for param_value in scanned_params[scanned_params_keys[index]]:
+            current_params[scanned_params_keys[index]] = param_value
+            print ("Setting param: " + scanned_params_keys[index] + " = " + str(current_params[scanned_params_keys[index]]))
             config_and_test(index + 1)  # Next param (recursive!)
     else:
         # Finally we have a set of choices, do it:
@@ -838,12 +919,14 @@ def config_and_test(index=0):
         print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
         with open(fn, 'wb') as logstream:
             # initialize the logstream and neural network for each config we want to test
+            logstream.write('(setq *d* \'\n')
             logstream.write('(:log\n')
             logstream.write(' (:head\n')
             logstream.write(" (:file " + fn + ")\n")
-            logstream.write(' (:output-format-version 20151103)\n')
-            logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
-            logstream.write(' (:strategies' + lispify(settings.strategies.keys()) + ")\n")
+            logstream.write(' (:output-format-version 20160705)\n')
+            logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
+            logstream.write(' (:strategies' + lispify(strategies.keys()) + ")\n")
+            precompute_ISOs()
             init_neturalnets()
             logstream.write(' )\n')
             logstream.write('(:run\n')
@@ -851,10 +934,26 @@ def config_and_test(index=0):
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
-            for key in settings.param_specs:
-                logstream.write("  (:"+str(key)+" "+str(settings.param(key))+")\n")
+            dump_non_scanned_params()
+            for key in scanned_params:
+                logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
             logstream.write(' )\n')
             logstream.write(')\n')
+            logstream.write(')\n')
+
+def dump_non_scanned_params():
+    logstream.write("  (:ndups "+str(ndups)+")\n")
+    logstream.write("  (:pbs "+str(pbs)+")\n")
+    logstream.write("  (:dynamic_retrieval_on "+str(dynamic_retrieval_on)+")\n")
+    logstream.write("  (:dump_hidden_activations "+str(dump_hidden_activations)+")\n")
+    logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
+    logstream.write("  (:addend_representation "+str(addend_representation)+")\n")
+    logstream.write("  (:addend_delocalizing_noise "+str(addend_delocalizing_noise)+")\n")
+    logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
+    logstream.write("  (:results_representation "+str(results_representation)+")\n")
+    logstream.write("  (:n_problems "+str(n_problems)+")\n")
+    logstream.write("  (:suppress_auto_timestamping "+str(suppress_auto_timestamping)+")\n")
+    logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -862,17 +961,19 @@ def gen_file_name():
     return full_file__name
 
 def top_level_run():
-    global param_specs_keys, settings, hidden_units
+    global experiment_label, scanned_params_keys, settings, hidden_units
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
-    settings = Settings()  
-    param_specs_keys=settings.param_specs.keys()
-    print "Parameter spec:"
-    print (str(settings.param_specs))
+    scanned_params_keys=scanned_params.keys()
+    if suppress_auto_timestamping is False:
+        experiment_label = experiment_label[:-1] + " (n = " + str(n_problems) + ", @" +  str(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) + ")\""
+    print "*** Running: " + experiment_label + "***"
+    print "Scanned Parameters:"
+    print str(scanned_params)
     print "Strategies in play:"
-    print settings.strategies
+    print strategies
     print "-----"
-    for i in range(settings.ndups):
+    for i in range(ndups):
         print ">>>>> Rep #" + str(i + 1) + " <<<<<"
         config_and_test()
     stop = timeit.default_timer()

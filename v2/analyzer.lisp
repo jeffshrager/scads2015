@@ -1,5 +1,52 @@
 ;(load (compile-file "analyzer.lisp"))
 
+(defparameter *param-reporting-order* 
+  '(
+    ("experiment_label" . experiment_label)
+    ("n_problems" . n_problems)
+    ("strategy_hidden_units" . strategy_hidden_units)
+    ("results_hidden_units" . results_hidden_units)
+    ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
+    ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
+    ("DR_threshold" . DR_threshold)
+    ("PERR" . PERR)
+    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
+    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
+    ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
+    ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
+    ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
+    ("non_result_y_filler" . non_result_y_filler)
+    ("INCR_on_RIGHT" . INCR_on_RIGHT)
+    ("DECR_on_WRONG" . DECR_on_WRONG)
+    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
+    ("strategy_learning_rate" . strategy_learning_rate)
+    ("results_learning_rate" . results_learning_rate)
+    ("in_process_training_epochs" . in_process_training_epochs)
+    ("ndups" . ndups)
+    ("pbs" . pbs)
+    ("dynamic_retrieval_on" . dynamic_retrieval_on)
+    ("dump_hidden_activations" . dump_hidden_activations)
+    ("n_addend_bits" . n_addend_bits)
+    ("addend_representation" . addend_representation)
+    ("addend_delocalizing_noise" . addend_delocalizing_noise)
+    ("n_results_bits" . n_results_bits)
+    ("results_representation" . results_representation)
+    ))
+
+(defparameter *function-name-substitutions*
+  '(("count_from_either" . :cfe)
+    ("count_up_by_one_from_second_addend" . :upx1)
+    ("min" . :min)
+    ("count_from_one_once" . :cf1x1)
+    ("count_from_one_twice" . :cf1x2)
+    ("random" . :rand)
+    ("retrieval" . :ret)
+    ("dynamic_retrival" . :dynaret)
+    ("used" . :used)
+    ("trying" . :trying)
+    ("!" . :!)
+    ))
+
 ;;; === ToDo ===
 ;;; Analyze the strategy logs.
 
@@ -166,20 +213,6 @@
 ;;; =============================================================
 ;;; Log Analysis
 
-(defparameter *function-name-substitutions*
-  '(("count_from_either" . :cfe)
-    ("count_up_by_one_from_second_addend" . :upx1)
-    ("min" . :min)
-    ("count_from_one_once" . :cf1x1)
-    ("count_from_one_twice" . :cf1x2)
-    ("random" . :rand)
-    ("retrieval" . :ret)
-    ("dynamic_retrival" . :dynaret)
-    ("used" . :used)
-    ("trying" . :trying)
-    ("!" . :!)
-    ))
-
 ;;; =============================================================
 ;;; Math
 
@@ -213,31 +246,35 @@
 (defparameter *strat-keys* '(:ret :cfe :upx1 :min :cf1x1 :cf1x2 :rand :dynaret :allret)) ;; :allret is the computed sum of :ret + :dynaret
 (defvar *strat-key->correct+incorrect* (make-hash-table :test #'equal))
 
-(defun analyze (&key (low *low*) (high *high*) comps &aux  r (ts (get-universal-time)))
+(defun analyze (&key (low *low*) (high *high*) its/p/v comps &aux r (ts (get-universal-time)))
   (setf *current-comparator-datasets* nil)
   (setf *current-comparator-datasets*
-	(if (member comps '(:all nil))
-	    *all-comparator-datasets*
-	  (loop for entry in *all-comparator-datasets*
-		as (key nil) = entry
-		do (if (member key comps)
-		       (progn (setq comps (remove key comps))
-			      (push entry r))
-		     (error "Comp ~s doesn't have a dataset!" key))
-		finally (return r))))
-  (if (or (null comps) (eq :all comps))
-      (format t "Comps: ~a~%" (mapcar #'car *current-comparator-datasets*))
-    (error "Comps: ~s weren't found in *all-comparator-datasets*!" comps))
+	(cond ((member comps '(:all nil)) *all-comparator-datasets*)
+	      (t (loop for key in comps
+		       as v = (assoc key *all-comparator-datasets*)
+		       if v
+		       collect v
+		       else 
+		       do (break "Missing comp ~a" key)))))
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (load-data low high)
+  (load-data :low low :high high :its/p/v its/p/v)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
   )
 
-(defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
+(defvar *d* nil)
+(defun ltdftcfociatltd (file) ;; load-the-data-from-the-compiled-file-or-compile-it-and-then-load-the-data
+  (let ((cfn (format nil "runlogs/~a.dx32fsl" (pathname-name file))))
+    (unless (probe-file cfn) 
+      (format t "~a doesn't exist, compiling from ~a~%" file cfn)
+      (compile-file file))
+    (load (print cfn))
+    *d*))
+
+(defun load-data (&key low high its/p/v for-indexing? &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
@@ -245,10 +282,11 @@
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
-  (loop for file in (downsorted-directory "runlogs/*.lisp")
+  (loop for file in (or (its/p/v->files its/p/v) (downsorted-directory "runlogs/*.lisp"))
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
-	as log = (with-open-file (i file) (cdr (read i)))
+	as log = (when (and (>= fno low) (<= fno high))
+		   (cdr (ltdftcfociatltd file)))
 	do
 	(let* ((params (cdr (assoc :params log)))
 	       (this-label (second (assoc :experiment_label params)))
@@ -265,7 +303,10 @@
 			     log))
 		  (if (and (>= fno low) (<= fno high)) log))))
 	  (when store-log 
-	    (clean-up store-log) ;; This smashes the :run entry
+	    (if for-indexing?
+		(setq store-log (assoc :params log)) ;; This smashes the :run entry
+	      ;; Drop everything but the params
+	      (clean-up store-log))
 	    (setf (gethash file *file->log*) store-log)))
 	))
 	
@@ -419,29 +460,6 @@
 		  (format o "~%")))
    ))
 
-(defparameter *param-reporting-order* 
-  '(
-    ("strategy_hidden_units" . strategy_hidden_units)
-    ("results_hidden_units" . results_hidden_units)
-    ("initial_counting_network_burn_in_epochs" . initial_counting_network_burn_in_epochs)
-    ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
-    ("n_problems" . n_problems)
-    ("DR_threshold" . DR_threshold)
-    ("PERR" . PERR)
-    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
-    ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
-    ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
-    ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
-    ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("non_result_y_filler" . non_result_y_filler)
-    ("INCR_on_RIGHT" . INCR_on_RIGHT)
-    ("DECR_on_WRONG" . DECR_on_WRONG)
-    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
-    ("strategy_learning_rate" . strategy_learning_rate)
-    ("results_learning_rate" . results_learning_rate)
-    ("in_process_training_epochs" . in_process_training_epochs)
-    ))
-
 (defvar *params->final-coefs* (make-hash-table :test #'equal))
 (defvar *params->all-values* (make-hash-table :test #'equal)) ;; Let's us tell which ones actually changed.
 
@@ -482,7 +500,7 @@
 	 as nn = (substitute #\_ #\space (pathname-name file))
 	 do (loop for (nil) in *current-comparator-datasets* do (format o "	_~a_" nn))) ;; _..._ so that excel doesn't turn large numbers to E-notation
    (format o "~%")
-   ;; Find the highest value
+   ;; Find the highest value.
    (let ((maxi (loop for data being the hash-values of *file->summary*
 		     with max = 0
 		     as newmax = (reduce #'max (loop for d in data collect (second (assoc :i d))))
@@ -594,8 +612,75 @@
       (add-substring length)
       (nreverse substrings))))
 
+;;; When For dealing with large set of results, say > 300, you can
+;;; only analyze subset at a time, these let you pivot the dataset on
+;;; a particular variable. First you have to make a dataset index.
+
+(defvar *index-file-name* "")
+(defvar *file->params* (make-hash-table :test #'equal))
+
+(defun index-dataset (&aux lfn) ;; Assumes you're doing all the same experiment label
+  (load-data :for-indexing? t)
+  (let ((ts (get-universal-time)))
+    (with-open-file
+     (o (setf *index-file-name* (format nil "runlogs/~a.index" ts))
+	:direction :output)
+     (loop for path being the hash-keys of *file->log*
+	   using (hash-value params)
+	   do (print (cons (pathname-name path) params) o)))
+    (load-index ts)
+    ))
+
+(defun load-index (&optional ts)
+  (unless (or ts *index-file-name*)
+    (break "You need to either have just created an index, or else give an index timestamp."))
+  (if ts (setf *index-file-name* (format nil "runlogs/~a.index" ts)))
+  (format t "Loading index from ~a~%" *index-file-name*)
+  (clrhash *file->params*)
+  (with-open-file
+   (i *index-file-name*)
+   (loop for entry = (read i nil nil)
+	 until (null entry)
+	 do (setf (gethash (car entry) *file->params*) (cdr entry))))
+  (invert-index)
+  *index-file-name*
+  )
+
+(defvar *param->values/files* (make-hash-table :test #'equal))
+(defun invert-index () 
+  (clrhash *param->values/files*)
+  (loop for tss being the hash-keys of *file->params* ;; ts is a string, thus tss
+	using (hash-value params)
+	do (loop for (p v) in (cdr params) ;; Gets the :params off
+		 as curs = (gethash p *param->values/files*) ;; This will be like (...(5 f1 f2 f3...)...)
+		 as cvfs = (assoc v curs :test #'equal)
+		 do (if cvfs (setf (cdr cvfs) (cons tss (cdr cvfs)))
+		      (push (list v tss) (gethash p *param->values/files*))))))
+		 
+(defun report-index-diffs ()
+  (loop for p being the hash-keys of *param->values/files*
+	using (hash-value v/fs-sets)
+	when (cdr v/fs-sets)
+	do (format t "~a has: " p)
+	(loop for (v . fs) in v/fs-sets
+	      do (format t " :~a @ ~a, " (length fs) v))
+	(format t "~%")))
+
+(defun get-index-files (param value)
+  (cdr (assoc value (gethash param *param->values/files*) :test #'equal)))
+
+(defun its/p/v->files (its/p/v)
+  (if (and (= 3 (length its/p/v))
+	     (numberp (first its/p/v))
+	     (keywordp (second its/p/v))
+	     (numberp (third its/p/v))
+	     (load-index (first its/p/v)))
+      (get-index-files (second its/p/v) (third its/p/v))
+    (break "In its/p/v->files: ~a isn't a valid index/param/value triple!" its/p/v)))
+
 (untrace)
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
-(analyze :comps '(:base-exact :adult))
+;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
+(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
 
