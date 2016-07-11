@@ -37,7 +37,7 @@ class TrainingSet():
 class Settings:
 
     # PART 1: These usually DON'T change:
-    ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+    ndups = 10  # Number of replicates of each combo of params -- usually 3 unless testing.
     pbs = 50  # problem bin size, every pbs problems we dump the predictions
     
     def param(self, key):
