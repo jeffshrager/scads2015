@@ -5,7 +5,7 @@ import numpy
 from random import randint, shuffle, random
 from types import *
 
-global settings, logstream, rnet, lexicon
+global logstream, rnet, lexicon, settings
 
 def RoundedStr(l):
     if type(l) is ListType:
@@ -29,32 +29,38 @@ class TrainingSet():
 
 ##################### SETTINGS #####################
 
-class Settings:
+experiment_label = "\"Scanning many params 5x with addend_rep = 3 and deloc = 0.0\""
 
-    # PART 1: These usually DON'T change:
-    ndups = 10  # Number of replicates of each combo of params -- usually 3 unless testing.
-    pbs = 50  # problem bin size, every pbs problems we dump the predictions
-    
-    def param(self, key):
-        return self.params[key]
+suppress_auto_timestamping = False
 
-    params = {} # These are set for a given run by the recursive param search algorithm
+##################### GLOBAL SETTINGS #####################
 
-#change the experiment label below!
-    param_specs = {"experiment_label": ["\"201607061822 this should be very efficient\""],
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+pbs = 50  # problem bin size, every pbs problems we dump the predictions
 
-                 # Problem presentation and execution
-                 "n_exposures": [2000],
+n_exposures = 2000 # Problem presentation and execution
 
-                 # Learning target params
-                 "input_one_bits": [-111], # If -111 then uses 10000,11000, etc # ,3,-111
-                 "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
+current_params = {} # These are set for a given run by the recursive param search algorithm
 
-                 "results_hidden_units": [4,6,8],
-                 "non_result_y_filler": [0.0],
-                 "results_learning_rate": [0.1,0.2,0.3,0.4],
-                "in_process_training_epochs": [1] 
-                 }
+##################### SCANNED SETTINGS #####################
+
+scanned_params = {
+
+               # Learning target params
+               "input_one_bits": [1], # If -111 then uses 10000,11000, etc # ,3,-111
+               "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
+
+
+               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
+               "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
+
+              
+               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 
+               "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
+
+               }
+
+
 
 
 ##################### LINGUISTIC INPUT #####################
@@ -76,19 +82,20 @@ class Lexicon(object):
     # noisifying process.
 
     def __init__(self):
-        global param_specs_keys, settings
+        global scanned_params_keys, settings
         # MMM Add a param that says the number of bits in each input, so 
         # for param=1 you get (1=10000, 2=00100, ...) for 3 (1=10101, 2=11001,...)
         # Also, if this is something special -111 then use 10000 11000 11100 ...
 
         #input
-        input_one_bits = settings.param("input_one_bits")
+        input_one_bits = current_params["input_one_bits"]
         self.input_dictionary = {}
         if input_one_bits == 1:
             for p in range(1,6): # This will leave the edge bits at 0
                 # This includes edge bits for delocalization
                 self.input_dictionary[p] = ([0]*(2+5))
                 self.input_dictionary[p][p] = 1 
+            print self.input_dictionary
         elif input_one_bits>2:
             fmt = "{0:0"+str(5)+"b}"
             v = [x for x in range(2**5)]
@@ -106,7 +113,7 @@ class Lexicon(object):
                 for p in range(1,k+1):
                     self.input_dictionary[k][p]=1
         # Results dictionary:
-        output_one_bits = settings.param("output_one_bits")
+        output_one_bits = current_params["output_one_bits"]
         self.output_dictionary={}
         if output_one_bits == 1:
             for p in range(5):
@@ -357,7 +364,7 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append([settings.param("non_result_y_filler")] * (self.layers[-1]))
+        self.target.append(current_params["non_result_y_filler"] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
     # This gets very ugly because in order to be generalizable
@@ -367,6 +374,7 @@ class NeuralNetwork:
         self.X = []
         self.X.append(input)
         self.X = numpy.array(self.X)
+        print "correct output is HERE " + str(correct_output)
         self.target[0]=correct_output
 
 
@@ -378,7 +386,7 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def results_network():
-    nn = NeuralNetwork("Results", [5, settings.param("results_hidden_units"), 5],"RETRIEVAL",lexicon.output_dictionary)
+    nn = NeuralNetwork("Results", [5, current_params["results_hidden_units"], 5],"RETRIEVAL",lexicon.output_dictionary)
     # Inits the NN training machine by doing a first prediction.
     return nn
 
@@ -402,7 +410,7 @@ def train_word():
         rw = ":-wrong-"
     logstream.write("(:encoding " + " " + rw + " (" +  str(number) + " => " +str(minn)+") ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
     rnet.update_target(input, retrieved_output, correct_output) 
-    rnet.fit(settings.param("results_learning_rate"), settings.param("in_process_training_epochs"))
+    rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
 
 # UUU The open and close structure here is a mess bcs of the
@@ -412,11 +420,11 @@ def train_word():
 def present_words():
     logstream.write('(:training_block\n')
     logstream.write('   (:training\n')
-    for i in range(settings.param("n_exposures")):
+    for i in range(n_exposures):
         logstream.write('(')
         train_word()
         logstream.write(')\n')
-        if i % settings.pbs == 0 or i == settings.param("n_exposures"):
+        if i % pbs == 0 or i == current_params["n_exposures"]:
             logstream.write('      ) ;; close :training\n')
             logstream.write('    ) ;; close :training-block\n')
             logstream.write('   (:training-block\n')
@@ -433,13 +441,13 @@ def present_words():
 # quasi-global called param_specs_keys and gets set in the caller.)
 
 def config_and_test(index=0):
-    global param_specs_keys, logstream, rnet, lexicon
-    if index < len(param_specs_keys):  # Any more param_specs_keys to scan?
+    global scanned_params_keys, logstream, rnet, lexicon
+    if index < len(scanned_params_keys):  # Any more scanned_params_keys to scan?
         # Get the current param_values, for instance: epochs = [100,200,300]
         # 100 200 and 300 are param+values
-        for param_value in settings.param_specs[param_specs_keys[index]]:
-            settings.params[param_specs_keys[index]] = param_value
-            print ("Setting param: " + param_specs_keys[index] + " = " + str(settings.params[param_specs_keys[index]]))
+        for param_value in scanned_params[scanned_params_keys[index]]:
+            current_params[scanned_params_keys[index]] = param_value
+            print ("Setting param: " + scanned_params_keys[index] + " = " + str(current_params[scanned_params_keys[index]]))
             config_and_test(index + 1)  # Next param (recursive!)
     else:
         # Finally we have a set of choices, do it:
@@ -452,7 +460,7 @@ def config_and_test(index=0):
             logstream.write(' (:head\n')
             logstream.write(" (:file " + fn + ")\n")
             logstream.write(' (:output-format-version 20151103)\n')
-            logstream.write(' (:problem-bin-size ' + str(settings.pbs) + ")\n")
+            logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
             logstream.write(" (:dictionaries\n")
             logstream.write("   (:input "+ lispify(lexicon.input_dictionary) + ")\n")
             logstream.write("   (:output "+ lispify(lexicon.output_dictionary) + "))\n")
@@ -463,8 +471,8 @@ def config_and_test(index=0):
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
-            for key in settings.param_specs:
-                logstream.write("  (:"+str(key)+" "+str(settings.param(key))+")\n")
+            for key in scanned_params:
+                logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
             logstream.write(' )\n')
             logstream.write(')\n')
 
@@ -476,18 +484,21 @@ def gen_file_name():
 
 #print out the settings and timer, and then run it
 def top_level_run():
-    global param_specs_keys, settings, hidden_units, lexicon
+    global experiment_label, scanned_params_keys, hidden_units, lexicon
     start = timeit.default_timer()
     # Used in the recursive config_and_test fn.
-    settings = Settings()
-    param_specs_keys=settings.param_specs.keys()
-    print "Parameter spec :" + str(settings.param_specs)
-    for i in range(settings.ndups):
+    scanned_params_keys=scanned_params.keys()
+    if suppress_auto_timestamping is False:
+        experiment_label = experiment_label[:-1] + " (n = " + str(n_exposures) + ", @" +  str(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) + ")\""
+    print "*** Running: " + experiment_label + "***"
+    print "Scanned Parameters:"
+    print str(scanned_params)
+    print "-----"
+    for i in range(ndups):
         print ">>>>> Rep #" + str(i + 1) + " <<<<<"
         config_and_test()
     stop = timeit.default_timer()
     print stop - start
-
 # Run:
 if __name__ == '__main__':
     top_level_run()
