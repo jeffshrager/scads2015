@@ -374,7 +374,9 @@ class NeuralNetwork:
         self.X = []
         self.X.append(input)
         self.X = numpy.array(self.X)
-        print "correct output is HERE " + str(correct_output)
+        #print "correct output is HERE " + str(correct_output)
+        #print self.target
+        self.target = self.target.tolist()
         self.target[0]=correct_output
 
 
@@ -424,7 +426,7 @@ def present_words():
         logstream.write('(')
         train_word()
         logstream.write(')\n')
-        if i % pbs == 0 or i == current_params["n_exposures"]:
+        if i % pbs == 0 or i == n_exposures:
             logstream.write('      ) ;; close :training\n')
             logstream.write('    ) ;; close :training-block\n')
             logstream.write('   (:training-block\n')
