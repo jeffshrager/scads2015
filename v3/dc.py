@@ -29,13 +29,13 @@ class TrainingSet():
 
 ##################### SETTINGS #####################
 
-experiment_label = "\"Scanning many params 5x with addend_rep = 3 and deloc = 0.0\""
+experiment_label = "\"three by three\""
 
 suppress_auto_timestamping = False
 
 ##################### GLOBAL SETTINGS #####################
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 50  # problem bin size, every pbs problems we dump the predictions
 
 n_exposures = 2000 # Problem presentation and execution
@@ -47,7 +47,7 @@ current_params = {} # These are set for a given run by the recursive param searc
 scanned_params = {
 
                # Learning target params
-               "input_one_bits": [1], # If -111 then uses 10000,11000, etc # ,3,-111
+               "input_one_bits": [1, 3, -111], # If -111 then uses 10000,11000, etc # ,3,-111
                "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
 
 
