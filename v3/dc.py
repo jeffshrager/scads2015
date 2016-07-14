@@ -35,7 +35,7 @@ suppress_auto_timestamping = False
 
 ##################### GLOBAL SETTINGS #####################
 
-ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 50  # problem bin size, every pbs problems we dump the predictions
 
 n_exposures = 2000 # Problem presentation and execution
@@ -47,8 +47,8 @@ current_params = {} # These are set for a given run by the recursive param searc
 scanned_params = {
 
                # Learning target params
-               "input_one_bits": [1, 3, -111], # If -111 then uses 10000,11000, etc # ,3,-111
-               "output_one_bits": [1,3,-111], # If -111 then uses 10000,11000, etc # ,3,-111
+               "input_one_bits": [1], # If -111 then uses 10000,11000, etc # ,3,-111
+               "output_one_bits": [1], # If -111 then uses 10000,11000, etc # ,3,-111
 
 
                "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
@@ -473,10 +473,19 @@ def config_and_test(index=0):
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
+            dump_non_scanned_params()
             for key in scanned_params:
                 logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
             logstream.write(' )\n')
             logstream.write(')\n')
+
+
+def dump_non_scanned_params():
+    logstream.write("  (:ndups "+str(ndups)+")\n")
+    logstream.write("  (:pbs "+str(pbs)+")\n")
+    logstream.write("  (:n_problems "+str(n_exposures)+")\n")
+    logstream.write("  (:suppress_auto_timestamping "+str(suppress_auto_timestamping)+")\n")
+    logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
 
 #making a file - deal with this later  Q00
 def gen_file_name():
