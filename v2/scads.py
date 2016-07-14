@@ -16,7 +16,7 @@ import sys
 # IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
 # analyzer to label the results file. (LEAVE THE \" AT EACH END!!!)
 
-experiment_label = "\"Scanning many params 5x with addend_rep = 3 and deloc = 0.0\""
+experiment_label = "\"Scanning localized params 5x with addend_rep = 1 and deloc = 0.0\""
 
 # If you forget to change it, auto timestamping will put a time stamp
 # at the end of the experiment label to make sure that the runs are
@@ -38,7 +38,7 @@ results_dictionary = {}
 # ----- PART 1: These usually DON'T change -----
 
 ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
-pbs = 50  # problem bin size, every pbs problems we dump the predictions
+pbs = 100  # problem bin size, every pbs problems we dump the predictions
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 
@@ -55,7 +55,7 @@ dump_hidden_activations = False
 #"symbolic_delocalizing_noise": [1.0], 
 
 n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
-addend_representation=3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_representation=1 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
 addend_delocalizing_noise=0.0 # 0=no noise. USE LOW VALUES! (Probably a bad idea to use this at all in the -111 case!)
 n_results_bits=13
 results_representation=1 # Nothing else implemented yet.
@@ -65,14 +65,14 @@ results_representation=1 # Nothing else implemented yet.
 # *** strategy set.
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
-n_problems = 15000
+n_problems = 10000
 
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
                # Setting up the initial counting network
                "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
-               "initial_counting_network_learning_rate": [0.1,0.2,0.3,0.4], # 0.25 based on 201509010902
+               "initial_counting_network_learning_rate": [0.3], # 0.25 based on 201509010902
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
@@ -86,7 +86,7 @@ scanned_params = {
 
                # Learning target params
                "strategy_hidden_units": [3],
-               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [12], # 8 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
                # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
@@ -96,7 +96,7 @@ scanned_params = {
                "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
                "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                "strategy_learning_rate": [0.1],
-               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 Explored 201509010826
+               "results_learning_rate": [0.15], # default: 0.15 Explored 201509010826
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                }
 
