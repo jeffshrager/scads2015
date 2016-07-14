@@ -282,7 +282,7 @@
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
   ;; Load all the data, do some preliminary analysis, and store
   ;; partial results for report production
-  (loop for file in (or (its/p/v->files its/p/v) (downsorted-directory "runlogs/*.lisp"))
+  (loop for file in (or (and its/p/v (its/p/v->files its/p/v)) (downsorted-directory "runlogs/*.lisp"))
         with target-label = nil
 	as fno = (parse-integer (pathname-name file))
 	as log = (when (and (>= fno low) (<= fno high))
@@ -682,5 +682,5 @@
 ;(trace find-sum)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
 ;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
-(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
-
+;(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
+(analyze :low 20160709154946  :comps '(:base-exact :adult))
