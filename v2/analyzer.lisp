@@ -259,7 +259,7 @@
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (load-data :low low :high high :its/p/v its/p/v)
+  (load-data :low low :high high :its/p/v its/p/v :ts ts)
   (summarize-logs ts)
   (summarize-final-strategy-prefs ts)
   (summarize-coefs ts)
@@ -274,41 +274,50 @@
     (load (print cfn))
     *d*))
 
-(defun load-data (&key low high its/p/v for-indexing? &aux first-fno last-fno label temp constrain-by-label)
+(defun load-data (&key ts low high its/p/v for-indexing? &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
   (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
-  ;; Load all the data, do some preliminary analysis, and store
-  ;; partial results for report production
-  (loop for file in (or (and its/p/v (its/p/v->files its/p/v)) (downsorted-directory "runlogs/*.lisp"))
-        with target-label = nil
-	as fno = (parse-integer (pathname-name file))
-	as log = (when (and (>= fno low) (<= fno high))
-		   (cdr (ltdftcfociatltd file)))
-	do
-	(let* ((params (cdr (assoc :params log)))
-	       (this-label (second (assoc :experiment_label params)))
-	       (store-log
-		(if constrain-by-label
-		    (if target-label
-			(if (string-equal this-label target-label) 
-			    log ;; Match
-			  ;; As soon as you find one that doesn't match, give up!
-			  (return-from load-data))
-		      (progn (setf target-label this-label)
-			     (format t "Only reading logs with label: ~s~%" target-label)
-			     (setf *heuristicated-experiment-label* target-label)
-			     log))
-		  (if (and (>= fno low) (<= fno high)) log))))
-	  (when store-log 
-	    (if for-indexing?
-		(setq store-log (assoc :params log)) ;; This smashes the :run entry
-	      ;; Drop everything but the params
-	      (clean-up store-log))
-	    (setf (gethash file *file->log*) store-log)))
-	))
+  ;; Load all the data, do some preliminary analysis, and
+  ;; store partial results for report production; make a compressed
+  ;; log while we're here.
+  (with-open-file 
+   (logsum (print (format nil "sumstats/~a-logsum.lisp" ts))
+	   :direction :output :if-exists :supersede) 
+   (block load-data-inner ;; If you don't trap this, the logsum file gets disappeared!
+	  (loop for file in (or (and its/p/v (its/p/v->files its/p/v)) (downsorted-directory "runlogs/*.lisp"))
+		with target-label = nil
+		as fno = (parse-integer (pathname-name file))
+		as log = (when (and (>= fno low) (<= fno high))
+			   (cdr (ltdftcfociatltd file)))
+		do
+		(let* ((params (cdr (assoc :params log)))
+		       (this-label (second (assoc :experiment_label params)))
+		       (store-log
+			(if constrain-by-label
+			    (if target-label
+				(if (string-equal this-label target-label) 
+				    log ;; Match
+				  ;; As soon as you find one that doesn't match, give up!
+				  (return-from load-data-inner))
+			      (progn (setf target-label this-label)
+				     (format t "Only reading logs with label: ~s~%" target-label)
+				     (setf *heuristicated-experiment-label* target-label)
+				     log))
+			  (if (and (>= fno low) (<= fno high)) log))))
+		  (when store-log 
+		    (pprint `((:fn ,(pathname-name file))
+			      (:params ,params)
+			      ,(assoc :head log))
+			    logsum)
+		    (if for-indexing?
+			(setq store-log (assoc :params log)) ;; This smashes the :run entry
+		      ;; Drop everything but the params
+		      (clean-up store-log))
+		    (setf (gethash file *file->log*) store-log)))
+		))))
 	
 (defun downsorted-directory (p)
   (mapcar #'cdr
@@ -683,4 +692,5 @@
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
 ;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
 ;(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
-(analyze :low 20160709154946  :comps '(:base-exact :adult))
+;(analyze :low 20160709154946  :comps '(:base-exact :adult))
+(analyze :comps '(:base-exact :adult))

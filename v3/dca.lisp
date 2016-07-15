@@ -60,13 +60,14 @@
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
-  (if (> low high) (setf temp high high low low temp)) ;; Idiot
-  ;; corrector Load all the data, do some preliminary analysis, and
+  (if (> low high) (setf temp high high low low temp)) ;; Idiot correction
+  ;; Load all the data, do some preliminary analysis, and
   ;; store partial results for report production; make a compressed
   ;; log while we're here.
   (with-open-file 
    (logsum (print (format nil "sumstats/~a-logsum.lisp" ts))
 	   :direction :output :if-exists :supersede) 
+   (block load-data-inner ;; Prevent inner return-from from dissappearing the logsum file.
    (loop for file in (downsorted-directory "runlogs/*.lisp")
 	 with target-label = nil
 	 as fno = (parse-integer (pathname-name file))
@@ -80,7 +81,7 @@
 			 (if (string-equal this-label target-label) 
 			     log ;; Match
 			   ;; As soon as you find one that doesn't match, give up!
-			   (return-from load-data))
+			   (return-from load-data-inner))
 		       (progn (setf target-label this-label)
 			      (format t "~%Only reading logs with label: ~s~%" target-label)
 			      (setf *heuristicated-experiment-label* target-label)
@@ -93,7 +94,7 @@
 		    logsum))
 	   (format t "Using ~a~%" file)
 	   (clean-up store-log) ;; This smashes the :run entry
-	   (setf (gethash file *file->log*) store-log)))
+	   (setf (gethash file *file->log*) store-log))))
    ))
 					
 (defun downsorted-directory (p)
