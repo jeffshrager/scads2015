@@ -51,49 +51,57 @@
   (setq *results-version* nil)
   (clrhash *file->log*)
   (clrhash *params->ccs*)
-  (load-data low high)
+  (load-data low high ts)
   (summarize ts)
   )
 
-(defun load-data (low high &aux first-fno last-fno label temp constrain-by-label)
+(defun load-data (low high ts &aux first-fno last-fno label temp constrain-by-label)
   (setq *logs* nil)
   (setf constrain-by-label (if (or low high) nil t))
   (if (null low) (setq low 0))
   (if (null high) (setq high 99999999999999))
-  (if (> low high) (setf temp high high low low temp)) ;; Idiot corrector
-  ;; Load all the data, do some preliminary analysis, and store
-  ;; partial results for report production
-  (loop for file in (downsorted-directory "runlogs/*.lisp")
-        with target-label = nil
-					as fno = (parse-integer (pathname-name file))
-					as log = (with-open-file (i file) (cdr (read i)))
-					do
-					(let* ((params (cdr (assoc :params log)))
-					       (this-label (second (assoc :experiment_label params)))
-					       (store-log
-					(if constrain-by-label
-					    (if target-label
-					(if (string-equal this-label target-label) 
-					    log ;; Match
-					  ;; As soon as you find one that doesn't match, give up!
-					  (return-from load-data))
-					      (progn (setf target-label this-label)
-					     (format t "~%Only reading logs with label: ~s~%" target-label)
-					     (setf *heuristicated-experiment-label* target-label)
-					     log))
-					  (if (and (>= fno low) (<= fno high)) log))))
-					  (when store-log 
-					    (format t "Using ~a~%" file)
-					    (clean-up store-log) ;; This smashes the :run entry
-					    (setf (gethash file *file->log*) store-log)))
-					))
+  (if (> low high) (setf temp high high low low temp)) ;; Idiot
+  ;; corrector Load all the data, do some preliminary analysis, and
+  ;; store partial results for report production; make a compressed
+  ;; log while we're here.
+  (with-open-file 
+   (logsum (print (format nil "sumstats/~a-logsum.lisp" ts))
+	   :direction :output :if-exists :supersede) 
+   (loop for file in (downsorted-directory "runlogs/*.lisp")
+	 with target-label = nil
+	 as fno = (parse-integer (pathname-name file))
+	 as log = (with-open-file (i file) (cdr (read i)))
+	 do
+	 (let* ((params (cdr (assoc :params log)))
+		(this-label (second (assoc :experiment_label params)))
+		(store-log
+		 (if constrain-by-label
+		     (if target-label
+			 (if (string-equal this-label target-label) 
+			     log ;; Match
+			   ;; As soon as you find one that doesn't match, give up!
+			   (return-from load-data))
+		       (progn (setf target-label this-label)
+			      (format t "~%Only reading logs with label: ~s~%" target-label)
+			      (setf *heuristicated-experiment-label* target-label)
+			      log))
+		   (if (and (>= fno low) (<= fno high)) log))))
+	   (when store-log 
+	     (pprint `((:fn ,(pathname-name file))
+		      (:params ,params)
+		      ,(assoc :head log))
+		    logsum))
+	   (format t "Using ~a~%" file)
+	   (clean-up store-log) ;; This smashes the :run entry
+	   (setf (gethash file *file->log*) store-log)))
+   ))
 					
 (defun downsorted-directory (p)
   (mapcar #'cdr
-					  (sort
-					   (loop for f in (directory p)
-					 collect (cons (parse-integer (pathname-name f)) f))
-					   #'> :key #'car)))
+	  (sort
+	   (loop for f in (directory p)
+		 collect (cons (parse-integer (pathname-name f)) f))
+	   #'> :key #'car)))
 
 ;; Turns out that for various Obiwan reasons there are problem blocks
 ;; with the wrong number of problems, and missing table dumps, usually
