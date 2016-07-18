@@ -55,10 +55,10 @@ dump_hidden_activations = False
 #"symbolic_delocalizing_noise": [1.0], 
 
 n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
-addend_representation=1 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_representation=2 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
 addend_delocalizing_noise=0.0 # 0=no noise. USE LOW VALUES! (Probably a bad idea to use this at all in the -111 case!)
 n_results_bits=13
-results_representation=1 # Nothing else implemented yet.
+results_representation=3 # Nothing else implemented yet.
                
 # *** Remember to change the global strategies, which is defined after
 # *** the stratagies themselves, below, if you want to change the
@@ -509,6 +509,7 @@ def precompute_ISOs():
             s = fmt.format(v[n])
             if s.count('1') == addend_representation:
                 r.extend([s])
+                v=v[:-n] + v[n+1:]
             for k in range(len(r)):
                 addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
                 k+=1
