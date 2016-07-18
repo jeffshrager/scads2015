@@ -509,7 +509,7 @@ def precompute_ISOs():
             s = fmt.format(v[n])
             if s.count('1') == addend_representation:
                 r.extend([s])
-                v=v[:-n] + v[n+1:]
+                v=v[:n] + v[n+1:]
             for k in range(len(r)):
                 addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
                 k+=1
