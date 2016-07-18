@@ -91,11 +91,10 @@
 	     (pprint `((:fn ,(pathname-name file))
 		      (:params ,params)
 		      ,(assoc :head log))
-		    logsum))
-	   (format t "Using ~a~%" file)
-	   (clean-up store-log) ;; This smashes the :run entry
-	   (setf (gethash file *file->log*) store-log))))
-   ))
+		    logsum)
+	     (format t "Using ~a~%" file)
+	     (clean-up store-log) ;; This smashes the :run entry
+	     (setf (gethash file *file->log*) store-log)))))))
 					
 (defun downsorted-directory (p)
   (mapcar #'cdr
@@ -175,4 +174,5 @@
 (untrace)
 ;(trace find-sum)
 (analyze)
+;(analyze :high 20160706183358 :low 20160706183426)
 
