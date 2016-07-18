@@ -29,7 +29,7 @@ class TrainingSet():
 
 ##################### SETTINGS #####################
 
-experiment_label = "\"distributed v distributed\""
+experiment_label = "\"hidden units\""
 
 suppress_auto_timestamping = False
 
@@ -47,11 +47,11 @@ current_params = {} # These are set for a given run by the recursive param searc
 scanned_params = {
 
                # Learning target params
-               "input_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
-               "output_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
+               "input_one_bits": [-111,1,3], # If -111 then uses 10000,11000, etc # ,3,-111
+               "output_one_bits": [-111,1,3], # If -111 then uses 10000,11000, etc # ,3,-111
 
 
-               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [32], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
               
