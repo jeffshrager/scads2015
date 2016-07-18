@@ -129,6 +129,7 @@ class Lexicon(object):
                 s = fmt.format(v[n])
                 if s.count('1') == output_one_bits:
                     r.extend([s])
+                    v=v[:-n] + v[n+1:]
             for k in range(len(r)):
                 self.output_dictionary[k]=[int(c) for c in r[k]]
         elif output_one_bits == -111:
