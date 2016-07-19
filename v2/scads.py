@@ -89,7 +89,7 @@ scanned_params = {
 
                # Learning target params
                "strategy_hidden_units": [3],
-               "results_hidden_units": [12], # 8 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [7], # 8 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
                # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
@@ -549,10 +549,12 @@ class NeuralNetwork:
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
         for i in range(1, len(layers) - 1):
-            r = 2 * numpy.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
+            r = 2 * numpy.random.random((layers[i - 1], layers[i])) - 1
+            #r = 2 * numpy.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
             self.weights.append(r)
 
-        r = 2 * numpy.random.random((layers[i] + 1, layers[i + 1])) - 1
+        r = 2 * numpy.random.random((layers[i], layers[i + 1])) - 1
+        #r = 2 * numpy.random.random((layers[i] + 1, layers[i + 1])) - 1
 
         self.weights.append(r)
 
@@ -586,7 +588,7 @@ class NeuralNetwork:
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
-        X = numpy.concatenate((ones.T, X), axis=1)
+        #X = numpy.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
 
             # Choose a random training set
@@ -626,15 +628,12 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        #print str(numpy.ones(1).T)
-        #print str(numpy.ones(1))
-        #print str(numpy.array(x))
-        #print str(numpy.shape(x))
-        # a = numpy.concatenate((numpy.ones(1).T, numpy.array(x)), axis=1)
-        #WWW for an updated numpy version, replace the above line with the line below
-        a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
-        #print str(a)
+        #print "> predict(x= " + str(x) + ")"
+        a = numpy.array(x)
+        #a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
+        #print "a = " + str(a)
         for l in range(0, len(self.weights)):
+            #print "weights[l]" + str(self.weights[l])
             a = self.activation(numpy.dot(a, self.weights[l]))
         return a
 
@@ -689,12 +688,11 @@ class NeuralNetwork:
             for j in range(1, 6):
                 self.predictions.append(self.predict(addends_matrix(i, j)))
         #the below is to learn more about how predictions looks like
-        #the predictions is to show the probability of each prediction. the issue was the "position 30"
-        #thing above which was confusing because it was talking about a range (1, 6) although  
-        #we are working in the range 1, 5.
-        #print str(self.predictions)
-        #print str(len(self.predictions))
-       # sys.exit()
+        #the predictions is to show the probability of each
+        #prediction. the issue was the "position 30" thing above which
+        #was confusing because it was talking about a range (1, 6)
+        #although we are working in the range 1, 5.
+
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
     # everything but the correct answer be -= DECR_RIGHT/WRONG and the
@@ -708,7 +706,7 @@ class NeuralNetwork:
     # This gets very ugly because in order to be generalizable
     # across different sorts of NN outputs.
     def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-
+        print "> update_target" + str([a1, a2, targeted_output, correct, correct_output_on_incorrect])
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
@@ -774,15 +772,13 @@ def results_network():
             y_count.append(sum_matrix(a,b))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    #print X_count
-    #print y_count
     # Now burn it in:
     nn.fit(current_params["initial_counting_network_learning_rate"], current_params["initial_counting_network_burn_in_epochs"], X_count, y_count)
     nn.update_predictions()
     return nn
 
 def strategy_network():
-    nn = NeuralNetwork("Strategy", [14, current_params["strategy_hidden_units"], len(strategies)],"STRATEGY",strategies.keys())
+    nn = NeuralNetwork("Strategy", [2*n_addend_bits, current_params["strategy_hidden_units"], len(strategies)],"STRATEGY",strategies.keys())
     nn.update_predictions()
     return nn
 
