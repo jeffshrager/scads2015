@@ -49,17 +49,20 @@ dump_hidden_activations = False
 # LEXICAL AND SYMBOLIC LEVELS AREN'T USED YET -- They'll get added when Myra's code is combined in.
 #"n_lexical_bits": [5], # Will actually be 14 bcs each hand has an edge bit, so 7x2
 #"lexical_representation": [1, 3,-111], # on n_input_bits
-#"lexical_delocalizing_noise": [1.0], 
 #"n_symbolic_bits": [5],
 #"symbolic_representation": [1, 3, -111], # on 5
-#"symbolic_delocalizing_noise": [1.0], 
 
-n_addend_bits=5 # really becomes (n+2)*2 (usually 14, since this is usually 5)
+### NNN Note: 20160719 Jeff took out the +-1 edge bits because it's
+### not used in Myra's code (so no theoretical reason), and it's too
+### confusing.
+
+n_addend_bits=5 # really becomes n*2 width bcs there's two addends
 addend_representation=2 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
-addend_delocalizing_noise=0.0 # 0=no noise. USE LOW VALUES! (Probably a bad idea to use this at all in the -111 case!)
-n_results_bits=13
-results_representation=3 # Nothing else implemented yet.
-               
+
+results_representation = 3
+n_results_bits = 5
+results_possible_values = [1,2,3,4,5,6,7,8,9,10]               
+
 # *** Remember to change the global strategies, which is defined after
 # *** the stratagies themselves, below, if you want to change the
 # *** strategy set.
@@ -71,7 +74,7 @@ n_problems = 10000
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1,5000], # 1000 based on 201509010902
+               "initial_counting_network_burn_in_epochs": [5000], # 1000 based on 201509010902
                "initial_counting_network_learning_rate": [0.3], # 0.25 based on 201509010902
 
                # Problem presentation and execution
@@ -203,7 +206,7 @@ def try_dynamic_retrieval():
     # Make a prediction
     prediction = rnet.predict(add_matrix)
     results_above_DRR = []
-    for i in range(0, 13):
+    for i in range(0, n_results_bits): 
         if prediction[i] > DR_threshold:
             results_above_DRR.append(i)
     if len(results_above_DRR) > 0:
@@ -440,67 +443,25 @@ def exec_explicit_strategy(strategy_choice):
 # input_representation, symbolic_representation, and
 # result_representation and . The possible values are these:
 # 1 = Localist (1=10000, 2=01000, ..., 5=00001)
-# 2 = two bits randomly chosen (1=00110, ... 5=01010)
+# 3 = three bits randomly chosen (1=01110, ... 5=11010)
 # etc.
 # -111 = "subitizing representation" (this is non-uniform!)
 #       i.e., 1=10000, 2=11000, 3=01110, etc.
-#
-# (In creating these I cheat by presetting groups of these for each
-# value and then just choose from among them at random in the relevant
-# cases.)
-
-# Delocalization is controlled by the delocalizing noise, which, once
-# the representation is created, spreads the 1.0s around a little to
-# delocalize the representation. If delocalization is 1 then the
-# representation is as given. A delocalization of, say, 0.1 will pull
-# 2x0.1 from each 1 (make it 0.8) and add it to each neighboring
-# bit. So, for example, from 0,0,1,0,0 and deloc=0.1 you get 0, 0.1,
-# 0.8, 0.1, 0, and from 0,1,0,1,0 deloc=0.3=> 0.3, 0.4, 0.6, 0.4, 0.3!
-# So USE SMALL DELOCALIZATIONS!!
-
-# Note that at the moment delocalization only applies to the
-# addends.
-
-# a distributed representation input array, e.g., for a representation
-# of 3 + 4, the input array created by addends_matrix) is:
-#
-# Index:         0 , 1 ,   2 , 3 , 4   , 5 , 6 | 7 , 8 , 9 , 10  , 11 , 12 , 13]
-# Input array: [ 0 , 0 , 0.5 , 1 , 0.5 , 0 , 0 | 0 , 0 , 0 ,  0.5,  1 ,  0.5, 0]
-#                              ^=3                                  ^=4
-#                                (0 is NOT a possible input!)
-#
-# The surrounding 0.5s are supposed to represent children's confusion
-# about the number actually stated. (Or about how to xform the stated
-# number into the exact internal representation). Note that there are
-# 7 elements per input bcs the 1 and 5 both need to allow for a left
-# and right surround respectively. The exact value of the surrounding
-# inputs is controlled by addends_matrix_offby1_delta.
-#
-# And the output array (created by sum_matrix) is:
-#
-# Index:         0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12
-# Output array:[ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 ,  0 ,  0 ,  0 ]
-#                                            ^=7 
-#                ^ 0 IS a possible answer!
-#
-# WWW WARNING !!! Don't confuse either of these with the fingers on
-# the hands!
 
 def precompute_ISOs():
-    global addend_dictionary
+    global addend_dictionary, results_dictionary
     addend_dictionary = {}
     logstream.write("(:lex-sym-res-dictionaries\n")
     # Addend dictionary:
     # The special case for 1: 1=0100000 2=0010000, etc.
     if addend_representation == 1:
         for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
-            # This includes edge bits for delocalization
-            addend_dictionary[p] = ([0]*(2+n_addend_bits))
+            addend_dictionary[p] = [0]*n_addend_bits
             addend_dictionary[p][p] = 1 
     # The delocalized n random bits case. This is a tricky little
     # algorithm to generate m unique n-bit numbers by first picking m
     # from among 0..2^n and then turning those into binary.
-    elif addend_representation>2:
+    elif addend_representation == 2:
         fmt = "{0:0"+str(n_addend_bits)+"b}"
         v = [x for x in range(2**n_addend_bits)]
         r = []
@@ -510,9 +471,9 @@ def precompute_ISOs():
             if s.count('1') == addend_representation:
                 r.extend([s])
                 v=v[:n] + v[n+1:]
-            for k in range(len(r)):
-                addend_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
-                k+=1
+        for k in range(len(r)):
+            addend_dictionary[k]=[int(c) for c in r[k]]
+            k+=1
     elif addend_representation == -111:
         for k in range(1,n_addend_bits+1):
             addend_dictionary[k]= [0]*(2+n_addend_bits)
@@ -521,6 +482,7 @@ def precompute_ISOs():
     else:
         print "in precompute_isos(): addend_representation = " + str(addend_representation) + " isn't understood!"
         sys.exit(1)
+    print addend_dictionary
     logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
     # Results dictionary:
     results_dictionary={}
@@ -528,33 +490,32 @@ def precompute_ISOs():
         for p in range(0,n_results_bits):
             results_dictionary[p] = [0]*n_results_bits
             results_dictionary[p][p]=1
+    elif results_representation == 3:
+        fmt = "{0:0"+str(n_results_bits)+"b}"
+        v = [x for x in range(2**n_results_bits)]
+        r = []
+        while len(r) < len(results_possible_values):
+            n = randint(0,len(v)-1)
+            s = fmt.format(v[n])
+            if s.count('1') == results_representation:
+                r.extend([s])
+                v=v[:n] + v[n+1:]
+        for k in range(len(r)):
+            results_dictionary[k+1]=[int(c) for c in r[k]]
+            k+=1
     else:
         print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
+    print results_dictionary
     logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
     logstream.write(")\n")
 
 def addends_matrix(a1, a2):
-    return delocalize(a1)+delocalize(a2)
-
-def delocalize(a):
-    addend_dictionary
-    b=addend_dictionary[a]
-    for p in range(1,n_addend_bits+1):
-        if b[p] == 1:
-            b[p-1]+=addend_delocalizing_noise
-            b[p+1]+=addend_delocalizing_noise
-            b[p]-=2*addend_delocalizing_noise
-    #print "delocalized("+str(a)+") => " + str(b)
-    return b
+    return addend_dictionary[a1]+addend_dictionary[a2]
 
 # This is used for counting exposure
 def sum_matrix(a,b):
-    lis = [0] * 13
-    lis[a] = 1
-    lis[b] = 1
-    lis[b + 1] += 1
-    return lis
+    return results_dictionary[a+b]
 
 class NeuralNetwork:
     def __init__(self, name, layers, type, outputs):
@@ -802,15 +763,14 @@ def init_neturalnets():
     snet = strategy_network()
 
 def results_network():
-    # There are 14 input units bcs we include an extra on each side of each addends for representation diffusion.
-    nn = NeuralNetwork("Results", [14, current_params["results_hidden_units"], 13],"RETRIEVAL",[0,1,2,3,4,5,6,7,8,9,10,11,12,"other"])
+    nn = NeuralNetwork("Results", [2*n_addend_bits, current_params["results_hidden_units"], n_results_bits],"RETRIEVAL",results_possible_values)
     # Burn in counting examples. For the moment we simplify this to
     # training: ?+B=B+1.
     X_count = []
     y_count = []
     for a in range(1, 6):
         for b in range(1,6):
-            X_count.append(addends_matrix(a, b))
+            X_count.append(addends_matrix(a,b))
             y_count.append(sum_matrix(a,b))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
@@ -949,7 +909,6 @@ def dump_non_scanned_params():
     logstream.write("  (:dump_hidden_activations "+str(dump_hidden_activations)+")\n")
     logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
     logstream.write("  (:addend_representation "+str(addend_representation)+")\n")
-    logstream.write("  (:addend_delocalizing_noise "+str(addend_delocalizing_noise)+")\n")
     logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
     logstream.write("  (:results_representation "+str(results_representation)+")\n")
     logstream.write("  (:n_problems "+str(n_problems)+")\n")
