@@ -27,6 +27,7 @@ experiment_label = "\"Scanning localized params 5x with addend_rep = 1 and deloc
 
 suppress_auto_timestamping = False
 
+strategy_dictionary = {}
 addend_dictionary = {}
 results_dictionary = {}
 
@@ -37,7 +38,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 100  # problem bin size, every pbs problems we dump the predictions
 dynamic_retrieval_on = False
 dump_hidden_activations = False
@@ -57,11 +58,16 @@ dump_hidden_activations = False
 ### confusing.
 
 n_addend_bits=5 # really becomes n*2 width bcs there's two addends
-addend_representation=2 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_representation=3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_one_bits = 3
 
 results_representation = 3
+results_one_bits = 3
 n_results_bits = 5
-results_possible_values = [1,2,3,4,5,6,7,8,9,10]               
+results_possible_values = [1,2,3,4,5,6,7,8,9,10]
+
+n_strat_bits = 5
+strat_one_bits = 3
 
 # *** Remember to change the global strategies, which is defined after
 # *** the stratagies themselves, below, if you want to change the
@@ -79,10 +85,10 @@ scanned_params = {
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-               "PERR": [0.05], # 0.1 confirmed 201509010826
+               "PERR": [0.0], # 0.1 confirmed 201509010826
 
                # Choosing to use retrieval v. a strategy
-               "RETRIEVAL_LOW_CC": [0.8], # Should be 0.6 usually; at 1.0 no retrieval will occur
+               "RETRIEVAL_LOW_CC": [0.95], # Should be 0.6 usually; at 1.0 no retrieval will occur
                "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
                "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                "STRATEGY_HIGH_CC": [1.0],
@@ -95,9 +101,10 @@ scanned_params = {
                # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
                # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
 
-               "INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
-               "DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
-               "INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
+               # These aren't used in the dictionary version of the model.
+               #"INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
+               #"DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
+               #"INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                "strategy_learning_rate": [0.1],
                "results_learning_rate": [0.15], # default: 0.15 Explored 201509010826
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
@@ -345,7 +352,6 @@ def look_n_count():
         say_next()
     HAND.increment_focus()
 
-
 strategies = {"count_from_one_twice": count_from_one_twice_strategy,
               "count_from_one_once": count_from_one_once_strategy,
               "count_from_either": count_from_either_strategy,
@@ -441,17 +447,15 @@ def exec_explicit_strategy(strategy_choice):
 # complex, and depends upon a number of parameters, in brief, these
 # two params control the inputs and output representation:
 # input_representation, symbolic_representation, and
-# result_representation and . The possible values are these:
-# 1 = Localist (1=10000, 2=01000, ..., 5=00001)
-# 3 = three bits randomly chosen (1=01110, ... 5=11010)
-# etc.
-# -111 = "subitizing representation" (this is non-uniform!)
-#       i.e., 1=10000, 2=11000, 3=01110, etc.
+# result_representation and . The possible values are these: 1 =
+# Localist (1=10000, 2=01000, ..., 5=00001) 3 = three bits randomly
+# chosen (1=01110, ... 5=11010) etc.  -111 = "subitizing
+# representation" (this is non-uniform!)  i.e., 1=10000, 2=11000,
+# 3=01110, etc.
 
-def precompute_ISOs():
+def precompute_numerical_dictionaries():
     global addend_dictionary, results_dictionary
     addend_dictionary = {}
-    logstream.write("(:lex-sym-res-dictionaries\n")
     # Addend dictionary:
     # The special case for 1: 1=0100000 2=0010000, etc.
     if addend_representation == 1:
@@ -461,19 +465,18 @@ def precompute_ISOs():
     # The delocalized n random bits case. This is a tricky little
     # algorithm to generate m unique n-bit numbers by first picking m
     # from among 0..2^n and then turning those into binary.
-    elif addend_representation == 2:
+    elif addend_representation == 3:
         fmt = "{0:0"+str(n_addend_bits)+"b}"
         v = [x for x in range(2**n_addend_bits)]
         r = []
-        while len(r) < n_addend_bits + 1:
+        while len(r) < n_addend_bits:
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
-            if s.count('1') == addend_representation:
+            if s.count('1') == addend_one_bits:
                 r.extend([s])
                 v=v[:n] + v[n+1:]
         for k in range(len(r)):
-            addend_dictionary[k]=[int(c) for c in r[k]]
-            k+=1
+            addend_dictionary[k+1]=[int(c) for c in r[k]]
     elif addend_representation == -111:
         for k in range(1,n_addend_bits+1):
             addend_dictionary[k]= [0]*(2+n_addend_bits)
@@ -497,18 +500,35 @@ def precompute_ISOs():
         while len(r) < len(results_possible_values):
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
-            if s.count('1') == results_representation:
+            if s.count('1') == results_one_bits:
                 r.extend([s])
                 v=v[:n] + v[n+1:]
         for k in range(len(r)):
             results_dictionary[k+1]=[int(c) for c in r[k]]
-            k+=1
+            #k+=1  ??
     else:
         print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
-    print results_dictionary
     logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
-    logstream.write(")\n")
+
+def precompute_strategy_dictionary():
+    global strategy_dictionary
+    strategy_dictionary = {}
+    fmt = "{0:0"+str(n_strat_bits)+"b}"
+    v = [x for x in range(2**n_strat_bits)]
+    r = []
+    nstrats = len(strategies)
+    while len(r) < nstrats:
+        n = randint(0,len(v)-1)
+        s = fmt.format(v[n])
+        if s.count('1') == strat_one_bits:
+            r.extend([s])
+            v=v[:n] + v[n+1:]
+    k = 0
+    for sname in strategies.keys():
+        strategy_dictionary[sname]=[int(c) for c in r[k]]
+        k += 1
+    logstream.write("  (:strategy_dictionary " + lispify(strategy_dictionary) + ")\n")
 
 def addends_matrix(a1, a2):
     return addend_dictionary[a1]+addend_dictionary[a2]
@@ -518,6 +538,7 @@ def sum_matrix(a,b):
     return results_dictionary[a+b]
 
 class NeuralNetwork:
+    global addend_dictionary, results_dictionary
     def __init__(self, name, layers, type, outputs):
         self.outputs = outputs
         self.name=name
@@ -584,7 +605,7 @@ class NeuralNetwork:
 
     # Main forward feed and backpropagation
 
-    def fit(self, learning_rate, epochs, X=None, y=None):
+    def fit(self, learning_rate, epochs, X=None, y=None, trace=0):
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
@@ -594,11 +615,14 @@ class NeuralNetwork:
             # Choose a random training set
             i = numpy.random.randint(X.shape[0])
             a = [X[i]]
-
             for l in range(len(self.weights)):
                 dot_value = numpy.dot(a[l], self.weights[l])
                 activation = self.activation(dot_value)
                 a.append(activation)
+
+            if trace == 1:
+                print "a = " + str(a)
+                print "y = " + str(y)
 
             # Output layer
             error = y[i] - a[-1]
@@ -628,13 +652,11 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        #print "> predict(x= " + str(x) + ")"
         a = numpy.array(x)
         #a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
-        #print "a = " + str(a)
         for l in range(0, len(self.weights)):
-            #print "weights[l]" + str(self.weights[l])
             a = self.activation(numpy.dot(a, self.weights[l]))
+        XXXXXXXXXXXXXXXXXXXX THIS IS BROKEN NEEDS TO USE THE DICTIONARY XXXXXXXXXXXXXXXXXXXXXXXXXXXX
         return a
 
     def predict_with_dumpage(self, x):
@@ -655,6 +677,8 @@ class NeuralNetwork:
     # values. if there are none, it returns None. 
 
     def try_memory_retrieval(self, a1, a2):
+        print "> try_memory_retrieval" + str([a1, a2])
+        print "y_index = " + str(self.y_index)
         index = self.y_index(a1, a2)
         if (a1 > 5) or (a2 > 5):
             return None
@@ -667,6 +691,8 @@ class NeuralNetwork:
             # although this could be changed to choose in a weighted
             # manner. FFF ???
             #??? it should pic kthe highest value above cc, not a random one
+            print "results_above_cc = " + str(results_above_cc)
+            print "l = " + str(l)
             return self.outputs[int(results_above_cc[randint(0, l - 1)])]
         return None
 
@@ -703,22 +729,44 @@ class NeuralNetwork:
         self.target.append([current_params["non_result_y_filler"]] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
-    # This gets very ugly because in order to be generalizable
-    # across different sorts of NN outputs.
+    """
+    # This version of target updating is applicable only to localization positional targeting,
+    # as 1=1000, 3=00100, etc.
     def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        print "> update_target" + str([a1, a2, targeted_output, correct, correct_output_on_incorrect])
+        # Inputs
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
-
         targeted_output_position = self.outputs.index(targeted_output)
-
         if correct:
             self.target[0][targeted_output_position] += current_params["INCR_on_RIGHT"]
         else:
             self.target[0][targeted_output_position] -= current_params["DECR_on_WRONG"]
-            if correct_output_on_incorrect is not None: 
+            if correct_output_on_incorrect is not None:
                 self.target[0][self.outputs.index(correct_output_on_incorrect)] += current_params["INCR_the_right_answer_on_WRONG"]
+    """
+
+    # This version does dictionary-based targeting, and doesn't rely
+    # on an up/down signal. Here the correct targeted_ouptut arg is
+    # always used as the target: "Experience is the teacher in-and-of
+    # itself."
+
+    def update_results_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
+        # Inputs:
+        self.X = []
+        self.X.append(addends_matrix(a1, a2))
+        self.X = numpy.array(self.X)
+        # Outputs:
+        self.target = [results_dictionary[targeted_output]]
+
+    def update_strat_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
+        # In this case the targeted output is the name of a strategy.
+        # Inputs:
+        self.X = []
+        self.X.append(addends_matrix(a1, a2))
+        self.X = numpy.array(self.X)
+        # Outputs:
+        self.target = [strategy_dictionary[targeted_output]]
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -729,9 +777,13 @@ class NeuralNetwork:
 
     def dump_predictions(self):
         logstream.write('(:'+self.name+"-prediction-table\n")
+        print "self.layers = " + str(self.layers)
         for i in range(1, 6):
             for j in range(1, 6):
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
+                print "i = " + str(i) + ", j = " + str(j)
+                print "self.outputs = " + str(self.outputs)
+                print "gv = " + str(gv)
                 logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
 
@@ -778,7 +830,7 @@ def results_network():
     return nn
 
 def strategy_network():
-    nn = NeuralNetwork("Strategy", [2*n_addend_bits, current_params["strategy_hidden_units"], len(strategies)],"STRATEGY",strategies.keys())
+    nn = NeuralNetwork("Strategy", [2*n_addend_bits, current_params["strategy_hidden_units"], n_strat_bits],"STRATEGY",strategies.keys())
     nn.update_predictions()
     return nn
 
@@ -820,15 +872,15 @@ def exec_strategy():
         # message appeared!
         logstream.write("(:used " +  strat_name + " " + str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
         # update the target based on if the strategy worked or not
-        snet.update_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
+        snet.update_strat_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
     # update the nns:
-    rnet.update_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
+    rnet.update_results_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
     if strat_name is not None:
-        snet.update_target(ad1, ad2, strat_name, correct)
-        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"])
+        snet.update_strat_target(ad1, ad2, strat_name, correct)
+        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"],trace=1)
         snet.update_predictions()
 
 # UUU The open and close structure here is a mess bcs of the
@@ -879,11 +931,14 @@ def config_and_test(index=0):
             logstream.write('(setq *d* \'\n')
             logstream.write('(:log\n')
             logstream.write(' (:head\n')
-            logstream.write(" (:file " + fn + ")\n")
-            logstream.write(' (:output-format-version 20160705)\n')
-            logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
-            logstream.write(' (:strategies' + lispify(strategies.keys()) + ")\n")
-            precompute_ISOs()
+            logstream.write("  (:file " + fn + ")\n")
+            logstream.write('  (:output-format-version 20160705)\n')
+            logstream.write('  (:problem-bin-size ' + str(pbs) + ")\n")
+            logstream.write('  (:strategies' + lispify(strategies.keys()) + ")\n")
+            logstream.write("  (:lex-sym-res-dictionaries\n")
+            precompute_numerical_dictionaries()
+            precompute_strategy_dictionary()
+            logstream.write("  )\n")
             init_neturalnets()
             logstream.write(' )\n')
             logstream.write('(:run\n')
