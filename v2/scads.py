@@ -454,7 +454,7 @@ def exec_explicit_strategy(strategy_choice):
 # 3=01110, etc.
 
 def precompute_numerical_dictionaries():
-    global addend_dictionary, results_dictionary
+    global addend_dictionary, results_dictionary, strategy_dictionary
     addend_dictionary = {}
     # Addend dictionary:
     # The special case for 1: 1=0100000 2=0010000, etc.
@@ -535,12 +535,13 @@ def addends_matrix(a1, a2):
 
 # This is used for counting exposure
 def sum_matrix(a,b):
+    global addend_dictionary, results_dictionary, strategy_dictionary
     return results_dictionary[a+b]
 
 class NeuralNetwork:
-    global addend_dictionary, results_dictionary
-    def __init__(self, name, layers, type, outputs):
-        self.outputs = outputs
+    global addend_dictionary, results_dictionary, strategy_dictionary
+    def __init__(self, name, layers, type, output_dictionary):
+        self.output_dictionary = output_dictionary
         self.name=name
         self.errr=[]
         self.activation = lambda x: numpy.tanh(x)
@@ -652,12 +653,16 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
+        print "> predict:" + str(x)
+        print "self.output_dictionary = " + str(self.output_dictionary)
         a = numpy.array(x)
-        #a = numpy.insert(numpy.array(x), 0, numpy.ones(1).T)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
-        XXXXXXXXXXXXXXXXXXXX THIS IS BROKEN NEEDS TO USE THE DICTIONARY XXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        return a
+        print "final a = " + str(a)
+        scores = score(self.output_dictionary, a)
+        print "scores = " + str(scores)
+            
+        return scores
 
     def predict_with_dumpage(self, x):
         logstream.write("(:predict_with_dumpage\n (:inputs " +  lispify(x) + ")\n")
@@ -693,7 +698,7 @@ class NeuralNetwork:
             #??? it should pic kthe highest value above cc, not a random one
             print "results_above_cc = " + str(results_above_cc)
             print "l = " + str(l)
-            return self.outputs[int(results_above_cc[randint(0, l - 1)])]
+            return self.output_dictionary[int(results_above_cc[randint(0, l - 1)])]
         return None
 
     # Used for analysis output, this just gets the prediction values
@@ -728,23 +733,6 @@ class NeuralNetwork:
         self.target = []
         self.target.append([current_params["non_result_y_filler"]] * (self.layers[-1]))
         self.target = numpy.array(self.target)
-
-    """
-    # This version of target updating is applicable only to localization positional targeting,
-    # as 1=1000, 3=00100, etc.
-    def update_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        # Inputs
-        self.X = []
-        self.X.append(addends_matrix(a1, a2))
-        self.X = numpy.array(self.X)
-        targeted_output_position = self.outputs.index(targeted_output)
-        if correct:
-            self.target[0][targeted_output_position] += current_params["INCR_on_RIGHT"]
-        else:
-            self.target[0][targeted_output_position] -= current_params["DECR_on_WRONG"]
-            if correct_output_on_incorrect is not None:
-                self.target[0][self.outputs.index(correct_output_on_incorrect)] += current_params["INCR_the_right_answer_on_WRONG"]
-    """
 
     # This version does dictionary-based targeting, and doesn't rely
     # on an up/down signal. Here the correct targeted_ouptut arg is
@@ -782,9 +770,9 @@ class NeuralNetwork:
             for j in range(1, 6):
                 gv = self.guess_vector(i, j, 0, self.layers[-1])
                 print "i = " + str(i) + ", j = " + str(j)
-                print "self.outputs = " + str(self.outputs)
+                print "self.output_dictionary = " + str(self.output_dictionary)
                 print "gv = " + str(gv)
-                logstream.write(" (%s + %s = " % (i, j) + str(self.outputs[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
+                logstream.write(" (%s + %s = " % (i, j) + str(self.output_dictionary[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
 
     def dump_weights(self):
@@ -800,6 +788,26 @@ class NeuralNetwork:
             self.dump_hidden_activations()
         self.dump_predictions()
 
+# Dictionary-based scoring system, takes a prediction vector and a
+# dictionary and returns a scoring vector for each dictionary entry.
+
+def score(dictionary,nn_output):
+    return [[number,subscore(target_output,nn_output)] for number, target_output in dictionary.iteritems()]
+def subscore(i,o):
+    sum = 0
+    for p in range(len(i)):
+        if o[p]>=0.5:
+            if i[p]==1:
+                sum += 1
+            else:
+                sum -= 1
+        else: # o[p]<0.5
+            if i[p]==0:
+                sum += 1
+            else:
+                sum -= 1
+    return sum
+            
 ##################### DRIVER #####################
 
 # Set up the neural network fitted to kids' having learned how to
@@ -813,7 +821,8 @@ def init_neturalnets():
     snet = strategy_network()
 
 def results_network():
-    nn = NeuralNetwork("Results", [2*n_addend_bits, current_params["results_hidden_units"], n_results_bits],"RETRIEVAL",results_possible_values)
+    global addend_dictionary, results_dictionary, strategy_dictionary
+    nn = NeuralNetwork("Results", [2*n_addend_bits, current_params["results_hidden_units"], n_results_bits],"RETRIEVAL",results_dictionary)
     # Burn in counting examples. For the moment we simplify this to
     # training: ?+B=B+1.
     X_count = []
@@ -830,7 +839,8 @@ def results_network():
     return nn
 
 def strategy_network():
-    nn = NeuralNetwork("Strategy", [2*n_addend_bits, current_params["strategy_hidden_units"], n_strat_bits],"STRATEGY",strategies.keys())
+    global addend_dictionary, results_dictionary, strategy_dictionary
+    nn = NeuralNetwork("Strategy", [2*n_addend_bits, current_params["strategy_hidden_units"], n_strat_bits],"STRATEGY",strategy_dictionary)
     nn.update_predictions()
     return nn
 
