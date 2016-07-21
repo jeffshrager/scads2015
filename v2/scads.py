@@ -507,7 +507,7 @@ def precompute_numerical_dictionaries():
             results_dictionary[k+1]=[int(c) for c in r[k]]
             #k+=1  ??
     else:
-        print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
+        #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
     logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
 
@@ -606,7 +606,7 @@ class NeuralNetwork:
 
     # Main forward feed and backpropagation
 
-    def fit(self, learning_rate, epochs, X=None, y=None, trace=0):
+    def fit(self, learning_rate, epochs, X=None, y=None):
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
@@ -620,10 +620,6 @@ class NeuralNetwork:
                 dot_value = numpy.dot(a[l], self.weights[l])
                 activation = self.activation(dot_value)
                 a.append(activation)
-
-            if trace == 1:
-                print "a = " + str(a)
-                print "y = " + str(y)
 
             # Output layer
             error = y[i] - a[-1]
@@ -653,15 +649,15 @@ class NeuralNetwork:
     # is in the kid's mind"
 
     def predict(self, x):
-        print "> predict:" + str(x)
-        print "self.output_dictionary = " + str(self.output_dictionary)
+        #print "> predict:" + str(x)
+        #print "self.output_dictionary = " + str(self.output_dictionary)
         a = numpy.array(x)
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
-        print "final a = " + str(a)
+        #print "final a = " + str(a)
+        # The scores are essentially the summed errors for every possible dictionary entry
         scores = score(self.output_dictionary, a)
-        print "scores = " + str(scores)
-            
+        #print "scores = " + str(scores)
         return scores
 
     def predict_with_dumpage(self, x):
@@ -682,13 +678,13 @@ class NeuralNetwork:
     # values. if there are none, it returns None. 
 
     def try_memory_retrieval(self, a1, a2):
-        print "> try_memory_retrieval" + str([a1, a2])
-        print "y_index = " + str(self.y_index)
+        #print "> try_memory_retrieval" + str([a1, a2])
+        #print "y_index = " + str(self.y_index)
         index = self.y_index(a1, a2)
-        if (a1 > 5) or (a2 > 5):
-            return None
         # Collect the values that come above cc.
-        results_above_cc = [x for x in range(self.layers[-1]) if self.predictions[index][x] > self.cc]
+        #print "self.predictions = " + str(self.predictions)
+        # Get the keys for all predictions in the indexed set that are above cc
+        results_above_cc = [k for [k,v] in self.predictions[index] if v > self.cc]
         l = len(results_above_cc)
         if l > 0:
             # At the moment this chooses randomly from all those
@@ -696,9 +692,9 @@ class NeuralNetwork:
             # although this could be changed to choose in a weighted
             # manner. FFF ???
             #??? it should pic kthe highest value above cc, not a random one
-            print "results_above_cc = " + str(results_above_cc)
-            print "l = " + str(l)
-            return self.output_dictionary[int(results_above_cc[randint(0, l - 1)])]
+            #print "results_above_cc = " + str(results_above_cc)
+            #print "l = " + str(l)
+            return results_above_cc[randint(0, l - 1)]
         return None
 
     # Used for analysis output, this just gets the prediction values
@@ -706,12 +702,12 @@ class NeuralNetwork:
     # FFF Anyway, see notes for guess to explain the begin and end
     # things.
 
-    def guess_vector(self, a1, a2, beg, end):
+    def guess_vector(self, a1, a2):
         vec = []
         self.predict(addends_matrix(a1, a2))
-        for i in range(beg, end):
-            vec.append(round(self.predictions[self.y_index(a1, a2)][i], 5))
-        return (vec)
+        pv = self.predictions[self.y_index(a1, a2)]
+        #print "pv = " + str(pv)
+        return [[a, round(b, 5)] for [a,b] in pv]
 
     def update_predictions(self):
         self.predictions = []
@@ -740,6 +736,7 @@ class NeuralNetwork:
     # itself."
 
     def update_results_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
+        #print ">update_results_target("+str([self, a1, a2, targeted_output, correct, correct_output_on_incorrect])
         # Inputs:
         self.X = []
         self.X.append(addends_matrix(a1, a2))
@@ -765,15 +762,28 @@ class NeuralNetwork:
 
     def dump_predictions(self):
         logstream.write('(:'+self.name+"-prediction-table\n")
-        print "self.layers = " + str(self.layers)
+        #print "self.layers = " + str(self.layers)
         for i in range(1, 6):
             for j in range(1, 6):
-                gv = self.guess_vector(i, j, 0, self.layers[-1])
-                print "i = " + str(i) + ", j = " + str(j)
-                print "self.output_dictionary = " + str(self.output_dictionary)
-                print "gv = " + str(gv)
-                logstream.write(" (%s + %s = " % (i, j) + str(self.output_dictionary[numpy.argmax(gv)]) + " " + lispify(gv) + ")\n")
+                gv = self.guess_vector(i, j)
+                #print "i = " + str(i) + ", j = " + str(j)
+                #print "self.output_dictionary = " + str(self.output_dictionary)
+                #print "gv = " + str(gv)
+                #print "xargmin(gv) = " + str(self.xargmin(gv))
+                logstream.write(" (%s + %s = " % (i, j) + str(self.output_dictionary[self.xargmin(gv)]) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
+
+    # Take [[1, 3.4597], [2, 1.50651], [3, 1.45972], [4, 1.12269], [5,
+    # 3.06877]] and give back, in this case, 4 (the min arg being
+    # 1.12...). (FFF There's probably a comprehension for this!)
+    def xargmin(self, keys_and_args):
+        fv = 0
+        m = 999 # HHH
+        for [v, nm] in keys_and_args:
+            if nm <= m:
+                m = nm
+                fv = v
+        return fv
 
     def dump_weights(self):
         logstream.write(" (:dump-weights\n")
@@ -792,22 +802,8 @@ class NeuralNetwork:
 # dictionary and returns a scoring vector for each dictionary entry.
 
 def score(dictionary,nn_output):
-    return [[number,subscore(target_output,nn_output)] for number, target_output in dictionary.iteritems()]
-def subscore(i,o):
-    sum = 0
-    for p in range(len(i)):
-        if o[p]>=0.5:
-            if i[p]==1:
-                sum += 1
-            else:
-                sum -= 1
-        else: # o[p]<0.5
-            if i[p]==0:
-                sum += 1
-            else:
-                sum -= 1
-    return sum
-            
+    return [[number,reduce((lambda a,b: a+b), map((lambda i,o: abs(i-o)),target_output,nn_output))] for number, target_output in dictionary.iteritems()]
+
 ##################### DRIVER #####################
 
 # Set up the neural network fitted to kids' having learned how to
@@ -859,6 +855,7 @@ def exec_strategy():
     # *** Herein Lies a fundamental choice of whether retrieval is an explicit strategy or not !!!
     strat_name = None
     retrieval = rnet.try_memory_retrieval(ad1,ad2)
+    #print "retrieval = " + str(retrieval)
     SOLUTION = -666
     # Used to be 0, but why is this needed?! 
     # (DDD If this shows up, there's something really wrong!) 
@@ -890,7 +887,7 @@ def exec_strategy():
     rnet.update_predictions()
     if strat_name is not None:
         snet.update_strat_target(ad1, ad2, strat_name, correct)
-        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"],trace=1)
+        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"])
         snet.update_predictions()
 
 # UUU The open and close structure here is a mess bcs of the
