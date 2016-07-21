@@ -88,7 +88,7 @@ scanned_params = {
                "PERR": [0.0], # 0.1 confirmed 201509010826
 
                # Choosing to use retrieval v. a strategy
-               "RETRIEVAL_LOW_CC": [0.95], # Should be 0.6 usually; at 1.0 no retrieval will occur
+               "RETRIEVAL_LOW_CC": [0.6], # Should be 0.6 usually; at 1.0 no retrieval will occur
                "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
                "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                "STRATEGY_HIGH_CC": [1.0],
@@ -96,15 +96,10 @@ scanned_params = {
                # Learning target params
                "strategy_hidden_units": [3],
                "results_hidden_units": [7], # 8 per experiments of 20160112b -- maybe 18?
-               "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
                # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
                # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
 
-               # These aren't used in the dictionary version of the model.
-               #"INCR_on_RIGHT": [1.0], # Added to non_result_y_filler at the response value when you get it right.
-               #"DECR_on_WRONG": [1.0], # Substrated from non_result_y_filler at the response value when you get it right.
-               #"INCR_the_right_answer_on_WRONG": [1.0], # Added to non_result_y_filler at the CORRECT value when you get it WRONG.
                "strategy_learning_rate": [0.1],
                "results_learning_rate": [0.15], # default: 0.15 Explored 201509010826
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
@@ -610,7 +605,6 @@ class NeuralNetwork:
         if X is None: X = self.X
         if y is None: y = self.target
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
-        #X = numpy.concatenate((ones.T, X), axis=1)
         for k in range(epochs):
 
             # Choose a random training set
@@ -681,10 +675,23 @@ class NeuralNetwork:
         #print "> try_memory_retrieval" + str([a1, a2])
         #print "y_index = " + str(self.y_index)
         index = self.y_index(a1, a2)
-        # Collect the values that come above cc.
+
+        # Collect the values that come above cc.  print
+        # "self.predictions = " + str(self.predictions) Get the keys
+        # for all predictions in the indexed set that are above cc Uh
+        # oh ... cc as the sum node value only works for a localist
+        # model.  under the new min difference dictionary model, the cc
+        # is compleletly wrong. We have to calcualte a cc for each
+        # prediction based on its output models. Ugh. We need a
+        # probability of correctness value, or something. :-(
         #print "self.predictions = " + str(self.predictions)
-        # Get the keys for all predictions in the indexed set that are above cc
-        results_above_cc = [k for [k,v] in self.predictions[index] if v > self.cc]
+
+        # How the cc is used is complexly related to the way that the
+        # scoring is done.  This version is for the min-style averaged
+        # results values. They better all be positive numbers!
+        results_above_cc = [k for [k,v] in self.predictions[index] if (1 - v) > self.cc]
+        #results_above_cc = [k for [k,v] in self.predictions[index] if v > self.cc]
+
         l = len(results_above_cc)
         if l > 0:
             # At the moment this chooses randomly from all those
@@ -714,11 +721,6 @@ class NeuralNetwork:
         for i in range(1, 6):
             for j in range(1, 6):
                 self.predictions.append(self.predict(addends_matrix(i, j)))
-        #the below is to learn more about how predictions looks like
-        #the predictions is to show the probability of each
-        #prediction. the issue was the "position 30" thing above which
-        #was confusing because it was talking about a range (1, 6)
-        #although we are working in the range 1, 5.
 
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
@@ -727,7 +729,7 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append([current_params["non_result_y_filler"]] * (self.layers[-1]))
+        self.target.append([0] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
     # This version does dictionary-based targeting, and doesn't rely
@@ -735,23 +737,13 @@ class NeuralNetwork:
     # always used as the target: "Experience is the teacher in-and-of
     # itself."
 
-    def update_results_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        #print ">update_results_target("+str([self, a1, a2, targeted_output, correct, correct_output_on_incorrect])
+    def update_target(self, a1, a2, target):
         # Inputs:
         self.X = []
         self.X.append(addends_matrix(a1, a2))
         self.X = numpy.array(self.X)
         # Outputs:
-        self.target = [results_dictionary[targeted_output]]
-
-    def update_strat_target(self, a1, a2, targeted_output, correct, correct_output_on_incorrect = None):
-        # In this case the targeted output is the name of a strategy.
-        # Inputs:
-        self.X = []
-        self.X.append(addends_matrix(a1, a2))
-        self.X = numpy.array(self.X)
-        # Outputs:
-        self.target = [strategy_dictionary[targeted_output]]
+        self.target = [self.output_dictionary[target]]
 
     def dump_hidden_activations(self):
         logstream.write('(:'+self.name+"-hidden-activation-table\n")
@@ -770,7 +762,7 @@ class NeuralNetwork:
                 #print "self.output_dictionary = " + str(self.output_dictionary)
                 #print "gv = " + str(gv)
                 #print "xargmin(gv) = " + str(self.xargmin(gv))
-                logstream.write(" (%s + %s = " % (i, j) + str(self.output_dictionary[self.xargmin(gv)]) + " " + lispify(gv) + ")\n")
+                logstream.write(" (%s + %s = " % (i, j) + str(self.xargmin(gv)) + " " + lispify(gv) + ")\n")
         logstream.write(')\n')
 
     # Take [[1, 3.4597], [2, 1.50651], [3, 1.45972], [4, 1.12269], [5,
@@ -799,10 +791,15 @@ class NeuralNetwork:
         self.dump_predictions()
 
 # Dictionary-based scoring system, takes a prediction vector and a
-# dictionary and returns a scoring vector for each dictionary entry.
+# dictionary and returns a scoring vector for each dictionary entry
+# There's controversy about how to do this, but sum or average.
 
 def score(dictionary,nn_output):
-    return [[number,reduce((lambda a,b: a+b), map((lambda i,o: abs(i-o)),target_output,nn_output))] for number, target_output in dictionary.iteritems()]
+    # Sum version:
+    #return [[number,reduce((lambda a,b: a+b), map((lambda i,o: abs(i-o)),target_output,nn_output))] for number, target_output in dictionary.iteritems()]
+    # Avg version:
+    return [[number,reduce((lambda a,b: a+b), map((lambda i,o: abs(i-o)),target_output,nn_output))/len(dictionary)] 
+            for number, target_output in dictionary.iteritems()]
 
 ##################### DRIVER #####################
 
@@ -879,14 +876,14 @@ def exec_strategy():
         # message appeared!
         logstream.write("(:used " +  strat_name + " " + str(ad1) + " + " + str(ad2) + " = " + str(SOLUTION) + ") ")
         # update the target based on if the strategy worked or not
-        snet.update_strat_target(ad1, ad2, strat_name, SOLUTION == ad1 + ad2)
+        snet.update_target(ad1, ad2, strat_name)
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
     # update the nns:
-    rnet.update_results_target(ad1, ad2, SOLUTION, correct, ad1 + ad2)
+    rnet.update_target(ad1, ad2, SOLUTION)
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
     if strat_name is not None:
-        snet.update_strat_target(ad1, ad2, strat_name, correct)
+        snet.update_target(ad1, ad2, strat_name)
         snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"])
         snet.update_predictions()
 
