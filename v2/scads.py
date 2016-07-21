@@ -38,7 +38,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -90,7 +90,7 @@ pbs = 500  # problem bin size, every pbs problems we dump the predictions
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1],
+               "initial_counting_network_burn_in_epochs": [1,1000,5000],
                "initial_counting_network_learning_rate": [0.3],
 
                # Problem presentation and execution
