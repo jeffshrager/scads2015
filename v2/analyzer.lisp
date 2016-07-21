@@ -10,27 +10,24 @@
     ("initial_counting_network_learning_rate" . initial_counting_network_learning_rate)
     ("DR_threshold" . DR_threshold)
     ("PERR" . PERR)
-    ("addends_matrix_offby1_delta" . addends_matrix_offby1_delta)
     ("RETRIEVAL_LOW_CC" . RETRIEVAL_LOW_CC)
     ("RETRIEVAL_HIGH_CC" . RETRIEVAL_HIGH_CC)
     ("STRATEGY_LOW_CC" . STRATEGY_LOW_CC)
     ("STRATEGY_HIGH_CC" . STRATEGY_HIGH_CC)
-    ("non_result_y_filler" . non_result_y_filler)
-    ("INCR_on_RIGHT" . INCR_on_RIGHT)
-    ("DECR_on_WRONG" . DECR_on_WRONG)
-    ("INCR_the_right_answer_on_WRONG" . INCR_the_right_answer_on_WRONG)
     ("strategy_learning_rate" . strategy_learning_rate)
     ("results_learning_rate" . results_learning_rate)
-    ("in_process_training_epochs" . in_process_training_epochs)
+    ("per_problem_training_epochs" . per_problem_training_epochs)
     ("ndups" . ndups)
     ("pbs" . pbs)
     ("dynamic_retrieval_on" . dynamic_retrieval_on)
-    ("dump_hidden_activations" . dump_hidden_activations)
-    ("n_addend_bits" . n_addend_bits)
     ("addend_representation" . addend_representation)
-    ("addend_delocalizing_noise" . addend_delocalizing_noise)
-    ("n_results_bits" . n_results_bits)
+    ("n_addend_bits" . n_addend_bits)
+    ("addend_one_bits" . addend_one_bits)
     ("results_representation" . results_representation)
+    ("n_results_bits" . n_results_bits)
+    ("results_one_bits" . results_one_bits)
+    ("n_strat_bits" . n_strat_bits)
+    ("strat_one_bits" . strat_one_bits)
     ))
 
 (defparameter *function-name-substitutions*
@@ -216,9 +213,16 @@
 ;;; =============================================================
 ;;; Math
 
+;;; The incoming value sets (sixth prediction) is as: ((1 0.28451) (2
+;;; 0.21634) ... (8 0.22031) (9 0.1906) (10 0.16163)) The second of
+;;; each is what we want. And since these are ERROR averages, we need
+;;; to substract them from 1 to get correct probabilities, which is
+;;; what the correlation wants to see (otherwise good rs will be
+;;; negative!)
+
 (defun compare (prediction-set data-set)
   ;; WWW assumes that the problems are in the same order !!!
-  (let* ((pairs (loop for a in (loop for prediction in prediction-set append (mapcar #'(lambda (v) (* v 100)) (sixth prediction)))
+  (let* ((pairs (loop for a in (loop for prediction in prediction-set append (mapcar #'(lambda (n&v) (* (- 1 (second n&v)) 100)) (sixth prediction)))
 		      for b in (loop for data in data-set append (second data))
 		      collect (list a b))))
     (stats::correlation-coefficient pairs)))
@@ -333,7 +337,7 @@
 ;; the sim, not here! FFF
 
 (defun clean-up (log)
-  (let ((pbs (second (assoc :problem-bin-size (cdr (assoc :head log))))))
+  (let ((pbs (second (assoc :pbs (cdr (assoc :params log))))))
     (setf (cdr (assoc :run log))
 	  (loop for (nil . pb) in (cdr (assoc :run log))
 		as ps = (cdr (assoc :problems pb))
@@ -688,7 +692,7 @@
     (break "In its/p/v->files: ~a isn't a valid index/param/value triple!" its/p/v)))
 
 (untrace)
-;(trace find-sum)
+;(trace compare)
 ; Possible :comps (defined at the top of the file) are: :sns84 :base-p/r/c :base-exact :adult
 ;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
 ;(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))

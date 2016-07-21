@@ -39,10 +39,10 @@ results_dictionary = {}
 # ----- PART 1: These usually DON'T change -----
 
 ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
-pbs = 100  # problem bin size, every pbs problems we dump the predictions
 dynamic_retrieval_on = False
 dump_hidden_activations = False
-
+per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
+ 
 # I/S/O params; see note in code -- WARNING: You'll
 # make a mess if you change the n_ in a run--(FFF Pull
 # these out?)
@@ -57,15 +57,19 @@ dump_hidden_activations = False
 ### not used in Myra's code (so no theoretical reason), and it's too
 ### confusing.
 
+# About 20160720 we decided that we are using 5:3 for both of these at the moment.
+addend_representation = 3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
 n_addend_bits=5 # really becomes n*2 width bcs there's two addends
-addend_representation=3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
 addend_one_bits = 3
-
 results_representation = 3
-results_one_bits = 3
 n_results_bits = 5
+results_one_bits = 3
 results_possible_values = [1,2,3,4,5,6,7,8,9,10]
 
+# (The possible values of strategies is set later, after the
+# strategies are defined, bcs we need the functions to be defined in
+# order that they exist in order to create the dictionary. (I don't
+# think that there's a forward reference syntax in Phython.))
 n_strat_bits = 5
 strat_one_bits = 3
 
@@ -74,18 +78,20 @@ strat_one_bits = 3
 # *** strategy set.
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
+
 n_problems = 10000
+pbs = 1000  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [5000], # 1000 based on 201509010902
-               "initial_counting_network_learning_rate": [0.3], # 0.25 based on 201509010902
+               "initial_counting_network_burn_in_epochs": [5000],
+               "initial_counting_network_learning_rate": [0.3],
 
                # Problem presentation and execution
-               "DR_threshold": [1.0], # WWW!!! Only used if dynamic_retrieval_on = True
-               "PERR": [0.0], # 0.1 confirmed 201509010826
+               "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
+               "PERR": [0.05],
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.6], # Should be 0.6 usually; at 1.0 no retrieval will occur
@@ -97,12 +103,8 @@ scanned_params = {
                "strategy_hidden_units": [3],
                "results_hidden_units": [7], # 8 per experiments of 20160112b -- maybe 18?
 
-               # WARNING! THE DIRECTIONALITY OF THESE INCR and DECRS IS VERY IMPORTANT! GENERALLY, THEY SHOULD
-               # ALL BE POSITIVE NUMBERS AS THE DECR_on_WRONG (for example) IS ACTUALLY *SUBTRACTED* FROM WRONG TARGETS!
-
                "strategy_learning_rate": [0.1],
-               "results_learning_rate": [0.15], # default: 0.15 Explored 201509010826
-               "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
+               "results_learning_rate": [0.3], # default: 0.15 Explored 201509010826
                }
 
 ##################### ADD #####################
@@ -480,8 +482,6 @@ def precompute_numerical_dictionaries():
     else:
         print "in precompute_isos(): addend_representation = " + str(addend_representation) + " isn't understood!"
         sys.exit(1)
-    print addend_dictionary
-    logstream.write("  (:addend_dictionary " + lispify(addend_dictionary) + ")\n")
     # Results dictionary:
     results_dictionary={}
     if results_representation == 1:
@@ -504,7 +504,6 @@ def precompute_numerical_dictionaries():
     else:
         #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
-    logstream.write("  (:results_dictionary " + lispify(results_dictionary) + ")\n")
 
 def precompute_strategy_dictionary():
     global strategy_dictionary
@@ -523,7 +522,6 @@ def precompute_strategy_dictionary():
     for sname in strategies.keys():
         strategy_dictionary[sname]=[int(c) for c in r[k]]
         k += 1
-    logstream.write("  (:strategy_dictionary " + lispify(strategy_dictionary) + ")\n")
 
 def addends_matrix(a1, a2):
     return addend_dictionary[a1]+addend_dictionary[a2]
@@ -880,11 +878,11 @@ def exec_strategy():
     correct = SOLUTION == ad1+ad2 # slightly redundant but we needed it for the else-nested call above. Oh well.
     # update the nns:
     rnet.update_target(ad1, ad2, SOLUTION)
-    rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
+    rnet.fit(current_params["results_learning_rate"], per_problem_training_epochs)
     rnet.update_predictions()
     if strat_name is not None:
         snet.update_target(ad1, ad2, strat_name)
-        snet.fit(current_params["strategy_learning_rate"], current_params["in_process_training_epochs"])
+        snet.fit(current_params["strategy_learning_rate"], per_problem_training_epochs)
         snet.update_predictions()
 
 # UUU The open and close structure here is a mess bcs of the
@@ -937,38 +935,40 @@ def config_and_test(index=0):
             logstream.write(' (:head\n')
             logstream.write("  (:file " + fn + ")\n")
             logstream.write('  (:output-format-version 20160705)\n')
-            logstream.write('  (:problem-bin-size ' + str(pbs) + ")\n")
-            logstream.write('  (:strategies' + lispify(strategies.keys()) + ")\n")
-            logstream.write("  (:lex-sym-res-dictionaries\n")
+            logstream.write(' )\n')
             precompute_numerical_dictionaries()
             precompute_strategy_dictionary()
-            logstream.write("  )\n")
             init_neturalnets()
-            logstream.write(' )\n')
             logstream.write('(:run\n')
             present_problems()
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
-            dump_non_scanned_params()
             for key in scanned_params:
                 logstream.write("  (:"+str(key)+" "+str(current_params[key])+")\n")
-            logstream.write(' )\n')
-            logstream.write(')\n')
-            logstream.write(')\n')
+            dump_non_scanned_params()
+            logstream.write(' )))\n')
 
 def dump_non_scanned_params():
+    logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
+    logstream.write("  (:addend_dictionary "+lispify(results_dictionary)+")\n")
+    logstream.write("  (:results_dictionary "+lispify(results_dictionary)+")\n")
+    logstream.write("  (:strategy_dictionary "+lispify(strategy_dictionary)+")\n")
     logstream.write("  (:ndups "+str(ndups)+")\n")
-    logstream.write("  (:pbs "+str(pbs)+")\n")
     logstream.write("  (:dynamic_retrieval_on "+str(dynamic_retrieval_on)+")\n")
     logstream.write("  (:dump_hidden_activations "+str(dump_hidden_activations)+")\n")
-    logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
     logstream.write("  (:addend_representation "+str(addend_representation)+")\n")
-    logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
+    logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
+    logstream.write("  (:addend_one_bits "+str(addend_one_bits)+")\n")
     logstream.write("  (:results_representation "+str(results_representation)+")\n")
+    logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
+    logstream.write("  (:results_one_bits "+str(results_one_bits)+")\n")
+    logstream.write("  (:strategies " + lispify(strategies.keys()) + ")\n")
+    logstream.write("  (:n_strat_bits " + str(n_strat_bits) + ")\n")
+    logstream.write("  (:strat_one_bits " + str(strat_one_bits) + ")\n")
     logstream.write("  (:n_problems "+str(n_problems)+")\n")
-    logstream.write("  (:suppress_auto_timestamping "+str(suppress_auto_timestamping)+")\n")
-    logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
+    logstream.write("  (:per_problem_training_epochs " + str(per_problem_training_epochs)+")\n")
+    logstream.write("  (:pbs " + str(pbs) + ")\n")
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
