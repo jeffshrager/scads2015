@@ -38,7 +38,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -57,13 +57,17 @@ per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH t
 ### not used in Myra's code (so no theoretical reason), and it's too
 ### confusing.
 
+initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0
+
+anti_1_bit = -1 # This is what goes into the non-1s in the dictionary
+
 # About 20160720 we decided that we are using 5:3 for both of these at the moment.
-addend_representation = 3 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
-n_addend_bits=5 # really becomes n*2 width bcs there's two addends
-addend_one_bits = 3
-results_representation = 3
-n_results_bits = 5
-results_one_bits = 3
+addend_representation = 1 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+n_addend_bits = 5 # Should be 5 for type 1, possible also for type 3 (really becomes n*2 width bcs there are two addends)
+addend_one_bits = 3 # Only relevant for type 3
+results_representation = 1
+n_results_bits = 10 # Should be 10 for type 1, less for type 3
+results_one_bits = 3 # Only relevant for type 3
 results_possible_values = [1,2,3,4,5,6,7,8,9,10]
 
 # (The possible values of strategies is set later, after the
@@ -79,32 +83,32 @@ strat_one_bits = 3
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
-n_problems = 10000
-pbs = 1000  # problem bin size, every pbs problems we dump the predictions
+n_problems = 5000
+pbs = 500  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [5000],
+               "initial_counting_network_burn_in_epochs": [1],
                "initial_counting_network_learning_rate": [0.3],
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.05],
+               "PERR": [0.01],
 
                # Choosing to use retrieval v. a strategy
-               "RETRIEVAL_LOW_CC": [0.6], # Should be 0.6 usually; at 1.0 no retrieval will occur
-               "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
+               "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
+               "RETRIEVAL_HIGH_CC": [0.91], # Should be 1.0 usually
                "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                "STRATEGY_HIGH_CC": [1.0],
 
                # Learning target params
                "strategy_hidden_units": [3],
-               "results_hidden_units": [7], # 8 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [10], 
 
                "strategy_learning_rate": [0.1],
-               "results_learning_rate": [0.3], # default: 0.15 Explored 201509010826
+               "results_learning_rate": [0.05], # default: 0.15 Explored 201509010826
                }
 
 ##################### ADD #####################
@@ -451,14 +455,14 @@ def exec_explicit_strategy(strategy_choice):
 # 3=01110, etc.
 
 def precompute_numerical_dictionaries():
-    global addend_dictionary, results_dictionary, strategy_dictionary
+    global addend_dictionary, results_dictionary
     addend_dictionary = {}
     # Addend dictionary:
-    # The special case for 1: 1=0100000 2=0010000, etc.
+    # The special case for 1: 1=100000 2=010000, etc.
     if addend_representation == 1:
-        for p in range(1,n_addend_bits+1): # This will leave the edge bits at 0
-            addend_dictionary[p] = [0]*n_addend_bits
-            addend_dictionary[p][p] = 1 
+        for p in range(1,n_addend_bits+1):
+            addend_dictionary[p] = [anti_1_bit]*n_addend_bits
+            addend_dictionary[p][p-1] = 1 
     # The delocalized n random bits case. This is a tricky little
     # algorithm to generate m unique n-bit numbers by first picking m
     # from among 0..2^n and then turning those into binary.
@@ -473,10 +477,10 @@ def precompute_numerical_dictionaries():
                 r.extend([s])
                 v=v[:n] + v[n+1:]
         for k in range(len(r)):
-            addend_dictionary[k+1]=[int(c) for c in r[k]]
+            addend_dictionary[k+1]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k]]
     elif addend_representation == -111:
         for k in range(1,n_addend_bits+1):
-            addend_dictionary[k]= [0]*(2+n_addend_bits)
+            addend_dictionary[k]= [anti_1_bit]*(2+n_addend_bits)
             for p in range(1,k+1):
                 addend_dictionary[k][p]=1
     else:
@@ -485,9 +489,9 @@ def precompute_numerical_dictionaries():
     # Results dictionary:
     results_dictionary={}
     if results_representation == 1:
-        for p in range(0,n_results_bits):
-            results_dictionary[p] = [0]*n_results_bits
-            results_dictionary[p][p]=1
+        for p in range(1,n_results_bits+1):
+            results_dictionary[p] = [anti_1_bit]*n_results_bits
+            results_dictionary[p][p-1]=1
     elif results_representation == 3:
         fmt = "{0:0"+str(n_results_bits)+"b}"
         v = [x for x in range(2**n_results_bits)]
@@ -499,11 +503,14 @@ def precompute_numerical_dictionaries():
                 r.extend([s])
                 v=v[:n] + v[n+1:]
         for k in range(len(r)):
-            results_dictionary[k+1]=[int(c) for c in r[k]]
+            results_dictionary[k+1]=[anit_1_bit if int(c) == 0 else int(c) for c in r[k]]
             #k+=1  ??
     else:
         #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
+    # Finally, we turn all zeros into anti_1 bits
+    print "addend_dictionary = " + str(addend_dictionary)
+    print "results_dictionary = " + str(results_dictionary)
 
 def precompute_strategy_dictionary():
     global strategy_dictionary
@@ -520,7 +527,7 @@ def precompute_strategy_dictionary():
             v=v[:n] + v[n+1:]
     k = 0
     for sname in strategies.keys():
-        strategy_dictionary[sname]=[int(c) for c in r[k]]
+        strategy_dictionary[sname]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k]]
         k += 1
 
 def addends_matrix(a1, a2):
@@ -564,13 +571,10 @@ class NeuralNetwork:
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
         for i in range(1, len(layers) - 1):
-            r = 2 * numpy.random.random((layers[i - 1], layers[i])) - 1
-            #r = 2 * numpy.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
+            r = (2 * numpy.random.random((layers[i - 1], layers[i])) - 1)/initial_weight_narrowing_divisor
             self.weights.append(r)
 
-        r = 2 * numpy.random.random((layers[i], layers[i + 1])) - 1
-        #r = 2 * numpy.random.random((layers[i] + 1, layers[i + 1])) - 1
-
+        r = (2 * numpy.random.random((layers[i], layers[i + 1])) - 1)/initial_weight_narrowing_divisor
         self.weights.append(r)
 
         self.X = []
@@ -602,6 +606,7 @@ class NeuralNetwork:
     def fit(self, learning_rate, epochs, X=None, y=None):
         if X is None: X = self.X
         if y is None: y = self.target
+        #print "> fit: X = " + str(X) + ", y = " + str(y)
         ones = numpy.atleast_2d(numpy.ones(X.shape[0]))
         for k in range(epochs):
 
@@ -647,7 +652,7 @@ class NeuralNetwork:
         for l in range(0, len(self.weights)):
             a = self.activation(numpy.dot(a, self.weights[l]))
         #print "final a = " + str(a)
-        # The scores are essentially the summed errors for every possible dictionary entry
+        #The scores are essentially the summed errors for every possible dictionary entry
         scores = score(self.output_dictionary, a)
         #print "scores = " + str(scores)
         return scores
@@ -736,6 +741,7 @@ class NeuralNetwork:
     # itself."
 
     def update_target(self, a1, a2, target):
+        #print "> update_target"+ str([a1, a2, target])
         # Inputs:
         self.X = []
         self.X.append(addends_matrix(a1, a2))
@@ -824,7 +830,7 @@ def results_network():
             y_count.append(sum_matrix(a,b))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    # Now burn it in:
+    # Now burn it in if desired:
     nn.fit(current_params["initial_counting_network_learning_rate"], current_params["initial_counting_network_burn_in_epochs"], X_count, y_count)
     nn.update_predictions()
     return nn
@@ -951,7 +957,7 @@ def config_and_test(index=0):
 
 def dump_non_scanned_params():
     logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
-    logstream.write("  (:addend_dictionary "+lispify(results_dictionary)+")\n")
+    logstream.write("  (:addend_dictionary "+lispify(addend_dictionary)+")\n")
     logstream.write("  (:results_dictionary "+lispify(results_dictionary)+")\n")
     logstream.write("  (:strategy_dictionary "+lispify(strategy_dictionary)+")\n")
     logstream.write("  (:ndups "+str(ndups)+")\n")
@@ -961,11 +967,13 @@ def dump_non_scanned_params():
     logstream.write("  (:n_addend_bits "+str(n_addend_bits)+")\n")
     logstream.write("  (:addend_one_bits "+str(addend_one_bits)+")\n")
     logstream.write("  (:results_representation "+str(results_representation)+")\n")
+    logstream.write("  (:initial_weight_narrowing_divisor "+str(initial_weight_narrowing_divisor)+")\n")
     logstream.write("  (:n_results_bits "+str(n_results_bits)+")\n")
     logstream.write("  (:results_one_bits "+str(results_one_bits)+")\n")
     logstream.write("  (:strategies " + lispify(strategies.keys()) + ")\n")
     logstream.write("  (:n_strat_bits " + str(n_strat_bits) + ")\n")
     logstream.write("  (:strat_one_bits " + str(strat_one_bits) + ")\n")
+    logstream.write("  (:anti_1_bit " + str(anti_1_bit) + ")\n")
     logstream.write("  (:n_problems "+str(n_problems)+")\n")
     logstream.write("  (:per_problem_training_epochs " + str(per_problem_training_epochs)+")\n")
     logstream.write("  (:pbs " + str(pbs) + ")\n")
