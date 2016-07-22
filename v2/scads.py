@@ -2,7 +2,7 @@
 #******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #****************************************************************************************************************
 
-experiment_label = "\"trying to stretch out the 5:3->5:3 learning rate\""
+experiment_label = "\"5:3->10:1 (local) learning rate scan\""
 
 # Notes:
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
@@ -35,7 +35,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -87,7 +87,7 @@ pbs = 200  # problem bin size, every pbs problems we dump the predictions
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1],
+               "initial_counting_network_burn_in_epochs": [1,250,500,750,1000],
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
@@ -101,7 +101,7 @@ scanned_params = {
 
                # Learning target params
                "strategy_hidden_units": [3],
-               "results_hidden_units": [6,8,10], 
+               "results_hidden_units": [10], 
 
                "strategy_learning_rate": [0.1],
                "results_learning_rate": [0.05], 
