@@ -531,12 +531,20 @@ def precompute_strategy_dictionary():
         k += 1
 
 def addends_matrix(a1, a2):
+    global addend_dictionary
     return addend_dictionary[a1]+addend_dictionary[a2]
 
-# This is used for counting exposure
-def sum_matrix(a,b):
-    global addend_dictionary, results_dictionary, strategy_dictionary
-    return results_dictionary[a+b]
+#def sum_matrix(a,b):
+#    global addend_dictionary, results_dictionary, strategy_dictionary
+#    return results_dictionary[a+b]
+
+# Counting exposure
+def addends_plus_counting_matrix(a,b):
+    global addend_dictionary, results_dictionary
+    av=results_dictionary[a]
+    bv=results_dictionary[b]
+    b1v=results_dictionary[b+1]
+    return map((lambda a,b,b1: max(a,b,b1)),av,bv,b1v)
 
 class NeuralNetwork:
     global addend_dictionary, results_dictionary, strategy_dictionary
@@ -827,10 +835,12 @@ def results_network():
     for a in range(1, 6):
         for b in range(1,6):
             X_count.append(addends_matrix(a,b))
-            y_count.append(sum_matrix(a,b))
+            y_count.append(addends_plus_counting_matrix(a,b))
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
-    # Now burn it in if desired:
+    # Now burn it in:
+    print str(X_count)
+    print str(y_count)
     nn.fit(current_params["initial_counting_network_learning_rate"], current_params["initial_counting_network_burn_in_epochs"], X_count, y_count)
     nn.update_predictions()
     return nn
