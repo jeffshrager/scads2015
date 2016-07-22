@@ -2,6 +2,8 @@
 #******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #****************************************************************************************************************
 
+experiment_label = "\"trying the expand the ramp in burn in\""
+
 # Notes:
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
 # simulate improvment in ability to count correctly with age.
@@ -12,11 +14,6 @@ import os
 import numpy
 from random import randint, shuffle, random
 import sys
-
-# IMPORTANT: REMEMBER TO CHANGE experiment_label, which is used by the
-# analyzer to label the results file. (LEAVE THE \" AT EACH END!!!)
-
-experiment_label = "\"Scanning localized params 5x with addend_rep = 1 and deloc = 0.0\""
 
 # If you forget to change it, auto timestamping will put a time stamp
 # at the end of the experiment label to make sure that the runs are
@@ -62,7 +59,7 @@ initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow init
 anti_1_bit = -1 # This is what goes into the non-1s in the dictionary
 
 # About 20160720 we decided that we are using 5:3 for both of these at the moment.
-addend_representation = 1 # or, e.g., 3  (on 5) or -111 for weight-based -- usually 1, 3, or -111
+addend_representation = 3 # 1, 3, or -111 for weight-based
 n_addend_bits = 5 # Should be 5 for type 1, possible also for type 3 (really becomes n*2 width bcs there are two addends)
 addend_one_bits = 3 # Only relevant for type 3
 results_representation = 1
@@ -90,8 +87,8 @@ pbs = 500  # problem bin size, every pbs problems we dump the predictions
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1,1000,5000],
-               "initial_counting_network_learning_rate": [0.3],
+               "initial_counting_network_burn_in_epochs": [1,250,500,750,1000],
+               "initial_counting_network_learning_rate": [0.05],
 
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
@@ -839,8 +836,8 @@ def results_network():
     X_count = numpy.array(X_count)
     y_count = numpy.array(y_count)
     # Now burn it in:
-    print str(X_count)
-    print str(y_count)
+    #print str(X_count)
+    #print str(y_count)
     nn.fit(current_params["initial_counting_network_learning_rate"], current_params["initial_counting_network_burn_in_epochs"], X_count, y_count)
     nn.update_predictions()
     return nn
