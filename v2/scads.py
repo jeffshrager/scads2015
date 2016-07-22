@@ -2,7 +2,7 @@
 #******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #****************************************************************************************************************
 
-experiment_label = "\"trying the expand the ramp in burn in\""
+experiment_label = "\"same with 5:3->5:3 ... be afraid!\""
 
 # Notes:
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
@@ -62,8 +62,8 @@ anti_1_bit = -1 # This is what goes into the non-1s in the dictionary
 addend_representation = 3 # 1, 3, or -111 for weight-based
 n_addend_bits = 5 # Should be 5 for type 1, possible also for type 3 (really becomes n*2 width bcs there are two addends)
 addend_one_bits = 3 # Only relevant for type 3
-results_representation = 1
-n_results_bits = 10 # Should be 10 for type 1, less for type 3
+results_representation = 3
+n_results_bits = 5 # Should be 10 for type 1, less for type 3
 results_one_bits = 3 # Only relevant for type 3
 results_possible_values = [1,2,3,4,5,6,7,8,9,10]
 
@@ -500,7 +500,7 @@ def precompute_numerical_dictionaries():
                 r.extend([s])
                 v=v[:n] + v[n+1:]
         for k in range(len(r)):
-            results_dictionary[k+1]=[anit_1_bit if int(c) == 0 else int(c) for c in r[k]]
+            results_dictionary[k+1]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k]]
             #k+=1  ??
     else:
         #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
