@@ -108,30 +108,21 @@ class Lexicon(object):
         #print self.input_dictionary
 
         #output
-        output_one_bits = current_params["output_one_bits"]
+        output_one_bits = 5
         self.output_dictionary={}
-        if output_one_bits == 1:
-            for p in range(5):
-                self.output_dictionary[p+1] = [0]*5
-                self.output_dictionary[p+1][p]=1
-        elif output_one_bits>2:
-            fmt = "{0:0"+str(5)+"b}"
-            v = [x for x in range(2**5)]
-            r = []
-            while len(r) < 6:
-                n = randint(0,len(v)-1)
-                s = fmt.format(v[n])
-                if s.count('1') == output_one_bits:
-                    r.extend([s])
-                    v=v[:n] + v[n+1:]
-            for k in range(len(r)):
-                self.output_dictionary[k]=[int(c) for c in r[k]]
-                print str(self.output_dictionary)
-        elif output_one_bits == -111:
-            for k in range(1,6):
-                self.output_dictionary[k]= [0]*5
-                for p in range(5):
-                    self.output_dictionary[k][p]=1
+        v = [x for x in range(2**5)]
+        r = []
+        while len(r) < 6:
+            n = randint(0,len(v)-1)
+            s = fmt.format(v[n])
+            s +=
+            if s.count('1') == output_one_bits:
+                r.extend([s])
+                v=v[:n] + v[n+1:]
+        for k in range(len(r)):
+            self.output_dictionary[k]=[int(c) for c in r[k]]
+            #print str(self.output_dictionary)
+
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
