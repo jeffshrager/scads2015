@@ -40,6 +40,10 @@ pbs = 50  # problem bin size, every pbs problems we dump the predictions
 
 initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
  
+input_one_bits = 5
+
+anti_1_bit = -1 
+
 n_exposures = 2000 # Problem presentation and execution
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
@@ -47,11 +51,6 @@ current_params = {} # These are set for a given run by the recursive param searc
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
-
-               # Learning target params
-               "input_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
-               "output_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
-
 
                "results_hidden_units": [8], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
@@ -90,32 +89,25 @@ class Lexicon(object):
         # Also, if this is something special -111 then use 10000 11000 11100 ...
 
         #input
-        input_one_bits = current_params["input_one_bits"]
         self.input_dictionary = {}
-        if input_one_bits == 1:
-            for p in range(1,6): # This will leave the edge bits at 0
-                # This includes edge bits for delocalization
-                self.input_dictionary[p] = ([0]*(2+5))
-                self.input_dictionary[p][p] = 1 
-            print self.input_dictionary
-        elif input_one_bits>2:
-            fmt = "{0:0"+str(5)+"b}"
-            v = [x for x in range(2**5)]
-            r = []
-            while len(r) < 6:
-                n = randint(0,len(v)-1)
-                s = fmt.format(v[n])
-                if s.count('1') == input_one_bits:
-                    r.extend([s])
-                    v=v[:n] + v[n+1:]
-            for k in range(len(r)):
-                self.input_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
-        elif input_one_bits == -111:
-            for k in range(1,6):
-                self.input_dictionary[k]= [0]*(2+5)
-                for p in range(1,k+1):
-                    self.input_dictionary[k][p]=1
-        # Results dictionary:
+        #new
+        fmt = "{0:0"+str(10)+"b}"
+        r = []
+        for i in range(1025):
+            s = fmt.format(i)
+            if s.count('1') == 5:
+                r.extend([s])
+        for k in range(len(r)):
+          r[k]=[int(c) for c in r[k]]
+
+        shuffle(r)
+        #print r
+
+        for k in range(1,11):
+            self.input_dictionary[k]=[int(c) for c in r[k-1]]
+        print self.input_dictionary
+
+        #output
         output_one_bits = current_params["output_one_bits"]
         self.output_dictionary={}
         if output_one_bits == 1:
@@ -134,6 +126,7 @@ class Lexicon(object):
                     v=v[:n] + v[n+1:]
             for k in range(len(r)):
                 self.output_dictionary[k]=[int(c) for c in r[k]]
+                print str(self.output_dictionary) + "yas"
         elif output_one_bits == -111:
             for k in range(1,6):
                 self.output_dictionary[k]= [0]*5
