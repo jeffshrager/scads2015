@@ -92,20 +92,20 @@ class Lexicon(object):
         self.input_dictionary = {}
         #new
         fmt = "{0:0"+str(10)+"b}"
-        r = []
+        input_set = []
         for i in range(1025):
             s = fmt.format(i)
             if s.count('1') == 5:
-                r.extend([s])
-        for k in range(len(r)):
-          r[k]=[int(c) for c in r[k]]
+                input_set.extend([s])
+        for k in range(len(input_set)):
+          input_set[k]=[int(c) for c in input_set[k]]
 
-        shuffle(r)
+        shuffle(input_set)
         #print r
 
         for k in range(1,11):
-            self.input_dictionary[k]=[int(c) for c in r[k-1]]
-        print self.input_dictionary
+            self.input_dictionary[k]=[int(c) for c in input_set[k-1]]
+        #print self.input_dictionary
 
         #output
         output_one_bits = current_params["output_one_bits"]
@@ -126,7 +126,7 @@ class Lexicon(object):
                     v=v[:n] + v[n+1:]
             for k in range(len(r)):
                 self.output_dictionary[k]=[int(c) for c in r[k]]
-                print str(self.output_dictionary) + "yas"
+                print str(self.output_dictionary)
         elif output_one_bits == -111:
             for k in range(1,6):
                 self.output_dictionary[k]= [0]*5
