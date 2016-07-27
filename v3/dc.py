@@ -98,13 +98,13 @@ class Lexicon(object):
             if s.count('1') == 5:
                 input_set.extend([s])
         for k in range(len(input_set)):
-          input_set[k]=[int(c) for c in input_set[k]]
+          input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k]]
 
         shuffle(input_set)
         #print r
 
         for k in range(1,11):
-            self.input_dictionary[k]=[int(c) for c in input_set[k-1]]
+            self.input_dictionary[k]=[[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k-1]]]
         #print self.input_dictionary
 
         #output
@@ -115,7 +115,6 @@ class Lexicon(object):
         while len(r) < 6:
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
-            s +=
             if s.count('1') == output_one_bits:
                 r.extend([s])
                 v=v[:n] + v[n+1:]
