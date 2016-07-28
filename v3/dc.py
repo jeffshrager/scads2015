@@ -93,7 +93,7 @@ class Lexicon(object):
             s = fmt.format(i)
             if s.count('1') == 5:
                 self.input_set.extend([s])
-        for k in range(len(input_set)):
+        for k in range(len(self.input_set)):
           self.input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k]]
         shuffle(self.input_set)
 
@@ -101,28 +101,10 @@ class Lexicon(object):
             self.input_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k-1]]
         print self.input_dictionary
 
-        # !!! Good, so the 1-10 input dictionary is fine; You'll need
-        # !!! to stash the rest of the input set someplace for use in
-        # !!! presentation.
 
-        #output
+        #OUTPUT dictionary
+        output_one_bits = 3 
 
-        # !!! The below has to be done twice, once for the 5:3 part,
-        # !!! and again for 5:2. (If you like you can remodularize the
-        # !!! code, or just copy it) But output_one_bits here should
-        # !!! be 3, not 5. Bcs it's 5, this never stops (infinite
-        # !!! loop). 
-
-
-        # !!! So, replcate the above changing the output_one_bits to
-        # !!! 2, and then create the 1-10 dictionary, where each entry
-        # !!! is 10:5, but makde up of a 5:3+5:2. Then you to create a
-        # !!! new set of ... um, let's see, I guess 5:3 and made up an
-        # !!! additional set of -- I guess it'll be 10 -- NON-number
-        # !!! dictionary entries.
-
-        output_one_bits = 3 # !!! This should be 3 here, and then replicate this again forthe 5:2 part.
-        
         self.output_dictionary={}
 
         #5:3 part
@@ -134,6 +116,7 @@ class Lexicon(object):
             s = fmt2.format(v[n])
             if s.count('1') == output_one_bits:
                 r.extend([s])
+                v = v[:n] + v[n+1:]
         print r
 
         #5:2 part
@@ -144,9 +127,22 @@ class Lexicon(object):
             s = fmt2.format(w[n])
             if s.count('1') == 2:
                 o.extend([s])
+                w = w[:n] + w[n+1:]
         print o
         for k in range(1,11):
             self.output_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
+
+
+        #random vals    
+        self.output_set = []
+        for i in range(1025):
+            s = fmt.format(i)
+            firsthalf = s[:5]
+            secondhalf = s[5:]
+            if firsthalf.count('1') != 3 and secondhalf.count('1') == 2:
+                self.output_set.extend([s])
+        for k in range(len(self.output_set)):
+          self.output_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.output_set[k]]  
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
