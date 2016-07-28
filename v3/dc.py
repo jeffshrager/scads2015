@@ -54,15 +54,11 @@ scanned_params = {
 
                "results_hidden_units": [8], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
-
               
                "results_learning_rate": [0.1], # default: 0.1 0.05,0.1,0.2
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
 
                }
-
-
-
 
 ##################### LINGUISTIC INPUT #####################
 ### By Myra; testing input creation for Lingustic model.
@@ -99,28 +95,44 @@ class Lexicon(object):
                 input_set.extend([s])
         for k in range(len(input_set)):
           input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k]]
-
         shuffle(input_set)
-        #print r
 
         for k in range(1,11):
             self.input_dictionary[k]=[[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k-1]]]
-        #print self.input_dictionary
+        print self.input_dictionary
+
+        # !!! Good, so the 1-10 input dictionary is fine; You'll need
+        # !!! to stash the rest of the input set someplace for use in
+        # !!! presentation.
 
         #output
-        output_one_bits = 5
+
+        # !!! The below has to be done twice, once for the 5:3 part,
+        # !!! and again for 5:2. (If you like you can remodularize the
+        # !!! code, or just copy it) But output_one_bits here should
+        # !!! be 3, not 5. Bcs it's 5, this never stops (infinite
+        # !!! loop). 
+
+        output_one_bits = 5 # !!! This should be 3 here, and then replicate this again forthe 5:2 part.
         self.output_dictionary={}
         v = [x for x in range(2**5)]
         r = []
         while len(r) < 6:
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
-            if s.count('1') == output_one_bits:
+            if s.count('1') == output_one_bits: # !!! But this is 5, and there's only 1 value (31) with 5 ones in 2^5 --> Loop!
                 r.extend([s])
                 v=v[:n] + v[n+1:]
+
+        # !!! So, replcate the above changing the output_one_bits to
+        # !!! 2, and then create the 1-10 dictionary, where each entry
+        # !!! is 10:5, but makde up of a 5:3+5:2. Then you to create a
+        # !!! new set of ... um, let's see, I guess 5:3 and made up an
+        # !!! additional set of -- I guess it'll be 10 -- NON-number
+        # !!! dictionary entries.
+
         for k in range(len(r)):
             self.output_dictionary[k]=[int(c) for c in r[k]]
-            #print str(self.output_dictionary)
 
 
     # I'll get called over and over in a map over the list of values.
