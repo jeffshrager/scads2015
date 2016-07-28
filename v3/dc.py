@@ -35,8 +35,14 @@ suppress_auto_timestamping = False
 
 ##################### GLOBAL SETTINGS #####################
 
-ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 50  # problem bin size, every pbs problems we dump the predictions
+
+initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
+ 
+input_one_bits = 5
+
+anti_1_bit = -1 
 
 n_exposures = 2000 # Problem presentation and execution
 
@@ -46,16 +52,11 @@ current_params = {} # These are set for a given run by the recursive param searc
 
 scanned_params = {
 
-               # Learning target params
-               "input_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
-               "output_one_bits": [3], # If -111 then uses 10000,11000, etc # ,3,-111
-
-
-               "results_hidden_units": [8,12,16,20], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [8], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
 
               
-               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 
+               "results_learning_rate": [0.1], # default: 0.1 0.05,0.1,0.2
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
 
                }
@@ -88,55 +89,39 @@ class Lexicon(object):
         # Also, if this is something special -111 then use 10000 11000 11100 ...
 
         #input
-        input_one_bits = current_params["input_one_bits"]
         self.input_dictionary = {}
-        if input_one_bits == 1:
-            for p in range(1,6): # This will leave the edge bits at 0
-                # This includes edge bits for delocalization
-                self.input_dictionary[p] = ([0]*(2+5))
-                self.input_dictionary[p][p] = 1 
-            print self.input_dictionary
-        elif input_one_bits>2:
-            fmt = "{0:0"+str(5)+"b}"
-            v = [x for x in range(2**5)]
-            r = []
-            while len(r) < 6:
-                n = randint(0,len(v)-1)
-                s = fmt.format(v[n])
-                if s.count('1') == input_one_bits:
-                    r.extend([s])
-                    v=v[:n] + v[n+1:]
-            for k in range(len(r)):
-                self.input_dictionary[k]=[0]+[int(c) for c in r[k]]+[0]
-        elif input_one_bits == -111:
-            for k in range(1,6):
-                self.input_dictionary[k]= [0]*(2+5)
-                for p in range(1,k+1):
-                    self.input_dictionary[k][p]=1
-        # Results dictionary:
-        output_one_bits = current_params["output_one_bits"]
+        #new
+        fmt = "{0:0"+str(10)+"b}"
+        input_set = []
+        for i in range(1025):
+            s = fmt.format(i)
+            if s.count('1') == 5:
+                input_set.extend([s])
+        for k in range(len(input_set)):
+          input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k]]
+
+        shuffle(input_set)
+        #print r
+
+        for k in range(1,11):
+            self.input_dictionary[k]=[[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k-1]]]
+        #print self.input_dictionary
+
+        #output
+        output_one_bits = 5
         self.output_dictionary={}
-        if output_one_bits == 1:
-            for p in range(5):
-                self.output_dictionary[p+1] = [0]*5
-                self.output_dictionary[p+1][p]=1
-        elif output_one_bits>2:
-            fmt = "{0:0"+str(5)+"b}"
-            v = [x for x in range(2**5)]
-            r = []
-            while len(r) < 6:
-                n = randint(0,len(v)-1)
-                s = fmt.format(v[n])
-                if s.count('1') == output_one_bits:
-                    r.extend([s])
-                    v=v[:n] + v[n+1:]
-            for k in range(len(r)):
-                self.output_dictionary[k]=[int(c) for c in r[k]]
-        elif output_one_bits == -111:
-            for k in range(1,6):
-                self.output_dictionary[k]= [0]*5
-                for p in range(5):
-                    self.output_dictionary[k][p]=1
+        v = [x for x in range(2**5)]
+        r = []
+        while len(r) < 6:
+            n = randint(0,len(v)-1)
+            s = fmt.format(v[n])
+            if s.count('1') == output_one_bits:
+                r.extend([s])
+                v=v[:n] + v[n+1:]
+        for k in range(len(r)):
+            self.output_dictionary[k]=[int(c) for c in r[k]]
+            #print str(self.output_dictionary)
+
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
@@ -239,10 +224,10 @@ class NeuralNetwork:
         # input and hidden layers - random((2+1, 2+1)) : 3 x 3
 
         for i in range(1, len(layers) - 1):
-            r = 2 * numpy.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1
+            r = (2 * numpy.random.random((layers[i - 1] + 1, layers[i] + 1)) - 1)/initial_weight_narrowing_divisor
             self.weights.append(r)
 
-        r = 2 * numpy.random.random((layers[i] + 1, layers[i + 1])) - 1
+        r = (2 * numpy.random.random((layers[i] + 1, layers[i + 1])) - 1)/initial_weight_narrowing_divisor
 
         self.weights.append(r)
 
@@ -487,6 +472,7 @@ def dump_non_scanned_params():
     logstream.write("  (:pbs "+str(pbs)+")\n")
     logstream.write("  (:n_problems "+str(n_exposures)+")\n")
     logstream.write("  (:suppress_auto_timestamping "+str(suppress_auto_timestamping)+")\n")
+    logstream.write("  (:initial_weight_narrowing_divisor "+str(initial_weight_narrowing_divisor)+")\n")
     logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
 
 #making a file - deal with this later  Q00
