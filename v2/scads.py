@@ -35,7 +35,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -62,9 +62,9 @@ anti_1_bit = -1 # This is what goes into the non-1s in the dictionary
 addend_representation = 3 # 1, 3, or -111 for weight-based
 n_addend_bits = 5 # Should be 5 for type 1, possible also for type 3 (really becomes n*2 width bcs there are two addends)
 addend_one_bits = 3 # Only relevant for type 3
-results_representation = 1
+results_representation = 3
 n_results_bits = 10 # Should be 10 for type 1, less for type 3
-results_one_bits = 1 # Only relevant for type 3
+results_one_bits = 5 # Only relevant for type 3
 results_possible_values = [1,2,3,4,5,6,7,8,9,10]
 
 # (The possible values of strategies is set later, after the
@@ -87,7 +87,7 @@ pbs = 200  # problem bin size, every pbs problems we dump the predictions
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1,250,500,750,1000],
+               "initial_counting_network_burn_in_epochs": [1],
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
@@ -95,7 +95,7 @@ scanned_params = {
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
-               "RETRIEVAL_HIGH_CC": [1.0], # Should be 1.0 usually
+               "RETRIEVAL_HIGH_CC": [0.91], # Should be 1.0 usually
                "STRATEGY_LOW_CC": [0.6], # If 1.0, strategies will be chosen randomly
                "STRATEGY_HIGH_CC": [1.0],
 
