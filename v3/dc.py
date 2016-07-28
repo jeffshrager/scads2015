@@ -88,17 +88,17 @@ class Lexicon(object):
         self.input_dictionary = {}
         #new
         fmt = "{0:0"+str(10)+"b}"
-        input_set = []
+        self.input_set = []
         for i in range(1025):
             s = fmt.format(i)
             if s.count('1') == 5:
-                input_set.extend([s])
+                self.input_set.extend([s])
         for k in range(len(input_set)):
-          input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k]]
-        shuffle(input_set)
+          self.input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k]]
+        shuffle(self.input_set)
 
         for k in range(1,11):
-            self.input_dictionary[k]=[[anti_1_bit if int(c) == 0 else int(c) for c in input_set[k-1]]]
+            self.input_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k-1]]
         print self.input_dictionary
 
         # !!! Good, so the 1-10 input dictionary is fine; You'll need
@@ -113,16 +113,6 @@ class Lexicon(object):
         # !!! be 3, not 5. Bcs it's 5, this never stops (infinite
         # !!! loop). 
 
-        output_one_bits = 5 # !!! This should be 3 here, and then replicate this again forthe 5:2 part.
-        self.output_dictionary={}
-        v = [x for x in range(2**5)]
-        r = []
-        while len(r) < 6:
-            n = randint(0,len(v)-1)
-            s = fmt.format(v[n])
-            if s.count('1') == output_one_bits: # !!! But this is 5, and there's only 1 value (31) with 5 ones in 2^5 --> Loop!
-                r.extend([s])
-                v=v[:n] + v[n+1:]
 
         # !!! So, replcate the above changing the output_one_bits to
         # !!! 2, and then create the 1-10 dictionary, where each entry
@@ -131,9 +121,32 @@ class Lexicon(object):
         # !!! additional set of -- I guess it'll be 10 -- NON-number
         # !!! dictionary entries.
 
-        for k in range(len(r)):
-            self.output_dictionary[k]=[int(c) for c in r[k]]
+        output_one_bits = 3 # !!! This should be 3 here, and then replicate this again forthe 5:2 part.
+        
+        self.output_dictionary={}
 
+        #5:3 part
+        fmt2 = "{0:0"+str(5)+"b}"
+        v = [x for x in range(2**5)]
+        r = []
+        while len(r) < 10:
+            n = randint(0,len(v)-1)
+            s = fmt2.format(v[n])
+            if s.count('1') == output_one_bits:
+                r.extend([s])
+        print r
+
+        #5:2 part
+        w = [x for x in range(2**5)]
+        o = []
+        while len(o) < 10:
+            n = randint(0,len(w)-1)
+            s = fmt2.format(w[n])
+            if s.count('1') == 2:
+                o.extend([s])
+        print o
+        for k in range(1,11):
+            self.output_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
