@@ -63,8 +63,7 @@ scanned_params = {
 ##################### LINGUISTIC INPUT #####################
 ### By Myra; testing input creation for Lingustic model.
 
-n_inputs = 5
-n_outputs = 5
+n_inputs = 10
 noise_scale = 0.05
 
 # :-) Made this a class which will make it much simler to move the
@@ -133,7 +132,7 @@ class Lexicon(object):
             self.output_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
 
 
-        #random vals    
+        #random vals : rest of the output set  
         self.output_set = []
         for i in range(1025):
             s = fmt.format(i)
@@ -255,11 +254,10 @@ class NeuralNetwork:
         self.X = []
 
         # Initial input, counting numbers
-        for i in range(1, 6):
+        for i in range(1, 11):
                 self.X.append(lexicon.numberWordWithNoise(i))
         self.X = numpy.array(self.X)
         self.predictions = []
-
         X_count = []
         y_count = []
         self.update_predictions()
@@ -353,16 +351,10 @@ class NeuralNetwork:
 
     #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
 
-    def guess_vector(self, n, beg, end):
-        vec = []
-        self.predict(lexicon.numberWordWithNoise(n))
-        for i in range(beg, end):
-            vec.append(round(self.predictions[n][i], 5))
-        return (vec)
 
     def update_predictions(self):
         self.predictions = []
-        for n in range(1, 6):
+        for n in range(1, 11):
             self.predictions.append(self.predict(lexicon.numberWordWithNoise(n)))
 
     # What target does for now is create a square matrix filled with
@@ -396,7 +388,7 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def results_network():
-    nn = NeuralNetwork("Results", [5, current_params["results_hidden_units"], 5],"RETRIEVAL",lexicon.output_dictionary)
+    nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.output_dictionary)
     # Inits the NN training machine by doing a first prediction.
     return nn
 
@@ -408,7 +400,7 @@ def results_network():
 def train_word():
     global rnet
     rnet.reset_target()
-    trainingset = TrainingSet(randint(1, 5), rnet)
+    trainingset = TrainingSet(randint(1, 10), rnet)
     number=trainingset.number
     input=trainingset.input
     correct_output=trainingset.correct_output
