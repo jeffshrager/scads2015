@@ -52,10 +52,10 @@ current_params = {} # These are set for a given run by the recursive param searc
 
 scanned_params = {
 
-               "results_hidden_units": [8], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [8, 10, 12, 14], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
               
-               "results_learning_rate": [0.1], # default: 0.1 0.05,0.1,0.2
+               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 0.05,0.1,0.2
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
 
                }
@@ -70,8 +70,8 @@ noise_scale = 0.05
 # whole thing into your new model.
 
 class Lexicon(object): 
-    input_dictionary = {}
-    output_dictionary = {}
+    word01 = {}
+    sem01 = {}
 
     # Init will fill the dictionary with random numbers. We don't
     # ever want to change these. Instead, copy them in the
@@ -84,27 +84,26 @@ class Lexicon(object):
         # Also, if this is something special -111 then use 10000 11000 11100 ...
 
         #input
-        self.input_dictionary = {}
+        self.word01 = {}
         #new
         fmt = "{0:0"+str(10)+"b}"
-        self.input_set = []
+        self.word02 = []
         for i in range(1025):
             s = fmt.format(i)
             if s.count('1') == 5:
-                self.input_set.extend([s])
-        for k in range(len(self.input_set)):
-          self.input_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k]]
-        shuffle(self.input_set)
+                self.word02.extend([s])
+        for k in range(len(self.word02)):
+          self.word02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k]]
+        shuffle(self.word02)
 
         for k in range(1,11):
-            self.input_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.input_set[k-1]]
-        print self.input_dictionary
-
+            self.word01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k-1]]
+        #word02 includes word01
 
         #OUTPUT dictionary
         output_one_bits = 3 
 
-        self.output_dictionary={}
+        self.sem01={}
 
         #5:3 part
         fmt2 = "{0:0"+str(5)+"b}"
@@ -116,7 +115,7 @@ class Lexicon(object):
             if s.count('1') == output_one_bits:
                 r.extend([s])
                 v = v[:n] + v[n+1:]
-        print r
+        #print r
 
         #5:2 part
         w = [x for x in range(2**5)]
@@ -127,21 +126,21 @@ class Lexicon(object):
             if s.count('1') == 2:
                 o.extend([s])
                 w = w[:n] + w[n+1:]
-        print o
+        #print o
         for k in range(1,11):
-            self.output_dictionary[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
+            self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
 
 
         #random vals : rest of the output set  
-        self.output_set = []
+        self.sem02 = []
         for i in range(1025):
             s = fmt.format(i)
             firsthalf = s[:5]
             secondhalf = s[5:]
             if firsthalf.count('1') != 3 and secondhalf.count('1') == 2:
-                self.output_set.extend([s])
-        for k in range(len(self.output_set)):
-          self.output_set[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.output_set[k]]  
+                self.sem02.extend([s])
+        for k in range(len(self.sem02)):
+          self.sem02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.sem02[k]]  
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
@@ -156,7 +155,7 @@ class Lexicon(object):
     # This is the main function that a user will call. It just
     # creates a COPY of the representation, with noise.
     def numberWordWithNoise(self,a): 
-        r = self.input_dictionary[a]
+        r = self.word02[a]
         return [self.noisify(r[x]) for x in range(n_inputs)] 
         
     # Figures out which correct output is closest to the one given.
@@ -179,7 +178,7 @@ class Lexicon(object):
     def score(self,nn_output):
         maxn = 999
         maxs = -999
-        r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.output_dictionary)]
+        r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.sem01)]
         for n,s in r:
             if s>maxs:
                 maxs=s
@@ -388,7 +387,7 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def results_network():
-    nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.output_dictionary)
+    nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.sem01)
     # Inits the NN training machine by doing a first prediction.
     return nn
 
@@ -464,8 +463,8 @@ def config_and_test(index=0):
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
             logstream.write(" (:dictionaries\n")
-            logstream.write("   (:input "+ lispify(lexicon.input_dictionary) + ")\n")
-            logstream.write("   (:output "+ lispify(lexicon.output_dictionary) + "))\n")
+            logstream.write("   (:input "+ lispify(lexicon.word01) + ")\n")
+            logstream.write("   (:output "+ lispify(lexicon.sem01) + "))\n")
             rnet = results_network() # Init neural net
             logstream.write(' )\n')
             logstream.write('(:run\n')
