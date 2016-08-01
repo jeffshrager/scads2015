@@ -88,6 +88,8 @@ class Lexicon(object):
         #new
         fmt = "{0:0"+str(10)+"b}"
         self.word02 = []
+        self.wordkeys = []
+
         for i in range(1025):
             s = fmt.format(i)
             if s.count('1') == 5:
@@ -95,6 +97,24 @@ class Lexicon(object):
         for k in range(len(self.word02)):
           self.word02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k]]
         shuffle(self.word02)
+
+        #keys
+        for i in range(1, len(self.word02) - 9):
+          self.wordkeys.append("word" + str(i))
+
+        self.allwords = {}
+
+
+        for k in range(1,11):
+            self.allwords[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k-1]]
+
+        for key in self.wordkeys:
+            v = 0
+            self.allwords[key] = self.word02[v+10]
+            v += 1
+        print self.allwords
+
+
 
         for k in range(1,11):
             self.word01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k-1]]
@@ -140,7 +160,7 @@ class Lexicon(object):
             if firsthalf.count('1') != 3 and secondhalf.count('1') == 2:
                 self.sem02.extend([s])
         for k in range(len(self.sem02)):
-          self.sem02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.sem02[k]]  
+            self.sem02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.sem02[k]]  
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
@@ -388,12 +408,13 @@ class NeuralNetwork:
 
 def results_network():
     nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.sem01)
+    #??? change this "outputs" one?
     # Inits the NN training machine by doing a first prediction.
     return nn
 
 # We first try a retrieval on the sum, and if that fails we have to
 # use a strategy, which we try to retrieve and if that fails we choose
-# a random strategy. Then we update the rnet accordingly, and fit and
+# a random strategy. Then we update the rnet accordingly, and fit and1
 # update_y this is the main driver within driver that does the testing
 
 def train_word():
