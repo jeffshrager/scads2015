@@ -28,7 +28,7 @@ suppress_auto_timestamping = False
 ##################### GLOBAL SETTINGS #####################
 
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
-pbs = 50  # problem bin size, every pbs problems we dump the predictions
+pbs = 5000  # problem bin size, every pbs problems we dump the predictions
 
 initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
  
@@ -44,10 +44,10 @@ current_params = {} # These are set for a given run by the recursive param searc
 
 scanned_params = {
 
-               "results_hidden_units": [8, 10, 12, 14], # 20 per experiments of 20160112b -- maybe 18?
+               "results_hidden_units": [10], # 20 per experiments of 20160112b -- maybe 18?
                "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
               
-               "results_learning_rate": [0.05,0.1,0.2], # default: 0.1 0.05,0.1,0.2
+               "results_learning_rate": [0.1], # default: 0.1 0.05,0.1,0.2
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
 
                }
@@ -97,9 +97,7 @@ class Lexicon(object):
         #11 and up is WORDS
         for k in range(len(self.word02) - 10):
             self.allwords[k + 11] = self.word02[k+10]
-        print self.allwords
-
-
+        #print self.allwords
 
         for k in range(1,11):
             self.word01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k-1]]
@@ -180,7 +178,6 @@ class Lexicon(object):
 class TrainingSet():
     def __init__(self, nn):
     	self.rint = randint(1, len(lexicon.allwords))
-
         self.input = lexicon.allwords[self.rint]
         if self.rint <= 10:
         	self.correct_output = nn.outputs[self.rint]
@@ -430,7 +427,7 @@ def train_word():
     input=trainingset.input
     correct_output=trainingset.correct_output
     retrieved_output = rnet.wan2lnp(input,trainingset.rint)
-    logstream.write("(:encoding " + " " + " (" +  str(trainingset.rint) + " => ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
+    logstream.write("(:encoding " + "(:input " + lispify(input) + ") (:correct_output " + lispify(correct_output) + ") (:rint " + lispify(trainingset.rint) + ")\n      (:retreived_output " + lispify(retrieved_output) + "))\n")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
@@ -443,9 +440,7 @@ def present_words():
     logstream.write('(:training_block\n')
     logstream.write('   (:training\n')
     for i in range(n_exposures):
-        logstream.write('(')
         train_word()
-        logstream.write(')\n')
         if i % pbs == 0 or i == n_exposures:
             logstream.write('      ) ;; close :training\n')
             logstream.write('    ) ;; close :training-block\n')
@@ -484,8 +479,8 @@ def config_and_test(index=0):
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
             logstream.write(" (:dictionaries\n")
-            logstream.write("   (:input "+ lispify(lexicon.word01) + ")\n")
-            logstream.write("   (:output "+ lispify(lexicon.sem01) + "))\n")
+            logstream.write("   (:input_allwords "+ lispify(lexicon.allwords) + ")\n")
+            logstream.write("   (:output_allsem "+ lispify(lexicon.allsem) + "))\n")
             rnet = results_network() # Init neural net
             logstream.write(' )\n')
             logstream.write('(:run\n')
