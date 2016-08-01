@@ -88,7 +88,6 @@ class Lexicon(object):
         #new
         fmt = "{0:0"+str(10)+"b}"
         self.word02 = []
-        self.wordkeys = []
 
         for i in range(1025):
             s = fmt.format(i)
@@ -99,6 +98,8 @@ class Lexicon(object):
         shuffle(self.word02)
 
         #keys
+        self.wordkeys = []
+
         for i in range(1, len(self.word02) - 9):
           self.wordkeys.append("word" + str(i))
 
@@ -112,7 +113,7 @@ class Lexicon(object):
             v = 0
             self.allwords[key] = self.word02[v+10]
             v += 1
-        print self.allwords
+        #print self.allwords
 
 
 
@@ -161,6 +162,22 @@ class Lexicon(object):
                 self.sem02.extend([s])
         for k in range(len(self.sem02)):
             self.sem02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.sem02[k]]  
+
+        #dictionary of all of them:
+        self.allsem = {}
+        for k in range(1,11):
+            self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
+
+        self.semkeys = []
+
+        for i in range(1, len(self.sem02) + 1):
+          self.semkeys.append("sem" + str(i))
+
+        for key in self.semkeys:
+            z = 0
+            self.allsem[key] = self.sem02[z]
+            z += 1
+        #print self.allsem
 
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
