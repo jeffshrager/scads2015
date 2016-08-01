@@ -18,14 +18,6 @@ def RoundedStr(l):
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","=").replace("{","(").replace("}",")")
 
-class TrainingSet():
-    def __init__(self, n, nn):
-        self.number = n
-        # FFF This will eventually get replaced by something more
-        # complex that provides an input representation. For the
-        # moment these are the same.
-        self.input = lexicon.numberWordWithNoise(self.number)
-        self.correct_output = nn.outputs[n]
 
 ##################### SETTINGS #####################
 
@@ -183,6 +175,18 @@ class Lexicon(object):
         
     # Figures out which correct output is closest to the one given.
 
+
+
+class TrainingSet():
+    def __init__(self, nn):
+    	self.rint = randint(1, len(lexicon.allwords))
+
+        self.input = lexicon.allwords[self.rint]
+        if self.rint <= 10:
+        	self.correct_output = nn.outputs[self.rint]
+        else:
+        	self.correct_output = nn.outputs[10+int(round(((len(lexicon.allsem) - 10)/len(lexicon.allwords))*self.rint))]
+
     def scoresub1(self,i,o):
         sum = 0
         for p in range(len(i)):
@@ -201,7 +205,7 @@ class Lexicon(object):
     def score(self,nn_output):
         maxn = 999
         maxs = -999
-        r = [[number,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.sem01)]
+        r = [[trainingset.rint,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.sem01)]
         for n,s in r:
             if s>maxs:
                 maxs=s
@@ -376,8 +380,8 @@ class NeuralNetwork:
 
     def update_predictions(self):
         self.predictions = []
-        for n in range(1, 11):
-            self.predictions.append(self.predict(lexicon.numberWordWithNoise(n)))
+        for n in range(1, 253):
+            self.predictions.append(self.predict(lexicon.allwords[n]))
 
     # What target does for now is create a square matrix filled with
     # 0.5, and for the 1d matrix at y_index(a1, a2) it will have
@@ -410,8 +414,7 @@ class NeuralNetwork:
 # I/O relationships that have this tendency.
 
 def results_network():
-    nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.sem01)
-    #??? change this "outputs" one?
+    nn = NeuralNetwork("Results", [10, current_params["results_hidden_units"], 10],"RETRIEVAL",lexicon.allsem)
     # Inits the NN training machine by doing a first prediction.
     return nn
 
@@ -423,17 +426,11 @@ def results_network():
 def train_word():
     global rnet
     rnet.reset_target()
-    trainingset = TrainingSet(randint(1, 10), rnet)
-    number=trainingset.number
+    trainingset = TrainingSet(rnet)
     input=trainingset.input
     correct_output=trainingset.correct_output
-    retrieved_output = rnet.wan2lnp(input,number)
-    minn = lexicon.score(retrieved_output)
-    if minn == number:
-        rw = ":+right+"
-    else:
-        rw = ":-wrong-"
-    logstream.write("(:encoding " + " " + rw + " (" +  str(number) + " => " +str(minn)+") ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
+    retrieved_output = rnet.wan2lnp(input,trainingset.rint)
+    logstream.write("(:encoding " + " " + " (" +  str(trainingset.rint) + " => ((" + lispify(input) + ") => " + lispify(retrieved_output) + ")) ")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
