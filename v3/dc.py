@@ -43,13 +43,9 @@ current_params = {} # These are set for a given run by the recursive param searc
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
-
-               "results_hidden_units": [10], # 20 per experiments of 20160112b -- maybe 18?
-               "non_result_y_filler": [0.0], # Set into all outputs EXCEPT result, which is adjusted by INCR_RIGHT and DECR_WRONG
-              
-               "results_learning_rate": [0.1], # default: 0.1 0.05,0.1,0.2
+               "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
+               "results_learning_rate": [0.3], 
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
-
                }
 
 ##################### LINGUISTIC INPUT #####################
@@ -387,7 +383,7 @@ class NeuralNetwork:
 
     def reset_target(self):
         self.target = []
-        self.target.append(current_params["non_result_y_filler"] * (self.layers[-1]))
+        self.target.append([0.0] * (self.layers[-1]))
         self.target = numpy.array(self.target)
 
     # This gets very ugly because in order to be generalizable
