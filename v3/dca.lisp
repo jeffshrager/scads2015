@@ -116,11 +116,15 @@
 					collect pb))))
 
 (defvar *p->last-wrong-pos* (make-hash-table :test #'equal))
+(defparameter *target-correct-fraction* 0.8)
 (defun summarize (ts)
   (clrhash *file->summary*)
   (with-open-file 
    (o (print (format nil "sumstats/~a-dcsum.xls" ts))
       :direction :output :if-exists :supersede) 
+   (with-open-file 
+    (p (print (format nil "sumstats/~a-dcnumbers.xls" ts))
+       :direction :output :if-exists :supersede) 
    ;; Headers -- only roles once!
    (loop for log being the hash-value of *file->log*
 	 do 	     
@@ -138,7 +142,7 @@
 	 do 
 	 (let ((params (cdr (assoc :params log)))
 	       (training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*)))
-	   (format o "~a	" (pathname-name file))
+	   (format o "_~a_	" (pathname-name file))
 	   (loop for (nil v) in params 
 		 do (format o "~a	" v))
 	   (clrhash *p->last-wrong-pos*)
@@ -150,17 +154,28 @@
 		 as correct_output = (cadr (assoc :correct_output data))
 		 as rint = (cadr (assoc :rint data))
 		 as retreived_output = (cadr (assoc :retreived_output data))
-		 as prediction-right? = (prediction-right? correct_output retreived_output)
+		 as prediction-factor = (prediction-factor correct_output retreived_output)
+		 as prediction-right? = (<  prediction-factor *target-correct-fraction*)
 		 as pos from 1 by 1
-		 if (not prediction-right?)
 		 do 
-		 (setf (gethash rint *p->last-wrong-pos*) pos))
+		 (if (not prediction-right?)
+		     (setf (gethash rint *p->last-wrong-pos*) pos))
+		 (if (<= rint 10) 
+		     (format p "_~a_	~a	~a	~a 	~a	~a	~a~%" 
+			     (pathname-name file)
+			     pos
+			     rint
+			     correct_output
+			     retreived_output
+			     prediction-factor
+			     prediction-right?))
+		 )
 	   (loop for i from 1 to 10 ;; only need to look at the numbers for this analysis
 		 as pos = (gethash i *p->last-wrong-pos*)
 		 do (format o "~a	" pos))
 	   (if *heuristicated-experiment-label*
 	       (format o "~a	~%" *heuristicated-experiment-label*))
-	   ))))
+	   )))))
 
 ;;; Takes a pair of equal-length real vectors, as: (-1.345 3.448 ...)
 ;;; (1.543 -0.348 ...) and tells you whether you hit the target, or
@@ -169,11 +184,8 @@
 ;;; decision task! Since we know that the "correct" output is binary
 ;;; (more precisely -1s and 1s), 
 
-(defparameter *target-correct-fraction* 0.8)
-
-(defun prediction-right? (correct_output retreived_output)
-  (< (reduce #'+ (mapcar #'abs (mapcar #'- correct_output retreived_output)))
-     *target-correct-fraction*))
+(defun prediction-factor (correct_output retreived_output)
+  (reduce #'+ (mapcar #'abs (mapcar #'- correct_output retreived_output))))
 
 ;;; Analysis on a per-parameter basis of the most used strategy for
 ;;; each problem.

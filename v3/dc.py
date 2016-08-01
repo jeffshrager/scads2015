@@ -27,7 +27,7 @@ suppress_auto_timestamping = False
 
 ##################### GLOBAL SETTINGS #####################
 
-ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 5000  # problem bin size, every pbs problems we dump the predictions
 
 initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
@@ -36,7 +36,7 @@ input_one_bits = 5
 
 anti_1_bit = -1 
 
-n_exposures = 2000 # Problem presentation and execution
+n_exposures = 10000 # Problem presentation and execution
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
