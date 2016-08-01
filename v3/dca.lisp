@@ -128,7 +128,7 @@
 	   (format o "file	")
 	   (loop for (n nil) in params 
 		 do (format o "~a	" n))
-	   (loop for i from 1 to 5 
+	   (loop for i from 1 to 10
 		 do (format o "~a	" i))
 	   (format o "~%"))
 	 (return t))
@@ -142,18 +142,38 @@
 	   (loop for (nil v) in params 
 		 do (format o "~a	" v))
 	   (clrhash *p->last-wrong-pos*)
-	   ;; ((:ENCODING :-WRONG- (5 => 3) ... )
-	   (loop for enc in training
-		 as ((nil r/w? i/o)) = enc
+	   (loop for (nil . data) in training
+		 ;; (:encoding (:input (-1  1  1  1  1  1  -1  -1  -1  -1)) (:correct_output (1  1  -1  -1  1  -1  -1  -1  1  1)) (:rint 10)
+		 ;;            (:retreived_output ( 0.04541858 -0.01087319  0.10318821 -0.04948971 -0.02561792 
+		 ;;                                 -0.0314545 0.05292848  0.02559143 -0.00411969 -0.02891576)))
+		 as input = (cadr (assoc :input data))
+		 as correct_output = (cadr (assoc :correct_output data))
+		 as rint = (cadr (assoc :rint data))
+		 as retreived_output = (cadr (assoc :retreived_output data))
+		 as prediction-right? = (prediction-right? correct_output retreived_output)
 		 as pos from 1 by 1
-		 if (eq :-wrong- r/w?)
-		 do (setf (gethash (car i/o) *p->last-wrong-pos*) pos))
-	   (loop for i from 1 to 5
+		 if (not prediction-right?)
+		 do 
+		 (setf (gethash rint *p->last-wrong-pos*) pos))
+	   (loop for i from 1 to 10 ;; only need to look at the numbers for this analysis
 		 as pos = (gethash i *p->last-wrong-pos*)
 		 do (format o "~a	" pos))
 	   (if *heuristicated-experiment-label*
 	       (format o "~a	~%" *heuristicated-experiment-label*))
 	   ))))
+
+;;; Takes a pair of equal-length real vectors, as: (-1.345 3.448 ...)
+;;; (1.543 -0.348 ...) and tells you whether you hit the target, or
+;;; not. At the moment, hitting the target means that you came within
+;;; 80% (parameter) of being correct. This is exactly the classical
+;;; decision task! Since we know that the "correct" output is binary
+;;; (more precisely -1s and 1s), 
+
+(defparameter *target-correct-fraction* 0.8)
+
+(defun prediction-right? (correct_output retreived_output)
+  (< (reduce #'+ (mapcar #'abs (mapcar #'- correct_output retreived_output)))
+     *target-correct-fraction*))
 
 ;;; Analysis on a per-parameter basis of the most used strategy for
 ;;; each problem.
