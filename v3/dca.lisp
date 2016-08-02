@@ -1,4 +1,4 @@
-;(load (compile-file "dca.lisp"))
+;; (load (compile-file "dca.lisp"))
 
 ;;; === ToDo ===
 ;;; Analyze the strategy logs.

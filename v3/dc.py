@@ -18,16 +18,15 @@ def RoundedStr(l):
 def lispify(s):
     return (((str(s).replace(","," ")).replace("[","(")).replace("]",")")).replace("\'","\"").replace(":","=").replace("{","(").replace("}",")")
 
-
 ##################### SETTINGS #####################
 
-experiment_label = "\"3 3\""
+experiment_label = "\"test\""
 
 suppress_auto_timestamping = False
 
 ##################### GLOBAL SETTINGS #####################
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 pbs = 5000  # problem bin size, every pbs problems we dump the predictions
 
 initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
@@ -87,7 +86,6 @@ class Lexicon(object):
 
         self.allwords = {}
 
-
         for k in range(1,11):
             self.allwords[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.word02[k-1]]
         #11 and up is WORDS
@@ -129,8 +127,7 @@ class Lexicon(object):
         for k in range(1,11):
             self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
 
-
-        #random vals : rest of the output set  
+        #random vals : rest of the output set
         self.sem02 = []
         for i in range(1025):
             s = fmt.format(i)
@@ -150,7 +147,6 @@ class Lexicon(object):
         for k in range(len(self.sem02)):
             self.allsem[k + 11] = self.sem02[k]
 
-
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
         noise = numpy.random.normal(loc=0.0, scale=noise_scale)
@@ -169,8 +165,6 @@ class Lexicon(object):
         
     # Figures out which correct output is closest to the one given.
 
-
-
 class TrainingSet():
     def __init__(self, nn):
     	self.rint = randint(1, len(lexicon.allwords))
@@ -178,32 +172,7 @@ class TrainingSet():
         if self.rint <= 10:
         	self.correct_output = nn.outputs[self.rint]
         else:
-        	self.correct_output = nn.outputs[10+int(round(((len(lexicon.allsem) - 10)/len(lexicon.allwords))*self.rint))]
-
-    def scoresub1(self,i,o):
-        sum = 0
-        for p in range(len(i)):
-            if o[p]>=0.5:
-                if i[p]==1:
-                    sum += 1
-                else:
-                    sum -= 1
-            else: # o[p]<0.5
-                if i[p]==0:
-                    sum += 1
-                else:
-                    sum -= 1
-        return sum
-            
-    def score(self,nn_output):
-        maxn = 999
-        maxs = -999
-        r = [[trainingset.rint,self.scoresub1(target_output,nn_output)] for number, target_output in dict.iteritems(self.sem01)]
-        for n,s in r:
-            if s>maxs:
-                maxs=s
-                maxn=n
-        return maxn
+        	self.correct_output = nn.outputs[10+int(round(((float(len(lexicon.allsem)) - 10)/len(lexicon.allwords))*self.rint))]
 
 ##################### NN #####################
 
@@ -352,7 +321,7 @@ class NeuralNetwork:
             amplitude = self.activation(numpy.dot(amplitude, self.weights[l]))
         return amplitude
 
-    def wan2lnp(self,word,n): # word_and_number_to_localist_number_pattern
+    def prediction(self,n): 
         result = self.predictions[n-1]
         return result
 
@@ -369,7 +338,6 @@ class NeuralNetwork:
     # things.
 
     #explain this? Q00 what is guess vector and what is theh decr_right/wrong stuff
-
 
     def update_predictions(self):
         self.predictions = []
@@ -398,7 +366,6 @@ class NeuralNetwork:
         self.target = self.target.tolist()
         self.target[0]=correct_output
 
-
 ##################### DRIVER #####################
 
 # Set up the neural network fitted to kids' having learned how to
@@ -422,7 +389,7 @@ def train_word():
     trainingset = TrainingSet(rnet)
     input=trainingset.input
     correct_output=trainingset.correct_output
-    retrieved_output = rnet.wan2lnp(input,trainingset.rint)
+    retrieved_output = rnet.prediction(trainingset.rint)
     logstream.write("(:encoding " + "(:input " + lispify(input) + ") (:correct_output " + lispify(correct_output) + ") (:rint " + lispify(trainingset.rint) + ")\n      (:retreived_output " + lispify(retrieved_output) + "))\n")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
