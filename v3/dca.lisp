@@ -25,6 +25,7 @@
 (defvar *results-version* nil)
 (defvar *params->ccs* (make-hash-table :test #'equal))
 (defvar *file->log* (make-hash-table :test #'equal))
+(defvar *n->ordered-delta-vals* (make-hash-table :test #'equal))
 
 ;;; =============================================================
 ;;; Utils
@@ -146,6 +147,7 @@
 	   (loop for (nil v) in params 
 		 do (format o "~a	" v))
 	   (clrhash *p->last-wrong-pos*)
+	   (clrhash *n->ordered-delta-vals*)
 	   (loop for (nil . data) in training
 		 ;; (:encoding (:input (-1  1  1  1  1  1  -1  -1  -1  -1)) (:correct_output (1  1  -1  -1  1  -1  -1  -1  1  1)) (:rint 10)
 		 ;;            (:retreived_output ( 0.04541858 -0.01087319  0.10318821 -0.04948971 -0.02561792 
@@ -160,22 +162,42 @@
 		 do 
 		 (if (not prediction-right?)
 		     (setf (gethash rint *p->last-wrong-pos*) pos))
-		 (if (<= rint 10) 
-		     (format p "_~a_	~a	~a	~a 	~a	~a	~a~%" 
-			     (pathname-name file)
-			     pos
-			     rint
-			     correct_output
-			     retreived_output
-			     prediction-factor
-			     prediction-right?))
+		 (when (<= rint 10) 
+		   (push prediction-factor (gethash rint *n->ordered-delta-vals*))
+		   (format p "_~a_	~a	~a	~a 	~a	~a	~a~%" 
+			   (pathname-name file)
+			   pos
+			   rint
+			   correct_output
+			   retreived_output
+			   prediction-factor
+			   prediction-right?))
 		 )
 	   (loop for i from 1 to 10 ;; only need to look at the numbers for this analysis
 		 as pos = (gethash i *p->last-wrong-pos*)
 		 do (format o "~a	" pos))
 	   (if *heuristicated-experiment-label*
 	       (format o "~a	~%" *heuristicated-experiment-label*))
-	   )))))
+	   ))))
+  (loop for n from 1 to 10
+	do (setf (gethash n *n->ordered-delta-vals*)
+		 (reverse (gethash n *n->ordered-delta-vals*))))
+  (with-open-file 
+   (o (print (format nil "sumstats/~a-npivotsequence.xls" ts))
+      :direction :output :if-exists :supersede) 
+  (loop for n from 1 to 10
+	do (format o "n~a	" n))
+  (format o "~%")
+  (loop with empty-list = nil
+	until (= (length empty-list) 10)
+	 do (loop for n from 1 to 10
+		  as v = (pop (gethash n *n->ordered-delta-vals*))
+		  do 
+		  (format o "~a	" (or v ""))
+		  (if (null v) (pushnew n empty-list))
+		  )
+	 (format o "~%")))
+  )
 
 ;;; Takes a pair of equal-length real vectors, as: (-1.345 3.448 ...)
 ;;; (1.543 -0.348 ...) and tells you whether you hit the target, or

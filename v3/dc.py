@@ -27,7 +27,7 @@ suppress_auto_timestamping = False
 ##################### GLOBAL SETTINGS #####################
 
 ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
-pbs = 5000  # problem bin size, every pbs problems we dump the predictions
+pbs = 10000  # problem bin size, every pbs problems we dump the predictions
 
 initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow initial weights closer to 0.0. 10 is somewhat arbitrary #.
  
@@ -35,7 +35,9 @@ input_one_bits = 5
 
 anti_1_bit = -1 
 
-n_exposures = 10000 # Problem presentation and execution
+dump_all_words_encodings = False # Is this is True, you get everything, otherwise, only the presentation of 1-10
+
+n_exposures = 50000 # Problem presentation and execution
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
@@ -43,7 +45,7 @@ current_params = {} # These are set for a given run by the recursive param searc
 
 scanned_params = {
                "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
-               "results_learning_rate": [0.3], 
+               "results_learning_rate": [0.05], 
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
                }
 
@@ -51,7 +53,7 @@ scanned_params = {
 ### By Myra; testing input creation for Lingustic model.
 
 n_inputs = 10
-noise_scale = 0.05
+noise_scale = 0.0001
 
 # :-) Made this a class which will make it much simler to move the
 # whole thing into your new model.
@@ -390,7 +392,8 @@ def train_word():
     input=trainingset.input
     correct_output=trainingset.correct_output
     retrieved_output = rnet.prediction(trainingset.rint)
-    logstream.write("(:encoding " + "(:input " + lispify(input) + ") (:correct_output " + lispify(correct_output) + ") (:rint " + lispify(trainingset.rint) + ")\n      (:retreived_output " + lispify(retrieved_output) + "))\n")
+    if (dump_all_words_encodings or (trainingset.rint <= 10)):
+        logstream.write("(:encoding " + "(:input " + lispify(input) + ") (:correct_output " + lispify(correct_output) + ") (:rint " + lispify(trainingset.rint) + ")\n      (:retreived_output " + lispify(retrieved_output) + "))\n")
     rnet.update_target(input, retrieved_output, correct_output) 
     rnet.fit(current_params["results_learning_rate"], current_params["in_process_training_epochs"])
     rnet.update_predictions()
