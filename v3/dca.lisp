@@ -26,6 +26,7 @@
 (defvar *params->ccs* (make-hash-table :test #'equal))
 (defvar *file->log* (make-hash-table :test #'equal))
 (defvar *n->ordered-delta-vals* (make-hash-table :test #'equal))
+(defvar *n->last-encoding-of-n* (make-hash-table :test #'equal))
 
 ;;; =============================================================
 ;;; Utils
@@ -120,76 +121,78 @@
 (defparameter *target-correct-fraction* 0.8)
 (defun summarize (ts)
   (clrhash *file->summary*)
+  (clrhash *n->last-encoding-of-n*)
   (with-open-file 
    (o (print (format nil "sumstats/~a-dcsum.xls" ts))
       :direction :output :if-exists :supersede) 
    (with-open-file 
     (p (print (format nil "sumstats/~a-dcnumbers.xls" ts))
        :direction :output :if-exists :supersede) 
-   ;; Headers -- only roles once!
-   (loop for log being the hash-value of *file->log*
-	 do 	     
-	 (let ((params (cdr (assoc :params log))))
-	   (format o "file	")
-	   (loop for (n nil) in params 
-		 do (format o "~a	" n))
-	   (loop for i from 1 to 10
-		 do (format o "~a	" i))
-	   (format o "~%"))
-	 (return t))
-   ;; Data
-   (loop for file being the hash-key of *file->log*
-	 using (hash-value log)
-	 do 
-	 (let ((params (cdr (assoc :params log)))
-	       (training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*)))
-	   (format o "_~a_	" (pathname-name file))
-	   (loop for (nil v) in params 
-		 do (format o "~a	" v))
-	   (clrhash *p->last-wrong-pos*)
-	   (clrhash *n->ordered-delta-vals*)
-	   (loop for (nil . data) in training
-		 ;; (:encoding (:input (-1  1  1  1  1  1  -1  -1  -1  -1)) (:correct_output (1  1  -1  -1  1  -1  -1  -1  1  1)) (:rint 10)
-		 ;;            (:retreived_output ( 0.04541858 -0.01087319  0.10318821 -0.04948971 -0.02561792 
-		 ;;                                 -0.0314545 0.05292848  0.02559143 -0.00411969 -0.02891576)))
-		 as input = (cadr (assoc :input data))
-		 as correct_output = (cadr (assoc :correct_output data))
-		 as rint = (cadr (assoc :rint data))
-		 as retreived_output = (cadr (assoc :retreived_output data))
-		 as prediction-factor = (prediction-factor correct_output retreived_output)
-		 as prediction-right? = (<  prediction-factor *target-correct-fraction*)
-		 as pos from 1 by 1
-		 do 
-		 (if (not prediction-right?)
-		     (setf (gethash rint *p->last-wrong-pos*) pos))
-		 (when (<= rint 10) 
-		   (push prediction-factor (gethash rint *n->ordered-delta-vals*))
-		   (format p "_~a_	~a	~a	~a 	~a	~a	~a~%" 
-			   (pathname-name file)
-			   pos
-			   rint
-			   correct_output
-			   retreived_output
-			   prediction-factor
-			   prediction-right?))
-		 )
-	   (loop for i from 1 to 10 ;; only need to look at the numbers for this analysis
-		 as pos = (gethash i *p->last-wrong-pos*)
-		 do (format o "~a	" pos))
-	   (if *heuristicated-experiment-label*
-	       (format o "~a	~%" *heuristicated-experiment-label*))
-	   ))))
+    ;; Headers -- only roles once!
+    (loop for log being the hash-value of *file->log*
+	  do 	     
+	  (let ((params (cdr (assoc :params log))))
+	    (format o "file	")
+	    (loop for (n nil) in params 
+		  do (format o "~a	" n))
+	    (loop for i from 1 to 10
+		  do (format o "~a	" i))
+	    (format o "~%"))
+	  (return t))
+    ;; Data
+    (loop for file being the hash-key of *file->log*
+	  using (hash-value log)
+	  do 
+	  (let ((params (cdr (assoc :params log)))
+		(training (loop for ((nil . d*)) in (cdr (assoc :run log)) append d*)))
+	    (format o "_~a_	" (pathname-name file))
+	    (loop for (nil v) in params 
+		  do (format o "~a	" v))
+	    (clrhash *p->last-wrong-pos*)
+	    (clrhash *n->ordered-delta-vals*)
+	    (loop for (nil . data) in training
+		  ;; (:encoding (:input (-1  1  1  1  1  1  -1  -1  -1  -1)) (:correct_output (1  1  -1  -1  1  -1  -1  -1  1  1)) (:rint 10)
+		  ;;            (:retreived_output ( 0.04541858 -0.01087319  0.10318821 -0.04948971 -0.02561792 
+		  ;;                                 -0.0314545 0.05292848  0.02559143 -0.00411969 -0.02891576)))
+		  as input = (cadr (assoc :input data))
+		  as correct_output = (cadr (assoc :correct_output data))
+		  as rint = (cadr (assoc :rint data))
+		  as retreived_output = (cadr (assoc :retreived_output data))
+		  as prediction-factor = (prediction-factor correct_output retreived_output)
+		  as prediction-right? = (<  prediction-factor *target-correct-fraction*)
+		  as pos from 1 by 1
+		  do 
+		  (setf (gethash rint *n->last-encoding-of-n*) (list correct_output retreived_output)) ;; Save for input into v2
+		  (if (not prediction-right?)
+		      (setf (gethash rint *p->last-wrong-pos*) pos))
+		  (when (<= rint 10) 
+		    (push prediction-factor (gethash rint *n->ordered-delta-vals*))
+		    (format p "_~a_	~a	~a	~a 	~a	~a	~a~%" 
+			    (pathname-name file)
+			    pos
+			    rint
+			    correct_output
+			    retreived_output
+			    prediction-factor
+			    prediction-right?))
+		  )
+	    (loop for i from 1 to 10 ;; only need to look at the numbers for this analysis
+		  as pos = (gethash i *p->last-wrong-pos*)
+		  do (format o "~a	" pos))
+	    (if *heuristicated-experiment-label*
+		(format o "~a	~%" *heuristicated-experiment-label*))
+	    ))))
   (loop for n from 1 to 10
 	do (setf (gethash n *n->ordered-delta-vals*)
 		 (reverse (gethash n *n->ordered-delta-vals*))))
   (with-open-file 
    (o (print (format nil "sumstats/~a-npivotsequence.xls" ts))
       :direction :output :if-exists :supersede) 
-  (loop for n from 1 to 10
-	do (format o "n~a	" n))
-  (format o "~%")
-  (loop with empty-list = nil
-	until (= (length empty-list) 10)
+   (loop for n from 1 to 10
+	 do (format o "n~a	" n))
+   (format o "~%")
+   (loop with empty-list = nil
+	 until (= (length empty-list) 10)
 	 do (loop for n from 1 to 10
 		  as v = (pop (gethash n *n->ordered-delta-vals*))
 		  do 
@@ -197,6 +200,19 @@
 		  (if (null v) (pushnew n empty-list))
 		  )
 	 (format o "~%")))
+  ;; Dump last encodings for operating the v2 model.
+  (with-open-file 
+   (cl-json::*json-output* (print (format nil "sumstats/~a-final-encodings.json" ts))
+      :direction :output :if-exists :supersede) 
+   (format cl-json::*json-output* "[\"X\"")
+   (loop for n from 1 to 10
+	 do 
+	 (format cl-json::*json-output* ",")
+	 (terpri cl-json::*json-output*)
+	 (json::encode-json (cons n (gethash n *n->last-encoding-of-n*)))
+	 )
+   (terpri cl-json::*json-output*)
+   (format cl-json::*json-output* "]~%"))
   )
 
 ;;; Takes a pair of equal-length real vectors, as: (-1.345 3.448 ...)
