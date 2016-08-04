@@ -509,7 +509,10 @@ def precompute_numerical_dictionaries():
     # load json
     if read_input_from_file is not False:
         with open(read_input_from_file) as data_file:    
-            addend_dictionary = json.load(data_file)
+            data = json.load(data_file)
+        data.remove(u'X')
+        for i in range(len(data)):
+           addend_dictionary[i+1] = data[i][2][:5]
     print "addend_dictionary = " + str(addend_dictionary)
     print "results_dictionary = " + str(results_dictionary)
 
