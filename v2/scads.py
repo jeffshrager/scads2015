@@ -12,6 +12,7 @@ import timeit
 import datetime
 import os
 import numpy
+import json
 from random import randint, shuffle, random
 import sys
 
@@ -23,7 +24,7 @@ import sys
 # rename your first dataset.
 
 suppress_auto_timestamping = False
-
+read_input_from_file = "3679318762-final-encodings.json"
 strategy_dictionary = {}
 addend_dictionary = {}
 results_dictionary = {}
@@ -505,6 +506,10 @@ def precompute_numerical_dictionaries():
         #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
     # Finally, we turn all zeros into anti_1 bits
+    # load json
+    if read_input_from_file is not False:
+        with open(read_input_from_file) as data_file:    
+            addends_dictionary = json.load(data_file)
     print "addend_dictionary = " + str(addend_dictionary)
     print "results_dictionary = " + str(results_dictionary)
 
