@@ -10,6 +10,7 @@ experiment_label = "\"5:3->10:1 (local) learning rate scan\""
 
 import timeit
 import datetime
+import operator
 import os
 import numpy
 import json
@@ -24,7 +25,6 @@ import sys
 # rename your first dataset.
 
 suppress_auto_timestamping = False
-read_input_from_file = "3679318762-final-encodings.json"
 strategy_dictionary = {}
 addend_dictionary = {}
 results_dictionary = {}
@@ -92,7 +92,9 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.01],
+               "PERR": [2],
+
+               "read_input_from_file": ["3679318762-final-encodings.json"],
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
@@ -237,10 +239,13 @@ def say(n):
 
 def say_next():
     global EB
+    #print EB
     if EB == 0:
         say(1)
-    elif current_params["PERR"] > random():
-        say(EB)  #forgot to count but flipped finger
+    elif current_params["PERR"] > 0 and EB < 10:
+        sorted_x = sorted(diffs[EB+1].items(), key=operator.itemgetter(1))
+        ranked = sorted_x[:int(current_params["PERR"]) + 1]
+        say(ranked[randint(0, int(current_params["PERR"]))][0])
     else:
         say(EB + 1)
 
@@ -452,7 +457,7 @@ def exec_explicit_strategy(strategy_choice):
 # 3=01110, etc.
 
 def precompute_numerical_dictionaries():
-    global addend_dictionary, results_dictionary
+    global addend_dictionary, diffs, results_dictionary
     addend_dictionary = {}
     # Addend dictionary:
     # The special case for 1: 1=100000 2=010000, etc.
@@ -507,12 +512,27 @@ def precompute_numerical_dictionaries():
         sys.exit(1)
     # Finally, we turn all zeros into anti_1 bits
     # load json
-    if read_input_from_file is not False:
-        with open(read_input_from_file) as data_file:    
+    if current_params["read_input_from_file"] is not False:
+        with open(current_params["read_input_from_file"]) as data_file:    
             data = json.load(data_file)
         data.remove(u'X')
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
+    #calculate distances for each
+    diffs = {}
+
+    for i in range(1,11):
+        for j in range(0,5):
+            sumdiff = {}
+            for k in range(1,11):
+                diff = addend_dictionary[i][j] - addend_dictionary[k][j]
+                sumdiff[k] = abs(diff)
+        diffs[i] = sumdiff
+    #in this dictionary, each value stored is the difference with its index+1
+
+
+
+
     print "addend_dictionary = " + str(addend_dictionary)
     print "results_dictionary = " + str(results_dictionary)
 
