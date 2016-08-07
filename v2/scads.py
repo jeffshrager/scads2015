@@ -81,7 +81,7 @@ strat_one_bits = 3
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
-n_problems = 2000
+n_problems = 200
 pbs = 200  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
@@ -92,7 +92,7 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [2],
+               "PERR": [0,1],
 
                "read_input_from_file": ["3679318762-final-encodings.json"],
 
@@ -239,15 +239,18 @@ def say(n):
 
 def say_next():
     global EB
-    #print EB
+    #print "> say_next(" + str(EB) + ", PERR = " + lispify(current_params["PERR"]) + ")"
     if EB == 0:
         say(1)
     elif current_params["PERR"] > 0 and EB < 10:
-        sorted_x = sorted(diffs[EB+1].items(), key=operator.itemgetter(1))
-        ranked = sorted_x[:int(current_params["PERR"]) + 1]
-        say(ranked[randint(0, int(current_params["PERR"]))][0])
-    else:
+        ranked = (diffs[EB+1])[:int(current_params["PERR"]) + 1]
+        next = ranked[randint(0, int(current_params["PERR"]))][0]
+        say(next)
+    elif EB < 10:
         say(EB + 1)
+    else: 
+        print "Warning! say_next(" + str(EB) + ") ran off the end, and is being forced back to 10!"
+        say(10)
 
 # Clear EB each time you're about to start a count off.  If you
 # don't do this, the last number counted will be left in the echoic
@@ -518,22 +521,22 @@ def precompute_numerical_dictionaries():
         data.remove(u'X')
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
-    #calculate distances for each
-    diffs = {}
 
+    # The DIFFS is a disctionary that caches the metri distance
+    # between each number and all the others. It it used in say_next
+    # to choose a next value (if PERR > 0).
+
+    diffs = {}
     for i in range(1,11):
         for j in range(0,5):
             sumdiff = {}
             for k in range(1,11):
                 diff = addend_dictionary[i][j] - addend_dictionary[k][j]
                 sumdiff[k] = abs(diff)
-        diffs[i] = sumdiff
-    #in this dictionary, each value stored is the difference with its index+1
-
-
-
+        diffs[i] = sorted(sumdiff.items(), key=operator.itemgetter(1))
 
     print "addend_dictionary = " + str(addend_dictionary)
+    print "diffs = " + str(diffs)
     print "results_dictionary = " + str(results_dictionary)
 
 def precompute_strategy_dictionary():
