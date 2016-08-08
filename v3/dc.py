@@ -162,7 +162,7 @@ class Lexicon(object):
         #11 and up is WORDS
         for k in range(len(self.sem02)):
             self.allsem[k + 11] = self.sem02[k]
-        print self.allsem
+        #print self.allsem
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
         noise = numpy.random.normal(loc=0.0, scale=noise_scale)
