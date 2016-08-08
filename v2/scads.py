@@ -36,7 +36,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -81,8 +81,8 @@ strat_one_bits = 3
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
-n_problems = 200
-pbs = 200  # problem bin size, every pbs problems we dump the predictions
+n_problems = 10000
+pbs = 1000  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
 
@@ -92,7 +92,7 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.01, 0.05, 2],
+               "PERR": [0.0,0.1,0.4],
 
                "read_input_from_file": ["3679318762-final-encodings.json"],
 
@@ -244,16 +244,16 @@ def say_next():
         say(1)
     elif current_params["PERR"] > 0 and EB < 10:
         ranked = []
-        for i in range(len(diffs[EB+1])):
-            if diffs[EB+1][i][1] < current_params["PERR"]:
-                ranked.append(diffs[EB+1][i][0])
-        print ranked 
+        for i in range(len(diff_dictionary[EB+1])):
+            if diff_dictionary[EB+1][i][1] < current_params["PERR"]:
+                ranked.append(diff_dictionary[EB+1][i][0])
+        #print ranked 
         next = ranked[randint(0, (len(ranked) - 1))]
         say(next)
     elif EB < 10:
         say(EB + 1)
     else: 
-        print "Warning! say_next(" + str(EB) + ") ran off the end, and is being forced back to 10!"
+        #print "Warning! say_next(" + str(EB) + ") ran off the end, and is being forced back to 10!" # ???????????????????
         say(10)
 
 # Clear EB each time you're about to start a count off.  If you
@@ -464,7 +464,7 @@ def exec_explicit_strategy(strategy_choice):
 # 3=01110, etc.
 
 def precompute_numerical_dictionaries():
-    global addend_dictionary, diffs, results_dictionary
+    global addend_dictionary, diff_dictionary, results_dictionary
     addend_dictionary = {}
     # Addend dictionary:
     # The special case for 1: 1=100000 2=010000, etc.
@@ -526,21 +526,21 @@ def precompute_numerical_dictionaries():
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
 
-    # The DIFFS is a disctionary that caches the metri distance
+    # The DIFF_DICTIONARY is a disctionary that caches the metri distance
     # between each number and all the others. It it used in say_next
     # to choose a next value (if PERR > 0).
 
-    diffs = {}
+    diff_dictionary = {}
     for i in range(1,11):
         for j in range(0,5):
             sumdiff = {}
             for k in range(1,11):
                 diff = addend_dictionary[i][j] - addend_dictionary[k][j]
                 sumdiff[k] = abs(diff)
-        diffs[i] = sorted(sumdiff.items(), key=operator.itemgetter(1))
+        diff_dictionary[i] = sorted(sumdiff.items(), key=operator.itemgetter(1))
 
     print "addend_dictionary = " + str(addend_dictionary)
-    print "diffs = " + str(diffs)
+    print "diff_dictionary = " + str(diff_dictionary)
     print "results_dictionary = " + str(results_dictionary)
 
 def precompute_strategy_dictionary():
@@ -998,6 +998,7 @@ def config_and_test(index=0):
 
 def dump_non_scanned_params():
     logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
+    logstream.write("  (:diff_dictionary "+lispify(addend_dictionary)+")\n")
     logstream.write("  (:addend_dictionary "+lispify(addend_dictionary)+")\n")
     logstream.write("  (:results_dictionary "+lispify(results_dictionary)+")\n")
     logstream.write("  (:strategy_dictionary "+lispify(strategy_dictionary)+")\n")
