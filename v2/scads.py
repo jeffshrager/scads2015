@@ -92,7 +92,7 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0,1],
+               "PERR": [0.01, 0.05, 2],
 
                "read_input_from_file": ["3679318762-final-encodings.json"],
 
@@ -243,8 +243,12 @@ def say_next():
     if EB == 0:
         say(1)
     elif current_params["PERR"] > 0 and EB < 10:
-        ranked = (diffs[EB+1])[:int(current_params["PERR"]) + 1]
-        next = ranked[randint(0, int(current_params["PERR"]))][0]
+        ranked = []
+        for i in range(len(diffs[EB+1])):
+            if diffs[EB+1][i][1] < current_params["PERR"]:
+                ranked.append(diffs[EB+1][i][0])
+        print ranked 
+        next = ranked[randint(0, (len(ranked) - 1))]
         say(next)
     elif EB < 10:
         say(EB + 1)
