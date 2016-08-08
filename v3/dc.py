@@ -33,6 +33,8 @@ initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow init
  
 input_one_bits = 5
 
+zeros = False
+
 anti_1_bit = -1 
 
 dump_all_words_encodings = False # Is this is True, you get everything, otherwise, only the presentation of 1-10
@@ -126,8 +128,13 @@ class Lexicon(object):
                 o.extend([s])
                 w = w[:n] + w[n+1:]
         #print o
-        for k in range(1,11):
-            self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
+
+        if zeros is True:
+            for k in range(1,11):
+                self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
+        else:
+            for k in range(1,11):
+                self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
 
         #random vals : rest of the output set
         self.sem02 = []
@@ -135,20 +142,27 @@ class Lexicon(object):
             s = fmt.format(i)
             firsthalf = s[:5]
             secondhalf = s[5:]
-            if firsthalf.count('1') != 3 and secondhalf.count('1') == 2:
-                self.sem02.extend([s])
+            if zeros is True:
+                if firsthalf.count('1') == 0 and secondhalf.count('1') == 2:
+                    self.sem02.extend([s])
+            else:
+                if firsthalf.count('1') != 3 and secondhalf.count('1') == 2:
+                    self.sem02.extend([s])
         for k in range(len(self.sem02)):
             self.sem02[k]=[anti_1_bit if int(c) == 0 else int(c) for c in self.sem02[k]]  
 
         #dictionary of all of them:
         self.allsem = {}
-        for k in range(1,11):
-            self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
-        
+        if zeros is True:
+            for k in range(1,11):
+                self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
+        else:
+            for k in range(1,11):
+                self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit if int(c) == 0 else int(c) for c in o[k-1]]
         #11 and up is WORDS
         for k in range(len(self.sem02)):
             self.allsem[k + 11] = self.sem02[k]
-
+        print self.allsem
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
         noise = numpy.random.normal(loc=0.0, scale=noise_scale)
