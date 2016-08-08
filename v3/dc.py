@@ -33,7 +33,6 @@ initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow init
  
 input_one_bits = 5
 
-zeros = False
 
 anti_1_bit = -1 
 
@@ -46,6 +45,7 @@ current_params = {} # These are set for a given run by the recursive param searc
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
+               "zeros": [0, 1],
                "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
                "results_learning_rate": [0.05], 
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
@@ -129,7 +129,7 @@ class Lexicon(object):
                 w = w[:n] + w[n+1:]
         #print o
 
-        if zeros is True:
+        if current_params["zeros"] == 1:
             for k in range(1,11):
                 self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
         else:
@@ -142,7 +142,7 @@ class Lexicon(object):
             s = fmt.format(i)
             firsthalf = s[:5]
             secondhalf = s[5:]
-            if zeros is True:
+            if current_params["zeros"] == 1:
                 if firsthalf.count('1') == 0 and secondhalf.count('1') == 2:
                     self.sem02.extend([s])
             else:
@@ -153,7 +153,7 @@ class Lexicon(object):
 
         #dictionary of all of them:
         self.allsem = {}
-        if zeros is True:
+        if current_params["zeros"] == 1:
             for k in range(1,11):
                 self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
         else:
@@ -185,10 +185,12 @@ class TrainingSet():
     def __init__(self, nn):
     	self.rint = randint(1, len(lexicon.allwords))
         self.input = lexicon.allwords[self.rint]
+
         if self.rint <= 10:
         	self.correct_output = nn.outputs[self.rint]
         else:
         	self.correct_output = nn.outputs[10+int(round(((float(len(lexicon.allsem)) - 10)/len(lexicon.allwords))*self.rint))]
+        #print "d"
 
 ##################### NN #####################
 
@@ -224,11 +226,11 @@ class TrainingSet():
 
 class NeuralNetwork:
     def __init__(self, name, layers, type, outputs):
+
         self.outputs = outputs
         self.name=name
         self.activation = lambda x: numpy.tanh(x)
         self.activation_prime = lambda x: 1.0 - x**2
-
         # The layers is a vector giving the number of nodes in each
         # layer. The first (0th) is assumed to be the input and the
         # last the output layer.
@@ -339,6 +341,8 @@ class NeuralNetwork:
 
     def prediction(self,n): 
         result = self.predictions[n-1]
+        #print "a"
+
         return result
 
     # Returns a function that picks a random result from a list of
@@ -357,6 +361,7 @@ class NeuralNetwork:
 
     def update_predictions(self):
         self.predictions = []
+        #print "b"
         for n in range(1, 253):
             self.predictions.append(self.predict(lexicon.allwords[n]))
 
@@ -420,14 +425,19 @@ def present_words():
     logstream.write('(:training_block\n')
     logstream.write('   (:training\n')
     for i in range(n_exposures):
+
         train_word()
+
         if i % pbs == 0 or i == n_exposures:
             logstream.write('      ) ;; close :training\n')
             logstream.write('    ) ;; close :training-block\n')
             logstream.write('   (:training-block\n')
             logstream.write('     (:training\n')
+        #print "c"
+
     logstream.write('   ) ;; close :training\n')
-    logstream.write('    ) ;; close :training-block\n') # Warning! We may get an extra one of these!           
+    logstream.write('    ) ;; close :training-block\n') # Warning! We may get an extra one of these!    
+
 
 # Execute with all the possible values of each parameter. This is a
 # weird recursive function. The top half that calls itself repeatedly
@@ -451,20 +461,25 @@ def config_and_test(index=0):
         lexicon = Lexicon()
         fn=gen_file_name()
         print("^^^^^^^^^^^^ Above settings will log in "+ fn + " ^^^^^^^^^^^^")
+
         with open(fn, 'wb') as logstream:
             # initialize the logstream and neural network for each config we want to test
             logstream.write('(:log\n')
             logstream.write(' (:head\n')
             logstream.write(" (:file " + fn + ")\n")
+
             logstream.write(' (:output-format-version 20151103)\n')
             logstream.write(' (:problem-bin-size ' + str(pbs) + ")\n")
             logstream.write(" (:dictionaries\n")
             logstream.write("   (:input_allwords "+ lispify(lexicon.allwords) + ")\n")
             logstream.write("   (:output_allsem "+ lispify(lexicon.allsem) + "))\n")
             rnet = results_network() # Init neural net
+
             logstream.write(' )\n')
             logstream.write('(:run\n')
+
             present_words()
+
             logstream.write(' ) ;; Close :run\n')
             # Output params
             logstream.write(' (:params\n')
