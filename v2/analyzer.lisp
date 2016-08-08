@@ -684,7 +684,8 @@
 (defun get-index-files (param value)
   (cdr (assoc value (gethash param *param->values/files*) :test #'equal)))
 
-;;; ITS/P/V stands for index/param/value 
+;;; ITS/P/V stands for index(i.e.,time stamp)/param/value which allows
+;;; you to pull the runs that have a particular get of values.
 
 (defun its/p/v->files (its/p/v)
   (if (and (= 3 (length its/p/v))

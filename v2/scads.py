@@ -36,7 +36,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -81,7 +81,7 @@ strat_one_bits = 3
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
-n_problems = 10000
+n_problems = 5000
 pbs = 1000  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
@@ -92,7 +92,7 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.0,0.1,0.4],
+               "PERR": [0.0,0.0025,0.005,0.01],
 
                "read_input_from_file": ["3679318762-final-encodings.json"],
 
