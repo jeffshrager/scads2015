@@ -684,6 +684,8 @@
 (defun get-index-files (param value)
   (cdr (assoc value (gethash param *param->values/files*) :test #'equal)))
 
+;;; ITS/P/V stands for index/param/value 
+
 (defun its/p/v->files (its/p/v)
   (if (and (= 3 (length its/p/v))
 	     (numberp (first its/p/v))
@@ -699,4 +701,5 @@
 ;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
 ;(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
 ;(analyze :low 20160709154946  :comps '(:base-exact :adult))
-(analyze :comps '(:base-exact :adult))
+;(analyze :comps '(:base-exact :adult))
+(analyze :comps '(:adult))
