@@ -33,7 +33,6 @@ initial_weight_narrowing_divisor = 10.0 # Usually 1.0, turn up >1 to narrow init
  
 input_one_bits = 5
 
-zeros = False
 
 anti_1_bit = -1 
 
@@ -46,6 +45,7 @@ current_params = {} # These are set for a given run by the recursive param searc
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
+               "zeros": [0, 1],
                "results_hidden_units": [20], # 20 per experiments of 20160112b -- maybe 18?
                "results_learning_rate": [0.05], 
                "in_process_training_epochs": [1] # Number of training epochs on EACH test problem (explored 201509010826)
@@ -129,7 +129,7 @@ class Lexicon(object):
                 w = w[:n] + w[n+1:]
         #print o
 
-        if zeros is True:
+        if current_params["zeros"] == 1:
             for k in range(1,11):
                 self.sem01[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
         else:
@@ -142,7 +142,7 @@ class Lexicon(object):
             s = fmt.format(i)
             firsthalf = s[:5]
             secondhalf = s[5:]
-            if zeros is True:
+            if current_params["zeros"] == 1:
                 if firsthalf.count('1') == 0 and secondhalf.count('1') == 2:
                     self.sem02.extend([s])
             else:
@@ -153,7 +153,7 @@ class Lexicon(object):
 
         #dictionary of all of them:
         self.allsem = {}
-        if zeros is True:
+        if current_params["zeros"] == 1:
             for k in range(1,11):
                 self.allsem[k]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k-1]] + [anti_1_bit]*5
         else:
@@ -162,7 +162,7 @@ class Lexicon(object):
         #11 and up is WORDS
         for k in range(len(self.sem02)):
             self.allsem[k + 11] = self.sem02[k]
-        print self.allsem
+        #print self.allsem
     # I'll get called over and over in a map over the list of values.
     def noisify(self,v):
         noise = numpy.random.normal(loc=0.0, scale=noise_scale)
