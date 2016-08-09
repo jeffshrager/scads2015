@@ -541,6 +541,7 @@ def precompute_numerical_dictionaries():
 
     print "addend_dictionary = " + str(addend_dictionary)
     print "diff_dictionary = " + str(diff_dictionary)
+    print "diff_dictionary = " + lispify(diff_dictionary)
     print "results_dictionary = " + str(results_dictionary)
 
 def precompute_strategy_dictionary():
@@ -998,7 +999,7 @@ def config_and_test(index=0):
 
 def dump_non_scanned_params():
     logstream.write("  (:experiment_label "+str(experiment_label)+")\n")
-    logstream.write("  (:diff_dictionary "+lispify(addend_dictionary)+")\n")
+    logstream.write("  (:diff_dictionary "+lispify(diff_dictionary)+")\n")
     logstream.write("  (:addend_dictionary "+lispify(addend_dictionary)+")\n")
     logstream.write("  (:results_dictionary "+lispify(results_dictionary)+")\n")
     logstream.write("  (:strategy_dictionary "+lispify(strategy_dictionary)+")\n")
