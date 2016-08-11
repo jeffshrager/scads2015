@@ -95,7 +95,6 @@ scanned_params = {
                "PERR": [0.0,0.0025,0.005,0.01],
 
                "read_input_from_file": ["3679318762-final-encodings.json"],
-               #dictionary, string, or False
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
@@ -520,16 +519,12 @@ def precompute_numerical_dictionaries():
         sys.exit(1)
     # Finally, we turn all zeros into anti_1 bits
     # load json
-   	v = isinstance(current_params["read_input_from_file"], str)
-
-    if isinstance(current_params["read_input_from_file"], str):
+    if current_params["read_input_from_file"]:
         with open(current_params["read_input_from_file"]) as data_file:    
             data = json.load(data_file)
         data.remove(u'X')
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
-    elif isinstance(current_params["read_input_from_file"], dict):
-    	addend_dictionary = current_params["read_input_from_file"]
 
     # The DIFF_DICTIONARY is a disctionary that caches the metri distance
     # between each number and all the others. It it used in say_next
