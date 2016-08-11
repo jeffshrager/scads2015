@@ -36,7 +36,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 3  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -62,6 +62,12 @@ anti_1_bit = -1 # This is what goes into the non-1s in the dictionary
 # About 20160720 we decided that we are using 5:3 for both of these at the moment.
 addend_representation = 3 # 1, 3, or -111 for weight-based
 n_addend_bits = 5 # Should be 5 for type 1, possible also for type 3 (really becomes n*2 width bcs there are two addends)
+
+# NNN This is slightly conceptually strange bcs the real A_P_V are
+# 1-5, this is like this to make the diff table work, which is only
+# used in say_next, and need up to 10.
+addend_possible_values = [1,2,3,4,5,6,7,8,9,10] 
+
 addend_one_bits = 3 # Only relevant for type 3
 results_representation = 3
 n_results_bits = 10 # Should be 10 for type 1, less for type 3
@@ -82,7 +88,7 @@ strat_one_bits = 3
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
 n_problems = 5000
-pbs = 1000  # problem bin size, every pbs problems we dump the predictions
+pbs = 500  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
 
@@ -92,10 +98,10 @@ scanned_params = {
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.0,0.0025,0.005,0.01],
+               "PERR": [0.0,0.02,0.04,0.06,0.08,1.01],
 
                "read_input_from_file": ["uniform-final-encodings.json"],
-#               "read_input_from_file": ["3679318762-final-encodings.json"],
+#               "read_input_from_file": [False, "uniform-final-encodings.json", "3679318762-final-encodings.json"],
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
@@ -470,7 +476,7 @@ def precompute_numerical_dictionaries():
     # Addend dictionary:
     # The special case for 1: 1=100000 2=010000, etc.
     if addend_representation == 1:
-        for p in range(1,n_addend_bits+1):
+        for p in range(1,len(addend_possible_values)+1):
             addend_dictionary[p] = [anti_1_bit]*n_addend_bits
             addend_dictionary[p][p-1] = 1 
     # The delocalized n random bits case. This is a tricky little
@@ -480,7 +486,7 @@ def precompute_numerical_dictionaries():
         fmt = "{0:0"+str(n_addend_bits)+"b}"
         v = [x for x in range(2**n_addend_bits)]
         r = []
-        while len(r) < n_addend_bits:
+        while len(r) < len(addend_possible_values):
             n = randint(0,len(v)-1)
             s = fmt.format(v[n])
             if s.count('1') == addend_one_bits:
@@ -489,7 +495,7 @@ def precompute_numerical_dictionaries():
         for k in range(len(r)):
             addend_dictionary[k+1]=[anti_1_bit if int(c) == 0 else int(c) for c in r[k]]
     elif addend_representation == -111:
-        for k in range(1,n_addend_bits+1):
+        for k in range(1,len(addend_possible_values)+1):
             addend_dictionary[k]= [anti_1_bit]*(2+n_addend_bits)
             for p in range(1,k+1):
                 addend_dictionary[k][p]=1
@@ -526,6 +532,8 @@ def precompute_numerical_dictionaries():
         data.remove(u'X')
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
+
+    print "addend_dictionary=" + str(addend_dictionary)
 
     # The DIFF_DICTIONARY is a disctionary that caches the metri distance
     # between each number and all the others. It it used in say_next

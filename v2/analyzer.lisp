@@ -3,6 +3,7 @@
 (defparameter *param-reporting-order* 
   '(
     ("experiment_label" . experiment_label)
+    ("read_input_from_file" . read_input_from_file)
     ("n_problems" . n_problems)
     ("strategy_hidden_units" . strategy_hidden_units)
     ("results_hidden_units" . results_hidden_units)
