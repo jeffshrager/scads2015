@@ -94,7 +94,8 @@ scanned_params = {
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
                "PERR": [0.0,0.0025,0.005,0.01],
 
-               "read_input_from_file": ["3679318762-final-encodings.json"],
+               "read_input_from_file": ["uniform-final-encodings.json"],
+#               "read_input_from_file": ["3679318762-final-encodings.json"],
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
