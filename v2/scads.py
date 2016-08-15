@@ -36,7 +36,7 @@ results_dictionary = {}
 
 # ----- PART 1: These usually DON'T change -----
 
-ndups = 5  # Number of replicates of each combo of params -- usually 3 unless testing.
+ndups = 1  # Number of replicates of each combo of params -- usually 3 unless testing.
 dynamic_retrieval_on = False
 dump_hidden_activations = False
 per_problem_training_epochs = 1 # usually 1 (Number of training epochs on EACH test problem)
@@ -87,21 +87,21 @@ strat_one_bits = 3
 
 current_params = {} # These are set for a given run by the recursive param search algorithm
 
-n_problems = 5000
-pbs = 500  # problem bin size, every pbs problems we dump the predictions
+n_problems = 2000
+pbs = 10  # problem bin size, every pbs problems we dump the predictions
 
 ##################### SCANNED SETTINGS #####################
 
 scanned_params = {
                # Setting up the initial counting network
-               "initial_counting_network_burn_in_epochs": [1],
+               "initial_counting_network_burn_in_epochs": [1,500,1000,1500,2000,2500,3000],
                "initial_counting_network_learning_rate": [0.1],
                # Problem presentation and execution
                "DR_threshold": [1.0], # Only used if dynamic_retrieval_on = True
-               "PERR": [0.0,0.02,0.04,0.06,0.08,1.01],
+               "PERR": [0.0],
 
-               "read_input_from_file": ["uniform-final-encodings.json"],
-#               "read_input_from_file": [False, "uniform-final-encodings.json", "3679318762-final-encodings.json"],
+               #"read_input_from_file": ["3679318762-final-encodings.json",False],
+               "read_input_from_file": [False],
 
                # Choosing to use retrieval v. a strategy
                "RETRIEVAL_LOW_CC": [0.90], # Should be ~0.9 usually; at 1.0 no retrieval will occur
@@ -114,7 +114,7 @@ scanned_params = {
                "results_hidden_units": [10], 
 
                "strategy_learning_rate": [0.1],
-               "results_learning_rate": [0.05], 
+               "results_learning_rate": [0.1], 
                }
 
 ##################### ADD #####################
@@ -130,7 +130,7 @@ def lispify(s):
 # Operations on these constitute the basic operations of the
 # domain.
 
-global EB, ADDENDS, HAND, CB, EB, SOLUTION_COMPLETED, SOLUTION, TL
+global EB, ADDENDS, HAND, CB, SOLUTION_COMPLETED, SOLUTION, TL
 
 class Hand(object):
     def __init__(self):
@@ -246,16 +246,31 @@ def say(n):
 
 def say_next():
     global EB
+    perr = current_params["PERR"]
+    perrx100 = perr * 100
+    #print "in say_next, EB = " + str(EB) + ", perr = " + str(perr) + ", perrx100 = " + str(perrx100)
     #print "> say_next(" + str(EB) + ", PERR = " + lispify(current_params["PERR"]) + ")"
     if EB == 0:
         say(1)
-    elif current_params["PERR"] > 0 and EB < 10:
+    elif perr > 0 and EB < 10:
         ranked = []
-        for i in range(len(diff_dictionary[EB+1])):
-            if diff_dictionary[EB+1][i][1] < current_params["PERR"]:
-                ranked.append(diff_dictionary[EB+1][i][0])
-        #print ranked 
-        next = ranked[randint(0, (len(ranked) - 1))]
+        # !!! Recall that because this is so uneven we don't actual
+        # use the computed confuser set, but just the ORDER, this code
+        # block uses the acutal set:
+#         for i in range(len(diff_dictionary[EB+1])):
+#             if diff_dictionary[EB+1][i][1] < perr:
+#                 ranked.append(diff_dictionary[EB+1][i][0])
+#         next = ranked[randint(0, (len(ranked) - 1))]
+
+        # And this replacement just grabs the first second number
+        # (first confuser) with PERR probability.
+        ri = randint(0,100)
+        #print " ... rand = " + str(ri)
+        if ri >= perrx100:
+            next = EB + 1
+        else:
+            next = diff_dictionary[EB][1][0]
+        #print " ... next = " + str(next)
         say(next)
     elif EB < 10:
         say(EB + 1)
@@ -524,8 +539,14 @@ def precompute_numerical_dictionaries():
     else:
         #print "in precompute_isos(): results_representation = " + str(results_representation) + " isn't understood!"
         sys.exit(1)
+
+    print "results_dictionary = " + str(results_dictionary)
+
     # Finally, we turn all zeros into anti_1 bits
-    # load json
+
+    # Read in a new set of addends from the specified file, if
+    # desired. These are dumped by Myra's linguistic network.
+
     if current_params["read_input_from_file"]:
         with open(current_params["read_input_from_file"]) as data_file:    
             data = json.load(data_file)
@@ -533,11 +554,25 @@ def precompute_numerical_dictionaries():
         for i in range(len(data)):
            addend_dictionary[i+1] = data[i][2][:5]
 
-    print "addend_dictionary=" + str(addend_dictionary)
+    print "addend_dictionary = " + str(addend_dictionary)
 
     # The DIFF_DICTIONARY is a disctionary that caches the metri distance
     # between each number and all the others. It it used in say_next
     # to choose a next value (if PERR > 0).
+
+    # The diffs dictionary gives the confuser set to be used in
+    # say_next when PERR > 0. Unfortunately, these are very uneven,
+    # but they do give the correct ORDER of the confuser
+    # set. Therefore, instead of use the actual differences when we
+    # get to say_next, we ignore the actual values, and just use PERR
+    # to choose the wrong next number.
+
+    # FFF !!! This whole "next number" thing should be being done in
+    # counting practice, and counting practice ought to be being done
+    # with linguistic practice, rather than here. It's as though first
+    # you get number naming, THEN get counting, and counting confusion
+    # is only a function of number naming confusion, whereas it should
+    # be a function of counting confusion.
 
     diff_dictionary = {}
     for i in range(1,11):
@@ -548,10 +583,7 @@ def precompute_numerical_dictionaries():
                 sumdiff[k] = abs(diff)
         diff_dictionary[i] = sorted(sumdiff.items(), key=operator.itemgetter(1))
 
-    print "addend_dictionary = " + str(addend_dictionary)
-    print "diff_dictionary = " + str(diff_dictionary)
     print "diff_dictionary = " + lispify(diff_dictionary)
-    print "results_dictionary = " + str(results_dictionary)
 
 def precompute_strategy_dictionary():
     global strategy_dictionary
@@ -728,7 +760,7 @@ class NeuralNetwork:
         #print "y_index = " + str(self.y_index)
         index = self.y_index(a1, a2)
 
-        # Collect the values that come above cc.  print
+        # Collect the values that come above cc. print
         # "self.predictions = " + str(self.predictions) Get the keys
         # for all predictions in the indexed set that are above cc Uh
         # oh ... cc as the sum node value only works for a localist

@@ -703,5 +703,6 @@
 ;(analyze :its/p/v '(3676977173 :INITIAL_COUNTING_NETWORK_LEARNING_RATE 0.3) :comps '(:base-exact :adult))
 ;(analyze :its/p/v '(3676977173 :initial_counting_network_burn_in_epochs 5000) :comps '(:base-exact :adult))
 ;(analyze :low 20160709154946  :comps '(:base-exact :adult))
-;(analyze :comps '(:base-exact :adult))
-(analyze :comps '(:adult))
+;(analyze :comps '(:adult))
+;(analyze :low 20160814182645 :high 20160814191640 :comps '(:base-exact :adult))
+(analyze :comps '(:base-exact :adult))
