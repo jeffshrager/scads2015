@@ -2,7 +2,7 @@
 #******************************** REMEMBER TO CHANGE THE EXPERIMENT_LABEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #****************************************************************************************************************
 
-experiment_label = "\"5:3->10:1 (local) learning rate scan\""
+experiment_label = "\"new folder organiation testing\""
 
 # Notes:
 # Maybe should change PERR on every, say, pbs round (approx.: age) to
@@ -1064,7 +1064,7 @@ def dump_non_scanned_params():
 
 def gen_file_name():
     file_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'runlogs'), file_name + '.lisp')
+    full_file__name = os.path.join(os.path.join(os.path.dirname(__file__), 'addruns'), file_name + '.lisp')
     return full_file__name
 
 def top_level_run():
